@@ -6,6 +6,7 @@
 
 class QTableView;
 class QPushButton;
+class QLineEdit;   
 
 class AdminWindow : public QMainWindow
 {
@@ -19,12 +20,15 @@ private slots:
     void onEditClient();
     void onDeleteClient();
     void refreshModel();
+    void onSearch();   
 
 private:
     void setupUI();
     QSqlTableModel *clientModel;
     QTableView *clientView;
     QPushButton *addButton, *editButton, *deleteButton, *refreshButton;
+     QLineEdit *searchEdit;        // champ de recherche
+    QPushButton *searchButton;    // bouton rechercher
 };
 
 #endif

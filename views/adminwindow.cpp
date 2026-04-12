@@ -8,6 +8,9 @@
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlError>
+#include <QLineEdit>
+
+#include <QLabel>
 
 AdminWindow::AdminWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -22,6 +25,17 @@ void AdminWindow::setupUI()
     QWidget *central = new QWidget(this);
     setCentralWidget(central);
     QVBoxLayout *mainLayout = new QVBoxLayout(central);
+     QHBoxLayout *searchLayout = new QHBoxLayout;
+
+    searchLayout->addWidget(new QLabel("Rechercher par prénom :"));
+    searchEdit = new QLineEdit;
+    searchEdit->setPlaceholderText("Saisir le prénom...");
+    searchButton = new QPushButton("Rechercher");
+    QPushButton *resetButton = new QPushButton("Réinitialiser");
+    searchLayout->addWidget(searchEdit);
+    searchLayout->addWidget(searchButton);
+    searchLayout->addWidget(resetButton);
+    mainLayout->addLayout(searchLayout);
 
     clientModel = new QSqlTableModel(this);
     clientModel->setTable("clients");
@@ -46,17 +60,36 @@ void AdminWindow::setupUI()
     buttonLayout->addWidget(refreshButton);
     mainLayout->addLayout(buttonLayout);
 
+
+    // Connexions
     connect(addButton, &QPushButton::clicked, this, &AdminWindow::onAddClient);
     connect(editButton, &QPushButton::clicked, this, &AdminWindow::onEditClient);
     connect(deleteButton, &QPushButton::clicked, this, &AdminWindow::onDeleteClient);
     connect(refreshButton, &QPushButton::clicked, this, &AdminWindow::refreshModel);
+    connect(searchButton, &QPushButton::clicked, this, &AdminWindow::onSearch);
+       connect(resetButton, &QPushButton::clicked, [this]() {
+        searchEdit->clear();
+        clientModel->setFilter("");
+        refreshModel();
+    });
 }
 
 void AdminWindow::refreshModel()
 {
     clientModel->select();
 }
-
+void AdminWindow::onSearch()
+{
+    QString prenom = searchEdit->text().trimmed();
+    if (prenom.isEmpty()) {
+        clientModel->setFilter("");
+    } else {
+        // Filtrer sur la colonne "prenom" (nom exact dans la base)
+        clientModel->setFilter(QString("prenom LIKE '%%1%'").arg(prenom));
+    }
+     clientModel->select();
+       qDebug() << "Nombre de lignes après filtre:" << clientModel->rowCount();
+}
 void AdminWindow::onAddClient()
 {
     ClientEditDialog dlg(this);
