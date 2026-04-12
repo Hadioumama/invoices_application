@@ -1,0 +1,15 @@
+# Qt
+build/
+*.o
+*.obj
+*.log
+*.pro.user
+*.pro.user.*
+*.autosave
+
+# C++
+*.exe
+*.out
+
+# Linux
+*.swp

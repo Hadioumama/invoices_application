@@ -1,0 +1,27 @@
+{
+    "cmake.cmakePath": "C:/Qt/QT/Tools/CMake_64/bin/cmake.exe",
+    "cmake.configureArgs": [
+        "-DCMAKE_PREFIX_PATH=C:/Qt/QT/6.10.2/mingw_64"
+    ],
+    "cmake.buildDirectory": "${workspaceFolder}/build",
+    "cmake.additionalCompilerSearchDirs": [
+        "C:/Qt/QT/Tools/mingw1310_64/bin"
+    ],
+    "cmake.generator": "MinGW Makefiles",
+    "files.associations": {
+        "*.h": "cpp",
+        "*.cpp": "cpp"
+    },
+    "editor.formatOnSave": true,
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/**",
+        "C:/Qt/QT/6.10.2/mingw_64/include",
+        "C:/Qt/QT/6.10.2/mingw_64/include/QtCore",
+        "C:/Qt/QT/6.10.2/mingw_64/include/QtGui",
+        "C:/Qt/QT/6.10.2/mingw_64/include/QtWidgets",
+        "C:/Qt/QT/6.10.2/mingw_64/include/QtSql",
+        "C:/Qt/QT/6.10.2/mingw_64/include/QtNetwork"
+    ],
+    "C_Cpp.default.compilerPath": "C:/Qt/QT/Tools/mingw1310_64/bin/g++.exe",
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}
