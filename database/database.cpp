@@ -1,5 +1,6 @@
-
 #include "database.h"
+#include <QCryptographicHash>
+#include <QDebug>
 
 Database& Database::instance() {
     static Database instance;
@@ -24,25 +25,29 @@ void Database::disconnect() {
 bool Database::initializeTables() {
     QSqlQuery query;
 
-    // Table clients
+    // 1. Table clients (inclut la colonne role dès la création)
     bool ok = query.exec(R"(
         CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             nom TEXT NOT NULL,
             prenom TEXT NOT NULL,
             email TEXT NOT NULL UNIQUE,
-           mot_de_passe TEXT NOT NULL, 
+            mot_de_passe TEXT NOT NULL,
             adresse TEXT,
             telephone TEXT,
-            type TEXT NOT NULL CHECK(type IN ('personne', 'entreprise')),
+            type TEXT NOT NULL CHECK(type IN ('personne', 'entreprise','admin')),
             ice TEXT,
             nom_entreprise TEXT,
+            role TEXT DEFAULT 'client',
             date_creation DATETIME DEFAULT CURRENT_TIMESTAMP
         )
     )");
-    if (!ok) qDebug() << "Erreur clients:" << query.lastError().text();
+    if (!ok) {
+        qDebug() << "Erreur création table clients:" << query.lastError().text();
+        return false;
+    }
 
-    // Table articles (pour la suite)
+    // 2. Tables articles et factures (inchangées)
     ok = query.exec(R"(
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -55,7 +60,6 @@ bool Database::initializeTables() {
     )");
     if (!ok) qDebug() << "Erreur articles:" << query.lastError().text();
 
-    // Table factures (pour la suite)
     ok = query.exec(R"(
         CREATE TABLE IF NOT EXISTS factures (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -76,7 +80,6 @@ bool Database::initializeTables() {
     )");
     if (!ok) qDebug() << "Erreur factures:" << query.lastError().text();
 
-    // Table lignes_facture
     ok = query.exec(R"(
         CREATE TABLE IF NOT EXISTS lignes_facture (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -91,5 +94,13 @@ bool Database::initializeTables() {
     )");
     if (!ok) qDebug() << "Erreur lignes_facture:" << query.lastError().text();
 
+       QSqlQuery insertAdmin;
+insertAdmin.prepare("INSERT OR IGNORE INTO clients (nom, prenom, email, mot_de_passe, role) "
+                    "VALUES ('Admin', 'System', 'admin@facturation.com', 'admin123', 'admin')");
+if (!insertAdmin.exec()) {
+    qDebug() << "Erreur insertion admin:" << insertAdmin.lastError().text();
+} else {
+    qDebug() << "Admin inséré avec mot de passe en clair.";
+}
     return true;
 }
