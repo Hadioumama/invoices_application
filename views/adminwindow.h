@@ -3,10 +3,12 @@
 
 #include <QMainWindow>
 #include <QSqlTableModel>
+#include <QTabWidget>
 
 class QTableView;
 class QPushButton;
-class QLineEdit;   
+class QLineEdit;
+class InvoiceEditDialog;   
 
 class AdminWindow : public QMainWindow
 {
@@ -20,15 +22,32 @@ private slots:
     void onEditClient();
     void onDeleteClient();
     void refreshModel();
-    void onSearch();   
+    void onSearch();
+    
+    // NOUVELLES SLOTS POUR FACTURES
+    void onCreateInvoice();
+    void onEditInvoice();
+    void onDeleteInvoice();
+    void onInvoiceActions();
+    void onRefreshInvoices();
+    void onSearchInvoice();
 
 private:
     void setupUI();
-    QSqlTableModel *clientModel;
+
+    QSqlQueryModel *invoiceModel;
     QTableView *clientView;
     QPushButton *addButton, *editButton, *deleteButton, *refreshButton;
-     QLineEdit *searchEdit;        // champ de recherche
-    QPushButton *searchButton;    // bouton rechercher
+    QLineEdit *searchEdit;
+    QPushButton *searchButton;
+    
+    // WIDGETS FACTURES
+    QTabWidget *tabWidget;
+
+    QTableView *invoiceView;
+    QPushButton *createInvoiceBtn, *editInvoiceBtn, *deleteInvoiceBtn, *actionsBtn, *refreshInvoicesBtn;
+    QLineEdit *invoiceSearchEdit;
+    QPushButton *invoiceSearchBtn;
 };
 
-#endif
+#endif // ADMINWINDOW_H

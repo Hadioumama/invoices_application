@@ -14,12 +14,20 @@ find_package(Qt6 REQUIRED COMPONENTS Core Gui Widgets Sql Network)
 
 # Sources
 set(SOURCES
-    main.cpp
+       main.cpp
     mainwindow.cpp
     database/database.cpp
     models/client.cpp
     dialogs/registerdialog.cpp
+    dialogs/logindialog.cpp
+    dialogs/client_edit_dialog.cpp
+    dialogs/invoicecreatedialog.cpp
+    dialogs/invoiceactiondialog.cpp
     utils/emailsender.cpp
+    utils/invoicegenerator.cpp
+    views/clientwindow.cpp
+    views/adminwindow.cpp
+    
 )
 
 # Exécutable

@@ -1,28 +1,45 @@
-QT       += core gui sql widgets network
+QT += core gui sql widgets network printsupport
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
 SOURCES += \
-    dialogs/logindialog.cpp \
     main.cpp \
     mainwindow.cpp \
     database/database.cpp \
     models/client.cpp \
+    dialogs/logindialog.cpp \
     dialogs/registerdialog.cpp \
+    dialogs/client_edit_dialog.cpp \
+    dialogs/invoicecreatedialog.cpp \
+    dialogs/invoiceactiondialog.cpp \
+    dialogs/invoicedialog.cpp \
+    dialogs/invoiceitemdialog.cpp \
+    dialogs/invoiceeditdialog.cpp\
     utils/emailsender.cpp \
-    views/clientwindow.cpp\
-     views/adminwindow.cpp \
-    dialogs/client_edit_dialog.cpp
+    utils/invoicesenderdialog.cpp \
+    utils/invoicegenerator.cpp \
+    views/clientwindow.cpp \
+    views/adminwindow.cpp \
+    views/invoicemanagementwidget.cpp
+
 HEADERS += \
-    dialogs/logindialog.h \
     mainwindow.h \
     database/database.h \
     models/client.h \
-   dialogs/registerdialog.h \
+    dialogs/logindialog.h \
+    dialogs/registerdialog.h \
+    dialogs/client_edit_dialog.h \
+    dialogs/invoicecreatedialog.h \
+    dialogs/invoiceactiondialog.h \
+    dialogs/invoiceeditdialog.h\
+    dialogs/invoicedialog.h \
+    dialogs/invoiceitemdialog.h \
     utils/emailsender.h \
-    views/clientwindow.h\
-     views/adminwindow.h \
-    dialogs/client_edit_dialog.h
+    utils/invoicesenderdialog.h \
+    utils/invoicegenerator.h \
+    views/clientwindow.h \
+    views/adminwindow.h \
+    views/invoicemanagementwidget.h
 
 FORMS += \
     mainwindow.ui
