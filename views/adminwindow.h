@@ -2,7 +2,9 @@
 #define ADMINWINDOW_H
 
 #include <QMainWindow>
+#include <QComboBox>
 #include <QSqlTableModel>
+#include <QSqlQueryModel>
 #include <QTabWidget>
 
 class QTableView;
@@ -35,7 +37,9 @@ private slots:
 private:
     void setupUI();
 
-    QSqlQueryModel *invoiceModel;
+   QSqlQueryModel *invoiceModel;
+   QSqlTableModel *clientModel;
+   QComboBox *clientComboBox;
     QTableView *clientView;
     QPushButton *addButton, *editButton, *deleteButton, *refreshButton;
     QLineEdit *searchEdit;

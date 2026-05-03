@@ -103,21 +103,21 @@ if (logoHtml.isEmpty())
             Q_UNUSED(lq.value(3).toDouble());
             double  tot  = qty * prix;
             QString bg   = alt ? "#F5F8FF" : "#FFFFFF";
-            rowsHtml += QString(
-                "<tr>"
-                "<td style='padding:8px 10px;border-bottom:1px solid #E2E8F0;"
-                "background:%1;'>%2</td>"
-                "<td style='padding:8px 10px;border-bottom:1px solid #E2E8F0;"
-                "text-align:center;background:%1;'>%3</td>"
-                "<td style='padding:8px 10px;border-bottom:1px solid #E2E8F0;"
-                "text-align:right;background:%1;'>$%4</td>"
-                "<td style='padding:8px 10px;border-bottom:1px solid #E2E8F0;"
-                "text-align:right;font-weight:bold;background:%1;'>$%5</td>"
-                "</tr>"
-            ).arg(bg, des)
-             .arg(qty)
-             .arg(QString::number(prix,'f',2))
-             .arg(QString::number(tot,'f',2));
+          rowsHtml += QString(
+    "<tr style='background:%1;'>"
+    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
+    "color:#333;'>%2</td>"
+    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
+    "text-align:center;color:#333;'>%3</td>"
+    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
+    "text-align:right;color:#333;'>$%4</td>"
+    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
+    "text-align:right;font-weight:bold;color:#333;'>$%5</td>"
+    "</tr>"
+).arg(bg, des)
+ .arg(qty)
+ .arg(QString::number(prix,'f',2))
+ .arg(QString::number(tot,'f',2));
             alt = !alt;
         }
     }
@@ -134,83 +134,80 @@ html = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>"
        "<body style='margin:0;padding:0;font-family:Arial,sans-serif;"
        "font-size:10px;color:#333;background:white;'>";
 
-// ── HEADER FONCÉ ──────────────────────────────────────────
+// HEADER FONCÉ
 html += QString(
     "<table width='600' cellpadding='0' cellspacing='0' border='0' "
     "align='center' style='background:#1B2A3B;'>"
     "<tr>"
-    "<td style='padding:16px 20px;vertical-align:middle;width:55%%;'>"
-    "<table cellpadding='0' cellspacing='6' border='0'><tr>"
+    "<td style='padding:14px 20px;vertical-align:middle;width:50%%;'>"
+    "<table cellpadding='0' cellspacing='8' border='0'><tr>"
     "<td style='vertical-align:middle;'>%1</td>"
     "<td style='vertical-align:middle;'>"
-    "<span style='font-size:22px;font-weight:900;color:white;"
+    "<span style='font-size:20px;font-weight:900;color:white;"
     "letter-spacing:2px;text-transform:uppercase;'>%2</span>"
+    "</td></tr></table>"
     "</td>"
-    "</tr></table>"
-    "</td>"
-    "<td style='padding:16px 20px;vertical-align:middle;"
-    "text-align:right;width:45%%;'>"
-    "<span style='font-size:10px;color:rgba(255,255,255,0.6);'>"
-    "%3</span>"
-    "</td>"
-    "</tr></table>"
+    "<td style='padding:14px 20px;vertical-align:middle;"
+    "text-align:right;width:50%%;'>"
+    "<span style='font-size:9px;color:rgba(255,255,255,0.6);'>%3</span>"
+    "</td></tr></table>"
 ).arg(logoHtml,
       style.companyName.toHtmlEscaped(),
       style.companyWebsite.toHtmlEscaped());
 
-// ── INFOS ENTREPRISE + INVOICE ────────────────────────────
+// CORPS BLANC
+html += "<table width='600' cellpadding='0' cellspacing='0' border='0' "
+        "align='center' style='background:white;padding:20px;'>"
+        "<tr><td style='padding:20px;'>";
+
+// INFOS ENTREPRISE + INVOICE
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:16px 0 8px 0;'>"
-    "<tr>"
-    "<td width='320' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:15px;font-weight:bold;color:#1B2A3B;"
+    "<table width='100%%' cellpadding='0' cellspacing='0' border='0' "
+    "style='margin-bottom:16px;'><tr>"
+    "<td width='60%%' style='vertical-align:top;'>"
+    "<p style='font-size:14px;font-weight:bold;color:#1B2A3B;"
     "margin:0 0 4px;'>&lt;Company Name&gt;</p>"
     "<p style='font-size:9px;color:#666;margin:0;line-height:1.9;'>"
-    "%1<br>%2, %3<br>%4</p>"
+    "%1<br>%2<br>%3<br>%4</p>"
     "</td>"
-    "<td width='280' style='padding:0 20px;vertical-align:top;"
-    "text-align:right;'>"
-    "<p style='font-size:26px;font-weight:900;color:#1B2A3B;"
-    "margin:0;letter-spacing:1px;'>INVOICE</p>"
+    "<td width='40%%' style='vertical-align:top;text-align:right;'>"
+    "<p style='font-size:28px;font-weight:900;color:#1B2A3B;"
+    "margin:0 0 2px;letter-spacing:1px;'>INVOICE</p>"
     "<table cellpadding='3' cellspacing='0' border='0' "
-    "width='100%%' align='right' style='margin-top:4px;'>"
+    "width='100%%' align='right'>"
     "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;width:60%%;'>"
+    "<td style='color:#999;font-size:9px;text-align:left;'>"
     "Invoice No:</td>"
-    "<td style='font-size:9px;text-align:right;color:#333;'>"
-    "%5</td>"
+    "<td style='font-size:9px;text-align:right;color:#333;'>%5</td>"
     "</tr>"
     "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;'>"
+    "<td style='color:#999;font-size:9px;text-align:left;'>"
     "Invoice Date:</td>"
     "<td style='font-size:9px;text-align:right;color:%6;"
     "font-weight:bold;'>%7</td>"
     "</tr>"
     "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;'>"
+    "<td style='color:#999;font-size:9px;text-align:left;'>"
     "Due Date:</td>"
     "<td style='font-size:9px;text-align:right;color:#E53E3E;"
     "font-weight:bold;'>%8</td>"
     "</tr>"
     "</table>"
-    "</td>"
-    "</tr></table>"
+    "</td></tr></table>"
 ).arg(style.companyAddress.toHtmlEscaped(),
-      style.companyEmail.toHtmlEscaped(),
+      style.companyEmail.toHtmlEscaped() + ", " +
       style.companyWebsite.toHtmlEscaped(),
       style.companyPhone.toHtmlEscaped(),
-      numero, pc,
-      dateCreation, dateEcheance);
+      style.companyICE.isEmpty() ? "" :
+      "ICE: " + style.companyICE.toHtmlEscaped(),
+      numero, pc, dateCreation, dateEcheance);
 
-// ── BILL TO + LOCATION + STATUT ───────────────────────────
+// BILL TO + LOCATION + STATUT
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:10px 0;'>"
-    "<tr>"
-    // BILL TO
-    "<td width='200' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:8px;font-weight:bold;color:#888;"
+    "<table width='100%%' cellpadding='0' cellspacing='0' border='0' "
+    "style='margin-bottom:14px;'><tr>"
+    "<td width='35%%' style='vertical-align:top;'>"
+    "<p style='font-size:8px;font-weight:bold;color:#1B2A3B;"
     "text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;'>"
     "BILL TO</p>"
     "<p style='font-size:10px;font-weight:bold;color:#1B2A3B;"
@@ -218,19 +215,16 @@ html += QString(
     "<p style='font-size:9px;color:#666;margin:0;line-height:1.7;'>"
     "%2<br>%3<br>%4</p>"
     "</td>"
-    // LOCATION
-    "<td width='200' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:8px;font-weight:bold;color:#888;"
+    "<td width='35%%' style='vertical-align:top;padding-left:20px;'>"
+    "<p style='font-size:8px;font-weight:bold;color:#1B2A3B;"
     "text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;'>"
     "LOCATION</p>"
     "<p style='font-size:9px;color:#666;margin:0;line-height:1.7;'>"
     "&lt;Name&gt;<br>&lt;Address&gt;<br>&lt;Phone&gt;</p>"
     "</td>"
-    // STATUT
-    "<td width='200' style='padding:0 20px;vertical-align:top;"
-    "text-align:right;'>"
+    "<td width='30%%' style='vertical-align:top;text-align:right;'>"
     "<span style='background:%5;color:%6;padding:3px 10px;"
-    "border-radius:6px;font-size:8px;font-weight:bold;'>%7</span>"
+    "border-radius:4px;font-size:8px;font-weight:bold;'>%7</span>"
     "</td>"
     "</tr></table>"
 ).arg(clientNom.toHtmlEscaped(),
@@ -239,137 +233,122 @@ html += QString(
       clientEmail.toHtmlEscaped(),
       sBg, sCol, statut);
 
-// ── SÉPARATEUR ────────────────────────────────────────────
-html += "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-        "align='center' style='margin:10px 0 0 0;'>"
-        "<tr><td height='1' bgcolor='#E2E8F0'></td></tr></table>";
-
-// ── TABLEAU ARTICLES ──────────────────────────────────────
+// TABLEAU ARTICLES
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='border-collapse:collapse;'>"
-    "<thead>"
-    "<tr style='background:%1;'>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
+    "<table width='100%%' cellpadding='0' cellspacing='0' border='0' "
+    "style='border-collapse:collapse;margin-bottom:8px;'>"
+    "<thead><tr style='background:%1;'>"
+    "<th style='padding:8px 10px;color:white;font-size:9px;"
     "font-weight:bold;text-align:left;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:270px;'>DESCRIPTION</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
+    "letter-spacing:0.5px;width:50%%;'>DESCRIPTION</th>"
+    "<th style='padding:8px 10px;color:white;font-size:9px;"
     "font-weight:bold;text-align:center;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:55px;'>QTY</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
+    "width:12%%;'>QTY</th>"
+    "<th style='padding:8px 10px;color:white;font-size:9px;"
     "font-weight:bold;text-align:right;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:140px;'>UNIT PRICE</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
+    "width:19%%;'>UNIT PRICE</th>"
+    "<th style='padding:8px 10px;color:white;font-size:9px;"
     "font-weight:bold;text-align:right;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:120px;'>TOTAL</th>"
-    "</tr>"
-    "</thead>"
+    "width:19%%;'>TOTAL</th>"
+    "</tr></thead>"
     "<tbody>%2</tbody>"
     // Lignes vides
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
+    "<tr><td colspan='4' height='7' "
+    "style='border-bottom:1px solid #E8EDF2;'></td></tr>"
+    "<tr><td colspan='4' height='7' "
+    "style='border-bottom:1px solid #E8EDF2;'></td></tr>"
+    "<tr><td colspan='4' height='7' "
+    "style='border-bottom:1px solid #E8EDF2;'></td></tr>"
+    "<tr><td colspan='4' height='7' "
+    "style='border-bottom:1px solid #E8EDF2;'></td></tr>"
     "</table>"
 ).arg(pc, rowsHtml);
 
-// ── MERCI ─────────────────────────────────────────────────
+// MERCI
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:12px 0 6px 0;'>"
-    "<tr><td style='padding:0 20px;'>"
-    "<span style='font-size:11px;font-weight:bold;color:%1;font-style:italic;'>"
-    "Thank you for your business!</span>"
-    "</td></tr></table>"
+    "<p style='font-size:11px;font-weight:bold;color:%1;"
+    "font-style:italic;margin:10px 0 8px 0;'>"
+    "Thank you for your business!</p>"
 ).arg(pc);
 
-// ── TOTAUX + TERMS ────────────────────────────────────────
+// TOTAUX + TERMS
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center'>"
-    "<tr>"
-    // Totaux DROITE
-    "<td width='280' style='padding:0 0 0 0;vertical-align:top;'>"
-    "</td>"
-    "<td width='320' style='padding:0 20px 0 0;vertical-align:top;'>"
     "<table width='100%%' cellpadding='0' cellspacing='0' border='0'>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;"
-    "text-align:left;'>SUBTOTAL</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %1</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>DISCOUNT</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ 0.00</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>"
+    "<tr>"
+    "<td width='50%%' style='vertical-align:bottom;padding-right:20px;'>"
+    "</td>"
+    "<td width='50%%' style='vertical-align:top;'>"
+    "<table width='100%%' cellpadding='0' cellspacing='0' border='0'>"
+    "<tr style='border-bottom:1px solid #E8EDF2;'>"
+    "<td style='color:#666;font-size:9px;padding:5px 6px;text-align:left;'>"
+    "SUBTOTAL</td>"
+    "<td style='text-align:right;color:#333;font-size:9px;padding:5px 6px;'>"
+    "$%1</td></tr>"
+    "<tr style='border-bottom:1px solid #E8EDF2;'>"
+    "<td style='color:#666;font-size:9px;padding:5px 6px;'>DISCOUNT</td>"
+    "<td style='text-align:right;color:#333;font-size:9px;padding:5px 6px;'>"
+    "$0.00</td></tr>"
+    "<tr style='border-bottom:1px solid #E8EDF2;'>"
+    "<td style='color:#666;font-size:9px;padding:5px 6px;'>"
     "SUBTOTAL LESS DISCOUNT</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %2</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>TAX RATE</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>20%%</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>TOTAL TAX</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %3</td></tr>"
+    "<td style='text-align:right;color:#333;font-size:9px;padding:5px 6px;'>"
+    "$%2</td></tr>"
+    "<tr style='border-bottom:1px solid #E8EDF2;'>"
+    "<td style='color:#666;font-size:9px;padding:5px 6px;'>TAX RATE</td>"
+    "<td style='text-align:right;color:#333;font-size:9px;padding:5px 6px;'>"
+    "20%%</td></tr>"
+    "<tr style='border-bottom:1px solid #E8EDF2;'>"
+    "<td style='color:#666;font-size:9px;padding:5px 6px;'>TOTAL TAX</td>"
+    "<td style='text-align:right;color:#333;font-size:9px;padding:5px 6px;'>"
+    "$%3</td></tr>"
     "<tr style='background:%4;'>"
     "<td style='color:white;font-size:12px;font-weight:bold;"
-    "padding:11px 8px;'>Balance Due</td>"
+    "padding:10px 6px;'>Balance Due</td>"
     "<td style='color:white;font-size:14px;font-weight:bold;"
-    "text-align:right;padding:11px 8px;'>$ %5</td>"
+    "text-align:right;padding:10px 6px;'>$%5</td>"
     "</tr></table>"
-    "</td>"
-    "</tr></table>"
+    "</td></tr></table>"
 ).arg(QString::number(totalHT,  'f', 2),
       QString::number(totalHT,  'f', 2),
       QString::number(totalTVA, 'f', 2),
       pc,
       QString::number(totalTTC, 'f', 2));
 
-// ── TERMS ─────────────────────────────────────────────────
+// TERMS
 html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:14px 0 0 0;'>"
-    "<tr><td style='padding:0 20px;'>"
-    "<p style='font-size:9px;font-weight:bold;color:#333;margin:0 0 4px;'>"
-    "Terms &amp; Instructions</p>"
+    "<p style='font-size:9px;font-weight:bold;color:#1B2A3B;"
+    "margin:14px 0 4px 0;'>Terms &amp; Instructions</p>"
     "<p style='font-size:8px;color:#888;margin:0;line-height:1.7;'>"
-    "&lt;Add payment instructions here, e.g. bank, paypal...&gt;<br>"
-    "&lt;Add terms here, e.g. warranty, returns policy...&gt;<br>"
-    "Contact: %1</p>"
-    "</td></tr></table>"
-).arg(style.companyEmail.toHtmlEscaped());
+    "&lt;Add payment instructions here, e.g: bank, paypal...&gt;<br>"
+    "&lt;Add terms here, e.g: warranty, returns policy...&gt;</p>"
+);
 
-// ── FOOTER FONCÉ ──────────────────────────────────────────
+html += "</td></tr></table>"; // fin corps blanc
+
+// FOOTER
 html += QString(
     "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='background:#1B2A3B;margin-top:16px;'>"
+    "align='center' style='background:#1B2A3B;'>"
     "<tr>"
-    "<td width='300' style='padding:14px 20px;vertical-align:middle;'>"
+    "<td width='300' style='padding:12px 20px;vertical-align:middle;'>"
     "<p style='font-size:9px;color:rgba(255,255,255,0.7);"
-    "margin:0 0 3px;'>&#128222; %1</p>"
+    "margin:0 0 2px;'>&#128222; %1</p>"
     "<p style='font-size:9px;color:rgba(255,255,255,0.7);"
-    "margin:0 0 3px;'>&#127760; %2</p>"
+    "margin:0 0 2px;'>&#127760; %2</p>"
     "<p style='font-size:9px;color:rgba(255,255,255,0.7);"
-    "margin:0 0 3px;'>&#9993; %3</p>"
+    "margin:0 0 2px;'>&#9993; %3</p>"
     "<p style='font-size:9px;color:rgba(255,255,255,0.7);"
     "margin:0;'>&#128205; %4</p>"
     "</td>"
-    "<td width='300' style='padding:14px 20px;vertical-align:middle;"
+    "<td width='300' style='padding:12px 20px;vertical-align:middle;"
     "text-align:right;'>"
     "%5"
-    "<br>"
-    "<span style='display:inline-block;"
-    "border-top:1px dashed rgba(255,255,255,0.4);"
-    "width:160px;padding-top:5px;'>"
-    "<span style='font-size:9px;color:rgba(255,255,255,0.7);'>"
-    "Authorized Signature</span>"
-    "</span>"
+    "<table cellpadding='0' cellspacing='0' border='0' align='right'>"
+    "<tr><td style='border-top:1px dashed rgba(255,255,255,0.4);"
+    "width:160px;padding-top:5px;text-align:center;'>"
+    "<span style='font-size:8px;color:rgba(255,255,255,0.7);'>"
+    "&#169; TemplateLAB.com</span>"
+    "</td></tr></table>"
     "</td>"
     "</tr></table>"
 ).arg(style.companyPhone.toHtmlEscaped(),

@@ -73,7 +73,7 @@ QString m_signaturePath;
     QDoubleSpinBox *priceHTSpinBox;
     QDoubleSpinBox *taxRateSpinBox;
     QComboBox *clientComboBox;
-    QLineEdit *clientNomEdit;
+   
 
 
     // Totaux

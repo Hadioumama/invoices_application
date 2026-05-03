@@ -159,15 +159,28 @@ void AdminWindow::onSearchInvoice()
 {
     QString search = invoiceSearchEdit->text().trimmed();
     if (search.isEmpty()) {
-        invoiceModel->setFilter("");
-    } else {
-        invoiceModel->setFilter(
-            QString("numero LIKE '%%1%' OR client_id IN "
-                    "(SELECT id FROM clients WHERE nom LIKE '%%1%' OR prenom LIKE '%%1%')")
-            .arg(search)
+        invoiceModel->setQuery(
+            "SELECT f.id, f.numero, f.type, "
+            "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
+            "f.date_creation, f.date_echeance, "
+            "f.total_ht, f.total_tva, f.total_ttc, f.statut "
+            "FROM factures f "
+            "LEFT JOIN clients c ON f.client_id = c.id "
+            "ORDER BY f.id DESC"
         );
+    } else {
+        invoiceModel->setQuery(QString(
+            "SELECT f.id, f.numero, f.type, "
+            "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
+            "f.date_creation, f.date_echeance, "
+            "f.total_ht, f.total_tva, f.total_ttc, f.statut "
+            "FROM factures f "
+            "LEFT JOIN clients c ON f.client_id = c.id "
+            "WHERE f.numero LIKE '%%1%' OR f.client_nom LIKE '%%1%' "
+            "OR c.nom LIKE '%%1%' "
+            "ORDER BY f.id DESC"
+        ).arg(search));
     }
-    invoiceModel->select();
 }
 void AdminWindow::onCreateInvoice()
 {
@@ -208,32 +221,20 @@ void AdminWindow::refreshModel()
 {
     clientModel->select();
 }
-void AdminWindow::onSearchInvoice()
+void AdminWindow::onSearch()
 {
-    QString search = invoiceSearchEdit->text().trimmed();
-    if (search.isEmpty()) {
-        invoiceModel->setQuery(
-            "SELECT f.id, f.numero, f.type, "
-            "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
-            "f.date_creation, f.date_echeance, "
-            "f.total_ht, f.total_tva, f.total_ttc, f.statut "
-            "FROM factures f "
-            "LEFT JOIN clients c ON f.client_id = c.id "
-            "ORDER BY f.id DESC"
-        );
-    } else {
-        invoiceModel->setQuery(QString(
-            "SELECT f.id, f.numero, f.type, "
-            "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
-            "f.date_creation, f.date_echeance, "
-            "f.total_ht, f.total_tva, f.total_ttc, f.statut "
-            "FROM factures f "
-            "LEFT JOIN clients c ON f.client_id = c.id "
-            "WHERE f.numero LIKE '%%1%' OR f.client_nom LIKE '%%1%' "
-            "OR c.nom LIKE '%%1%' "
-            "ORDER BY f.id DESC"
-        ).arg(search));
+    QString prenom = searchEdit->text().trimmed();
+    if (prenom.isEmpty())
+    {
+        clientModel->setFilter("");
     }
+    else
+    {
+        // Filtrer sur la colonne "prenom" (nom exact dans la base)
+        clientModel->setFilter(QString("prenom LIKE '%%1%'").arg(prenom));
+    }
+    clientModel->select();
+    qDebug() << "Nombre de lignes après filtre:" << clientModel->rowCount();
 }
 void AdminWindow::onAddClient()
 {

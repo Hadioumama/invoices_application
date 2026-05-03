@@ -70,7 +70,22 @@ linesTable->setHorizontalHeaderLabels(
 linesTable->horizontalHeader()->setStretchLastSection(true);
 linesTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 linesTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+linesTable->setMinimumHeight(200);  // ← CRUCIAL
+linesTable->setMaximumHeight(300);
+linesTable->verticalHeader()->setVisible(false);
+linesTable->setAlternatingRowColors(true);
 linesTable->setColumnWidth(0, 200);
+linesTable->setColumnWidth(1, 50);
+linesTable->setColumnWidth(2, 80);
+linesTable->setColumnWidth(3, 60);
+linesTable->setColumnWidth(4, 80);
+linesTable->setShowGrid(true);
+linesTable->setStyleSheet(
+    "QTableWidget { border: 1px solid #E2E8F0; }"
+    "QTableWidget::item { padding: 4px; }"
+    "QHeaderView::section { background:#1565C0; color:white; "
+    "font-weight:bold; padding:6px; }"
+);
 lignesLayout->addWidget(linesTable);
 
 // Saisie ligne
@@ -184,26 +199,47 @@ void InvoiceEditDialog::refreshLinesTable()
 {
     linesTable->setRowCount(0);
     double ttc = 0;
-    for (const EditLineItem &item : m_lines) {
-        int row = linesTable->rowCount();
-        linesTable->insertRow(row);
-        double lineHT = item.quantity * item.priceHT;
-        ttc += lineHT * (1 + item.taxRate/100.0);
-        linesTable->setItem(row,0,
-            new QTableWidgetItem(item.designation));
-        linesTable->setItem(row,1,
-            new QTableWidgetItem(QString::number(item.quantity)));
-        linesTable->setItem(row,2,
-            new QTableWidgetItem(QString::number(item.priceHT,'f',2)));
-        linesTable->setItem(row,3,
-            new QTableWidgetItem(QString::number(item.taxRate,'f',1)+"%"));
-        linesTable->setItem(row,4,
-            new QTableWidgetItem(QString::number(lineHT,'f',2)));
-    }
-    totalLabel->setText(QString("Total TTC: %1 MAD")
-                        .arg(ttc, 0,'f',2));
-}
 
+    qDebug() << "Refresh table avec" << m_lines.size() << "lignes";
+
+    for (int i = 0; i < m_lines.size(); i++) {
+        const EditLineItem &item = m_lines[i];
+        linesTable->insertRow(i);
+
+        double lineHT = item.quantity * item.priceHT;
+        ttc += lineHT * (1.0 + item.taxRate / 100.0);
+
+        auto mkItem = [](const QString &txt, 
+                         Qt::Alignment align = Qt::AlignLeft|Qt::AlignVCenter) {
+            QTableWidgetItem *it = new QTableWidgetItem(txt);
+            it->setTextAlignment(align);
+            it->setFlags(it->flags() & ~Qt::ItemIsEditable);
+            return it;
+        };
+
+        linesTable->setItem(i, 0, mkItem(item.designation));
+        linesTable->setItem(i, 1, mkItem(
+            QString::number(item.quantity),
+            Qt::AlignCenter));
+        linesTable->setItem(i, 2, mkItem(
+            QString::number(item.priceHT,'f',2),
+            Qt::AlignRight|Qt::AlignVCenter));
+        linesTable->setItem(i, 3, mkItem(
+            QString::number(item.taxRate,'f',1)+"%",
+            Qt::AlignCenter));
+        linesTable->setItem(i, 4, mkItem(
+            QString::number(lineHT,'f',2),
+            Qt::AlignRight|Qt::AlignVCenter));
+
+        linesTable->setRowHeight(i, 28);
+    }
+
+    totalLabel->setText(
+        QString("Total TTC: %1 MAD").arg(ttc, 0,'f',2));
+    
+    linesTable->update();
+    linesTable->repaint();
+}
 void InvoiceEditDialog::onAddLine()
 {
     if (desigEdit->text().trimmed().isEmpty()) {
