@@ -22,6 +22,7 @@ public:
                                 const QString &body,
                                 const QString &attachmentPath);
 private:
+
  bool sendSmtpWithAttachment(const QString &to,
                                const QString &subject,
                                const QString &body,

@@ -21,7 +21,6 @@ SOURCES += \
     views/clientwindow.cpp \
     views/adminwindow.cpp \
     views/invoicemanagementwidget.cpp
-
 HEADERS += \
     mainwindow.h \
     database/database.h \
@@ -35,6 +34,7 @@ HEADERS += \
     dialogs/invoicedialog.h \
     dialogs/invoiceitemdialog.h \
     utils/emailsender.h \
+    utils/invoicehtmlgenerator.h \
     utils/invoicesenderdialog.h \
     utils/invoicegenerator.h \
     views/clientwindow.h \
