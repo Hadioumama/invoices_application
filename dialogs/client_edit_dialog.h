@@ -6,6 +6,7 @@
 class QLineEdit;
 class QComboBox;
 class QPushButton;
+class QLabel;
 
 class ClientEditDialog : public QDialog
 {
@@ -21,7 +22,9 @@ private slots:
 private:
     void loadClient(int id);
     void saveClient();
-
+    // Dans client_edit_dialog.h, ajoute dans private:
+     QLabel *labelNomEntreprise;
+      QLabel *labelICE;
     QLineEdit *lineEditNom, *lineEditPrenom, *lineEditEmail;
     QLineEdit *lineEditAdresse, *lineEditTelephone;
     QLineEdit *lineEditMotDePasse;

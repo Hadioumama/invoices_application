@@ -14,6 +14,7 @@
 #include <QLineEdit>
 #include <QLabel>
 #include <QFileDialog>
+#include <QTabWidget>
 #include "utils/invoicegenerator.h"
 #include "dialogs/invoicecreatedialog.h"
 #include "dialogs/invoiceactiondialog.h"
@@ -53,42 +54,76 @@ void AdminWindow::setupUI()
     invoiceSearchLayout->addWidget(invoiceSearchEdit);
     invoiceSearchLayout->addWidget(invoiceSearchBtn);
     invoiceTabLayout->addLayout(invoiceSearchLayout);
-    // Recherche clients (code existant)
-    QHBoxLayout *searchLayout = new QHBoxLayout;
-    searchLayout->addWidget(new QLabel("Rechercher par prénom :"));
-    searchEdit = new QLineEdit;
-    searchEdit->setPlaceholderText("Saisir le prénom...");
-    searchButton = new QPushButton("Rechercher");
-    QPushButton *resetButton = new QPushButton("Réinitialiser");
-    searchLayout->addWidget(searchEdit);
-    searchLayout->addWidget(searchButton);
-    searchLayout->addWidget(resetButton);
-    clientTabLayout->addLayout(searchLayout);
+   // ================= CLIENTS =================
 
-    // Table clients (code existant)
-    clientModel = new QSqlTableModel(this);
-    clientModel->setTable("clients");
-    clientModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
-    clientModel->select();
+// Recherche
+QHBoxLayout *searchLayout = new QHBoxLayout;
 
-    clientView = new QTableView;
-    clientView->setModel(clientModel);
-    clientView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    clientView->setSelectionMode(QAbstractItemView::SingleSelection);
-    clientView->horizontalHeader()->setStretchLastSection(true);
-    clientTabLayout->addWidget(clientView);
+QLabel *searchLabel = new QLabel("Rechercher par prénom :");
 
-    // Boutons clients (code existant)
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    addButton = new QPushButton("Ajouter");
-    editButton = new QPushButton("Modifier");
-    deleteButton = new QPushButton("Supprimer");
-    refreshButton = new QPushButton("Actualiser");
-    buttonLayout->addWidget(addButton);
-    buttonLayout->addWidget(editButton);
-    buttonLayout->addWidget(deleteButton);
-    buttonLayout->addWidget(refreshButton);
-    clientTabLayout->addLayout(buttonLayout);
+searchEdit = new QLineEdit;
+searchEdit->setPlaceholderText("Saisir le prénom...");
+
+searchButton = new QPushButton("Rechercher");
+
+QPushButton *resetButton = new QPushButton("Réinitialiser");
+
+searchLayout->addWidget(searchLabel);
+searchLayout->addWidget(searchEdit);
+searchLayout->addWidget(searchButton);
+searchLayout->addWidget(resetButton);
+
+clientTabLayout->addLayout(searchLayout);
+
+// ================= MODEL =================
+
+clientModel = new QSqlTableModel(this);
+
+clientModel->setTable("clients");
+
+clientModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
+
+clientModel->select();
+
+// ================= TABLE =================
+
+clientView = new QTableView;
+
+clientView->setModel(clientModel);
+
+clientView->setSelectionBehavior(QAbstractItemView::SelectRows);
+
+clientView->setSelectionMode(QAbstractItemView::SingleSelection);
+
+clientView->horizontalHeader()->setStretchLastSection(true);
+
+// cacher colonnes sensibles
+clientView->setColumnHidden(4, true);
+clientView->setColumnHidden(5, true);
+
+clientTabLayout->addWidget(clientView);
+
+// ================= BOUTONS =================
+
+QHBoxLayout *buttonLayout = new QHBoxLayout;
+
+addButton = new QPushButton("Ajouter");
+
+editButton = new QPushButton("Modifier");
+
+deleteButton = new QPushButton("Supprimer");
+
+refreshButton = new QPushButton("Actualiser");
+
+buttonLayout->addWidget(addButton);
+
+buttonLayout->addWidget(editButton);
+
+buttonLayout->addWidget(deleteButton);
+
+buttonLayout->addWidget(refreshButton);
+
+clientTabLayout->addLayout(buttonLayout);
        QHBoxLayout *invoiceButtonLayout = new QHBoxLayout;
     createInvoiceBtn = new QPushButton("+ Créer Facture");
     editInvoiceBtn = new QPushButton("✎ Modifier");
@@ -101,13 +136,17 @@ void AdminWindow::setupUI()
     invoiceButtonLayout->addWidget(actionsBtn);
     invoiceButtonLayout->addWidget(refreshInvoicesBtn);
     invoiceTabLayout->addLayout(invoiceButtonLayout);
-
+      connect(addButton, &QPushButton::clicked,
+        this, &AdminWindow::onAddClient);
     connect(createInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onCreateInvoice);
     connect(editInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onEditInvoice);
     connect(deleteInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
     connect(actionsBtn, &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
     connect(refreshInvoicesBtn, &QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
-
+    connect(deleteButton,
+        &QPushButton::clicked,
+        this,
+        &AdminWindow::onDeleteClient);
     tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
 invoiceModel = new QSqlQueryModel(this);
 invoiceModel->setQuery(
@@ -219,29 +258,28 @@ void AdminWindow::onDeleteInvoice()
 }
 void AdminWindow::refreshModel()
 {
+    clientModel->setFilter("");
     clientModel->select();
 }
 void AdminWindow::onSearch()
 {
     QString prenom = searchEdit->text().trimmed();
-    if (prenom.isEmpty())
-    {
-        clientModel->setFilter("");
-    }
-    else
-    {
-        // Filtrer sur la colonne "prenom" (nom exact dans la base)
-        clientModel->setFilter(QString("prenom LIKE '%%1%'").arg(prenom));
+    if (prenom.isEmpty()) {
+        clientModel->setFilter("role = 'client'");
+    } else {
+        clientModel->setFilter(
+            QString("role = 'client' AND prenom LIKE '%%1%'")
+            .arg(prenom));
     }
     clientModel->select();
-    qDebug() << "Nombre de lignes après filtre:" << clientModel->rowCount();
 }
 void AdminWindow::onAddClient()
 {
     ClientEditDialog dlg(this);
-    if (dlg.exec() == QDialog::Accepted)
-    {
+    if (dlg.exec() == QDialog::Accepted) {
         refreshModel();
+        QMessageBox::information(this, "Succès", 
+                                 "Client ajouté avec succès !");
     }
 }
 

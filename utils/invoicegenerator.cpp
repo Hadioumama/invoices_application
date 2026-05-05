@@ -1,7 +1,6 @@
 #include "utils/invoicegenerator.h"
 #include "database/database.h"
 #include <QPrinter>
-#include <QScrollArea>
 #include <QTextDocument>
 #include <QSqlQuery>
 #include <QSqlError>
@@ -12,6 +11,8 @@
 #include <QPageSize>
 #include <QFile>
 #include <QFileInfo>
+#include <QProcess>
+#include <QTemporaryFile>
 
 InvoiceGenerator::InvoiceGenerator() {}
 
@@ -29,8 +30,7 @@ QString InvoiceGenerator::getInvoiceFileName(const QString &numeroFacture)
     return QString("Facture_%1.pdf").arg(n.replace("/","_").replace(" ","_"));
 }
 
-static QString imageToBase64Html(const QString &path,
-                                  int maxW, int maxH)
+static QString imageToBase64Html(const QString &path, int maxW, int maxH)
 {
     if (path.isEmpty() || !QFile::exists(path)) return "";
     QFile f(path);
@@ -38,12 +38,10 @@ static QString imageToBase64Html(const QString &path,
     QByteArray data = f.readAll();
     QString ext = QFileInfo(path).suffix().toLower();
     QString mime = (ext == "png") ? "image/png" : "image/jpeg";
-    return QString("<img src='data:%1;base64,%2' width='%3' height='%4'"
-                   " style='max-width:%3px;max-height:%4px;'/>")
+    return QString("<img src='data:%1;base64,%2' width='%3' height='%4' style='max-width:%3px;max-height:%4px;'/>")
            .arg(mime, QString(data.toBase64()))
            .arg(maxW).arg(maxH);
 }
-
 bool InvoiceGenerator::generatePDF(int invoiceId,
                                     const QString &filePath,
                                     const InvoiceStyle &style)
@@ -73,20 +71,10 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
     double  totalTTC     = q.value(10).toDouble();
     QString statut       = q.value(11).toString();
 
-    QString pc = style.primaryColor;
-
     // Logo
- QString logoHtml = imageToBase64Html(style.logoPath, 180, 90);
-if (logoHtml.isEmpty())
-    logoHtml = QString(
-        "<span style='font-size:28px;font-weight:900;color:white;"
-        "letter-spacing:2px;'>LOGO</span>");
+    QString logoHtml = imageToBase64Html(style.logoPath, 180, 90);
     if (logoHtml.isEmpty())
-        logoHtml = QString("<span style='font-size:22px;font-weight:900;"
-                           "color:white;letter-spacing:2px;'>LOGO</span>");
-
-    // Signature
-    QString signHtml = imageToBase64Html(style.signaturePath, 130, 45);
+        logoHtml = QString("<span style='font-size:28px;font-weight:900;color:white;letter-spacing:2px;'>LOGO HERE</span>");
 
     // Lignes articles
     QSqlQuery lq;
@@ -95,7 +83,7 @@ if (logoHtml.isEmpty())
     lq.addBindValue(invoiceId);
 
     QString rowsHtml;
-    bool alt = false;
+    int rowNum = 1;
     if (lq.exec()) {
         while (lq.next()) {
             QString des  = lq.value(0).toString().toHtmlEscaped();
@@ -103,285 +91,198 @@ if (logoHtml.isEmpty())
             double  prix = lq.value(2).toDouble();
             Q_UNUSED(lq.value(3).toDouble());
             double  tot  = qty * prix;
-            QString bg   = alt ? "#F5F8FF" : "#FFFFFF";
-          rowsHtml += QString(
-    "<tr style='background:%1;'>"
-    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
-    "color:#333;'>%2</td>"
-    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
-    "text-align:center;color:#333;'>%3</td>"
-    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
-    "text-align:right;color:#333;'>$%4</td>"
-    "<td style='padding:7px 10px;border-bottom:1px solid #E8EDF2;"
-    "text-align:right;font-weight:bold;color:#333;'>$%5</td>"
-    "</tr>"
-).arg(bg, des)
- .arg(qty)
- .arg(QString::number(prix,'f',2))
- .arg(QString::number(tot,'f',2));
-            alt = !alt;
+            
+            rowsHtml += QString(
+                "<tr style='border-bottom:1px solid #e0e0e0;'>"
+                "<td style='padding:10px 15px; font-size:12px; color:#333;'>%1. %2</td>"
+                "<td style='padding:10px 15px; font-size:12px; color:#555; text-align:center;'>%3</td>"
+                "<td style='padding:10px 15px; font-size:12px; color:#555; text-align:center;'>$%4</td>"
+                "<td style='padding:10px 15px; font-size:12px; color:#555; text-align:center; font-weight:bold;'>$%5</td>"
+                "</tr>"
+            ).arg(rowNum).arg(des).arg(qty)
+             .arg(QString::number(prix,'f',2))
+             .arg(QString::number(tot,'f',2));
+            
+                      rowNum++;
         }
     }
 
-    // Statut couleur
-    QString sBg="#FFF3CD", sCol="#856404";
-    if (statut=="Payée")   { sBg="#D4EDDA"; sCol="#155724"; }
-    if (statut=="Envoyée") { sBg="#CCE5FF"; sCol="#004085"; }
-    if (statut=="Annulée") { sBg="#F8D7DA"; sCol="#721C24"; }
+    // ============================================
+    // CALCUL HAUTEUR ÉLASTIQUE (AVANT QString html)
+    // ============================================
+   int elasticHeight = 80;   // Essayez 150, 200, 250, 300 selon besoin
 
-    // HTML complet — tableaux imbriqués compatibles Qt
-QString html;
-html = "<!DOCTYPE html><html><head><meta charset='UTF-8'></head>"
-       "<body style='margin:0;padding:0;font-family:Arial,sans-serif;"
-       "font-size:10px;color:#333;background:white;'>";
+    QString html;
 
-// ── HEADER FONCÉ ──────────────────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='background:#1B2A3B;'>"
-    "<tr>"
-    "<td style='padding:16px 20px;vertical-align:middle;width:55%%;'>"
-    "<table cellpadding='0' cellspacing='6' border='0'><tr>"
-    "<td style='vertical-align:middle;'>%1</td>"
-    "<td style='vertical-align:middle;'>"
-    "<span style='font-size:22px;font-weight:900;color:white;"
-    "letter-spacing:2px;text-transform:uppercase;'>%2</span>"
-    "</td>"
-    "</tr></table>"
-    "</td>"
-    "<td style='padding:16px 20px;vertical-align:middle;"
-    "text-align:right;width:45%%;'>"
-    "<span style='font-size:10px;color:rgba(255,255,255,0.6);'>"
-    "%3</span>"
-    "</td>"
-    "</tr></table>"
-).arg(logoHtml,
-      style.companyName.toHtmlEscaped(),
-      style.companyWebsite.toHtmlEscaped());
+    // ============================================
+    // HTML ULTRA-SIMPLIFIÉ - 100% QTEXTDOCUMENT
+    // ============================================
+    html = QString(
+        "<!DOCTYPE html>"
+        "<html>"
+        "<head><meta charset='UTF-8'></head>"
+        "<body style='margin:0; padding:0; font-family:Arial,sans-serif;'>"
 
-// ── INFOS ENTREPRISE + INVOICE ────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:16px 0 8px 0;'>"
-    "<tr>"
-    "<td width='320' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:15px;font-weight:bold;color:#1B2A3B;"
-    "margin:0 0 4px;'>&lt;Company Name&gt;</p>"
-    "<p style='font-size:9px;color:#666;margin:0;line-height:1.9;'>"
-    "%1<br>%2, %3<br>%4</p>"
-    "</td>"
-    "<td width='280' style='padding:0 20px;vertical-align:top;"
-    "text-align:right;'>"
-    "<p style='font-size:26px;font-weight:900;color:#1B2A3B;"
-    "margin:0;letter-spacing:1px;'>INVOICE</p>"
-    "<table cellpadding='3' cellspacing='0' border='0' "
-    "width='100%%' align='right' style='margin-top:4px;'>"
-    "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;width:60%%;'>"
-    "Invoice No:</td>"
-    "<td style='font-size:9px;text-align:right;color:#333;'>"
-    "%5</td>"
-    "</tr>"
-    "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;'>"
-    "Invoice Date:</td>"
-    "<td style='font-size:9px;text-align:right;color:%6;"
-    "font-weight:bold;'>%7</td>"
-    "</tr>"
-    "<tr>"
-    "<td style='color:#888;font-size:9px;text-align:left;'>"
-    "Due Date:</td>"
-    "<td style='font-size:9px;text-align:right;color:#E53E3E;"
-    "font-weight:bold;'>%8</td>"
-    "</tr>"
-    "</table>"
-    "</td>"
-    "</tr></table>"
-).arg(style.companyAddress.toHtmlEscaped(),
-      style.companyEmail.toHtmlEscaped(),
-      style.companyWebsite.toHtmlEscaped(),
-      style.companyPhone.toHtmlEscaped(),
-      numero, pc,
-      dateCreation, dateEcheance);
+        // TABLE PRINCIPALE - CONTENEUR
+        "<table width='600' align='center' cellpadding='0' cellspacing='0' style='background:white;'>"
+        "<tr><td>"
 
-// ── BILL TO + LOCATION + STATUT ───────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:10px 0;'>"
-    "<tr>"
-    // BILL TO
-    "<td width='200' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:8px;font-weight:bold;color:#888;"
-    "text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;'>"
-    "BILL TO</p>"
-    "<p style='font-size:10px;font-weight:bold;color:#1B2A3B;"
-    "margin:0 0 3px;'>%1</p>"
-    "<p style='font-size:9px;color:#666;margin:0;line-height:1.7;'>"
-    "%2<br>%3<br>%4</p>"
-    "</td>"
-    // LOCATION
-    "<td width='200' style='padding:0 20px;vertical-align:top;'>"
-    "<p style='font-size:8px;font-weight:bold;color:#888;"
-    "text-transform:uppercase;letter-spacing:1px;margin:0 0 5px;'>"
-    "LOCATION</p>"
-    "<p style='font-size:9px;color:#666;margin:0;line-height:1.7;'>"
-    "&lt;Name&gt;<br>&lt;Address&gt;<br>&lt;Phone&gt;</p>"
-    "</td>"
-    // STATUT
-    "<td width='200' style='padding:0 20px;vertical-align:top;"
-    "text-align:right;'>"
-    "<span style='background:%5;color:%6;padding:3px 10px;"
-    "border-radius:6px;font-size:8px;font-weight:bold;'>%7</span>"
-    "</td>"
-    "</tr></table>"
-).arg(clientNom.toHtmlEscaped(),
-      clientAddr.toHtmlEscaped(),
-      clientTel.toHtmlEscaped(),
-      clientEmail.toHtmlEscaped(),
-      sBg, sCol, statut);
+        // HEADER BLEU
+        "<table width='600' cellpadding='0' cellspacing='0' style='background:#4db8e8;'>"
+        "<tr>"
+        "<td style='padding:25px 40px; width:50%;'>"
+        "<span style='font-size:14px; font-weight:bold; letter-spacing:2px; color:white;'>LOGO HERE</span>"
+        "</td>"
+        "<td style='padding:25px 40px; width:50%; text-align:right;'>"
+        "<span style='font-size:28px; font-weight:bold; letter-spacing:3px; color:white;'>INVOICE</span>"
+        "</td>"
+        "</tr>"
+        "</table>"
 
-// ── SÉPARATEUR ────────────────────────────────────────────
-html += "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-        "align='center' style='margin:10px 0 0 0;'>"
-        "<tr><td height='1' bgcolor='#E2E8F0'></td></tr></table>";
+        // ESPACE
+        "<table width='600' cellpadding='0' cellspacing='0'><tr><td height='25'></td></tr></table>"
 
-// ── TABLEAU ARTICLES ──────────────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='border-collapse:collapse;'>"
-    "<thead>"
-    "<tr style='background:%1;'>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
-    "font-weight:bold;text-align:left;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:270px;'>DESCRIPTION</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
-    "font-weight:bold;text-align:center;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:55px;'>QTY</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
-    "font-weight:bold;text-align:right;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:140px;'>UNIT PRICE</th>"
-    "<th style='padding:9px 14px;color:white;font-size:9px;"
-    "font-weight:bold;text-align:right;text-transform:uppercase;"
-    "letter-spacing:0.8px;width:120px;'>TOTAL</th>"
-    "</tr>"
-    "</thead>"
-    "<tbody>%2</tbody>"
-    // Lignes vides
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
-    "<tr><td colspan='4' height='8' "
-    "style='border-bottom:1px solid #EDF2F7;'></td></tr>"
-    "</table>"
-).arg(pc, rowsHtml);
+        // INFOS CLIENT + FACTURE
+        "<table width='600' cellpadding='0' cellspacing='0'>"
+        "<tr>"
+        "<td style='padding:0 40px; width:60%;'>"
+        "<p style='color:#4db8e8; font-size:13px; font-weight:bold; margin:0 0 8px 0; text-transform:uppercase;'>Invoice to:</p>"
+        "<p style='color:#666; font-size:12px; line-height:1.6; margin:0;'>"
+        "<b>Name:</b> %1<br>%2<br>%3"
+        "</p>"
+        "</td>"
+        "<td style='padding:0 40px; width:40%; text-align:right;'>"
+        "<p style='margin:0; color:#666; font-size:12px;'>Invoice No: <b style='color:#333;'>%4</b></p>"
+        "<p style='margin:0; color:#666; font-size:12px;'>Date: <b style='color:#333;'>%5</b></p>"
+        "</td>"
+        "</tr>"
+        "</table>"
 
-// ── MERCI ─────────────────────────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:12px 0 6px 0;'>"
-    "<tr><td style='padding:0 20px;'>"
-    "<span style='font-size:11px;font-weight:bold;color:%1;font-style:italic;'>"
-    "Thank you for your business!</span>"
-    "</td></tr></table>"
-).arg(pc);
+        // ESPACE
+        "<table width='600' cellpadding='0' cellspacing='0'><tr><td height='25'></td></tr></table>"
 
-// ── TOTAUX + TERMS ────────────────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center'>"
-    "<tr>"
-    // Totaux DROITE
-    "<td width='280' style='padding:0 0 0 0;vertical-align:top;'>"
-    "</td>"
-    "<td width='320' style='padding:0 20px 0 0;vertical-align:top;'>"
-    "<table width='100%%' cellpadding='0' cellspacing='0' border='0'>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;"
-    "text-align:left;'>SUBTOTAL</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %1</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>DISCOUNT</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ 0.00</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>"
-    "SUBTOTAL LESS DISCOUNT</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %2</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>TAX RATE</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>20%%</td></tr>"
-    "<tr style='border-bottom:1px solid #EDF2F7;'>"
-    "<td style='color:#666;font-size:9px;padding:5px 8px;'>TOTAL TAX</td>"
-    "<td style='text-align:right;color:#333;font-size:9px;"
-    "padding:5px 8px;'>$ %3</td></tr>"
-    "<tr style='background:%4;'>"
-    "<td style='color:white;font-size:12px;font-weight:bold;"
-    "padding:11px 8px;'>Balance Due</td>"
-    "<td style='color:white;font-size:14px;font-weight:bold;"
-    "text-align:right;padding:11px 8px;'>$ %5</td>"
-    "</tr></table>"
-    "</td>"
-    "</tr></table>"
-).arg(QString::number(totalHT,  'f', 2),
-      QString::number(totalHT,  'f', 2),
-      QString::number(totalTVA, 'f', 2),
-      pc,
-      QString::number(totalTTC, 'f', 2));
+        // TABLEAU ARTICLES
+        "<table width='520' align='center' cellpadding='0' cellspacing='0'>"
+        "<tr style='background:#4db8e8;'>"
+        "<td style='padding:10px 15px; color:white; font-size:12px; font-weight:bold; text-transform:uppercase; width:50%;'>Description</td>"
+        "<td style='padding:10px 15px; color:white; font-size:12px; font-weight:bold; text-transform:uppercase; text-align:center; width:16%;'>Qty</td>"
+        "<td style='padding:10px 15px; color:white; font-size:12px; font-weight:bold; text-transform:uppercase; text-align:center; width:17%;'>Price</td>"
+        "<td style='padding:10px 15px; color:white; font-size:12px; font-weight:bold; text-transform:uppercase; text-align:center; width:17%;'>Total</td>"
+        "</tr>"
+        "%6"
+        "</table>"
 
-// ── TERMS ─────────────────────────────────────────────────
-html += QString(
-    "<table width='600' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='margin:14px 0 0 0;'>"
-    "<tr><td style='padding:0 20px;'>"
-    "<p style='font-size:9px;font-weight:bold;color:#333;margin:0 0 4px;'>"
-    "Terms &amp; Instructions</p>"
-    "<p style='font-size:8px;color:#888;margin:0;line-height:1.7;'>"
-    "&lt;Add payment instructions here, e.g. bank, paypal...&gt;<br>"
-    "&lt;Add terms here, e.g. warranty, returns policy...&gt;<br>"
-    "Contact: %1</p>"
-    "</td></tr></table>"
-).arg(style.companyEmail.toHtmlEscaped());
+        // ESPACE
+        "<table width='600' cellpadding='0' cellspacing='0'><tr><td height='20'></td></tr></table>"
 
-// ── FOOTER FONCÉ ──────────────────────────────────────────
-html += QString(
-    "<table width='100%' cellpadding='0' cellspacing='0' border='0' "
-    "align='center' style='background:#1B2A3B;margin-top:16px;'>"
-    "<tr>"
-    "<td width='50%' style='padding:14px 40px;vertical-align:middle;'>"
-    "<p style='font-size:9px;color:rgb(255, 255, 255);"
-    "margin:0 0 3px;'>&#128222; %1</p>"
-    "<p style='font-size:9px;color:rgb(255, 255, 255);"
-    "margin:0 0 3px;'>&#127760; %2</p>"
-    "<p style='font-size:9px;color:rgb(255, 255, 255);"
-    "margin:0 0 3px;'>&#9993; %3</p>"
-    "<p style='font-size:9px;color:rgb(255, 255, 255);"
-    "margin:0;'>&#128205; %4</p>"
-    "</td>"
-    "<td width='50%' style='padding:14px 40px;vertical-align:middle;"
-    "text-align:right;'>"
-    "%5"
-    "<br>"
-    "<span style='display:inline-block;"
-    "border-top:1px dashed rgb(255, 255, 255);"
-    "width:160px;padding-top:5px;'>"
-    "<span style='font-size:9px;color:rgb(255, 255, 255);'>"
-    "Authorized Signature</span>"
-    "</span>"
-    "</td>"
-    "</tr></table>"
-).arg(style.companyPhone.toHtmlEscaped(),
-      style.companyWebsite.toHtmlEscaped(),
-      style.companyEmail.toHtmlEscaped(),
-      style.companyAddress.toHtmlEscaped(),
-      signHtml);
+        // TOTALS SECTION
+        "<table width='600' cellpadding='0' cellspacing='0'>"
+        "<tr>"
+        "<td style='padding:0 40px; width:50%;'>"
+        "<p style='color:#4db8e8; font-size:11px; font-weight:bold; margin:0 0 8px 0; text-transform:uppercase;'>Bank Info:</p>"
+        "<p style='font-size:10px; color:#666; line-height:1.5; margin:0;'>"
+        "Bank Name: %7<br>"
+        "Bank Account: %8<br>"
+        "Code: %9"
+        "</p>"
+        "<p style='color:#4db8e8; font-size:11px; font-weight:bold; margin:15px 0 8px 0; text-transform:uppercase;'>Payment Info:</p>"
+        "<p style='font-size:10px; color:#666; line-height:1.5; margin:0;'>"
+        "Account: %10<br>"
+        "A/C Name: %11<br>"
+        "Bank Details: %12"
+        "</p>"
+        "</td>"
+        "<td style='padding:0 40px; width:50%; text-align:right;'>"
+        "<table width='260' cellpadding='0' cellspacing='0' style='background:#e8f4fc;' align='right'>"
+        "<tr>"
+        "<td style='padding:8px 15px; color:#666; font-size:12px; text-align:right;'>Sub Total:</td>"
+        "<td style='padding:8px 15px; color:#333; font-size:12px; font-weight:bold; text-align:right;'>$%13</td>"
+        "</tr>"
+        "<tr>"
+        "<td style='padding:8px 15px; color:#666; font-size:12px; text-align:right;'>Tax:</td>"
+        "<td style='padding:8px 15px; color:#333; font-size:12px; font-weight:bold; text-align:right;'>%14</td>"
+        "</tr>"
+        "<tr>"
+        "<td style='padding:8px 15px; color:#666; font-size:12px; text-align:right;'>Tax Rate:</td>"
+        "<td style='padding:8px 15px; color:#333; font-size:12px; font-weight:bold; text-align:right;'>%15</td>"
+        "</tr>"
+        "<tr><td colspan='2' style='border-top:1px solid #4db8e8; height:8px;'></td></tr>"
+        "<tr>"
+        "<td style='padding:8px 15px; color:#4db8e8; font-size:14px; font-weight:bold; text-align:right;'>TOTAL:</td>"
+        "<td style='padding:8px 15px; color:#4db8e8; font-size:14px; font-weight:bold; text-align:right;'>$%16</td>"
+        "</tr>"
+        "</table>"
+        "</td>"
+        "</tr>"
+        "</table>"
 
-html += "</body></html>";
+        // ESPACE ÉLASTIQUE
+        "<table width='600' cellpadding='0' cellspacing='0'><tr><td height='%21'></td></tr></table>"
 
-    // Générer PDF
+        // TERMS & SIGNATURE
+        "<table width='600' cellpadding='0' cellspacing='0'>"
+        "<tr>"
+        "<td style='padding:0 40px 30px 40px; width:70%;'>"
+        "<p style='color:#4db8e8; font-size:11px; font-weight:bold; margin:0 0 8px 0; text-transform:uppercase;'>Terms & Conditions:</p>"
+        "<p style='font-size:9px; color:#999; line-height:1.4; margin:0;'>"
+        "%17"
+        "</p>"
+        "</td>"
+        "<td style='padding:0 40px 30px 40px; width:30%; text-align:right; vertical-align:bottom;'>"
+        "<p style='font-size:11px; color:#666; font-style:italic; margin:0;'>Authorized Sign</p>"
+        "</td>"
+        "</tr>"
+        "</table>"
+
+        // FOOTER BLEU
+        "<table width='600' cellpadding='0' cellspacing='0' style='background:#4db8e8;'>"
+        "<tr>"
+        "<td style='padding:15px 40px; font-size:10px; color:white; text-align:left; width:33%;'>"
+        "<span style='display:inline-block; width:20px; height:20px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:20px; margin-right:8px;'>&#9742;</span>"
+        "%18"
+        "</td>"
+        "<td style='padding:15px 40px; font-size:10px; color:white; text-align:center; width:33%;'>"
+        "<span style='display:inline-block; width:20px; height:20px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:20px; margin-right:8px;'>&#9993;</span>"
+        "%19"
+        "</td>"
+        "<td style='padding:15px 40px; font-size:10px; color:white; text-align:right; width:33%;'>"
+        "<span style='display:inline-block; width:20px; height:20px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:20px; margin-right:8px;'>&#127760;</span>"
+        "%20"
+        "</td>"
+        "</tr>"
+        "</table>"
+
+        "</td></tr>"
+        "</table>"
+
+        "</body></html>"
+    ).arg(
+        clientNom,              // %1
+        clientAddr,             // %2
+        clientEmail,            // %3
+        numero,                 // %4
+        dateCreation,           // %5
+        rowsHtml,               // %6
+        style.companyName.isEmpty() ? "Lorem Ipsum Bank" : style.companyName,
+        style.companyPhone.isEmpty() ? "0123 4567 89" : style.companyPhone,
+        style.companyICE.isEmpty() ? "LOREMIPS" : style.companyICE,
+        style.companyPhone.isEmpty() ? "0123 4567 89" : style.companyPhone,
+        style.companyName.isEmpty() ? "Lorem Ipsum" : style.companyName,
+        "Add your details",
+        QString::number(totalHT, 'f', 2),
+        QString::number(totalTVA, 'f', 2),
+        QString::number(totalTVA > 0 && totalHT > 0 ? (totalTVA/totalHT*100) : 0, 'f', 0) + "%",
+        QString::number(totalTTC, 'f', 2),
+        "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.",
+        style.companyPhone.isEmpty() ? "000 1234 5678" : style.companyPhone,
+        style.companyEmail.isEmpty() ? "your.email@site.com" : style.companyEmail,
+        style.companyWebsite.isEmpty() ? "www.website.com" : style.companyWebsite,
+               QString::number(elasticHeight)  // %21
+    );
+
+    // ============================================
+    // GÉNÉRATION PDF AVEC QTEXTDOCUMENT
+    // ============================================
     QString outputPath = filePath.isEmpty() ?
         getPdfOutputPath() + "/" + getInvoiceFileName(numero) : filePath;
 
@@ -389,35 +290,61 @@ html += "</body></html>";
     printer.setOutputFormat(QPrinter::PdfFormat);
     printer.setOutputFileName(outputPath);
     printer.setPageSize(QPageSize(QPageSize::A4));
-  printer.setPageMargins(
-    QMarginsF(10, 10, 10, 10), QPageLayout::Millimeter);
+    printer.setPageMargins(QMarginsF(0, 0, 0, 0), QPageLayout::Millimeter);
     printer.setPageOrientation(QPageLayout::Portrait);
 
-QTextDocument doc;
-doc.setHtml(html);
-doc.setPageSize(QSizeF(printer.pageRect(QPrinter::Point).size()));
-doc.setDefaultStyleSheet("* { margin:0; padding:0; }");
-doc.print(&printer);
+    QTextDocument doc;
+    doc.setHtml(html);
+    doc.setPageSize(QSizeF(printer.pageRect(QPrinter::Point).size()));
+    doc.setDefaultStyleSheet("* { margin:0; padding:0; }");
+    doc.print(&printer);
 
     qDebug() << "PDF généré:" << outputPath;
     return true;
 }
-
 bool InvoiceGenerator::printInvoice(int invoiceId, const InvoiceStyle &style)
 {
     QString tmp = getPdfOutputPath() + "/print_temp.pdf";
     return generatePDF(invoiceId, tmp, style);
 }
 
-void InvoiceGenerator::drawInvoiceContent(QPainter &p,int id,const QPageSize &ps)
-{Q_UNUSED(p)Q_UNUSED(id)Q_UNUSED(ps)}
-void InvoiceGenerator::drawHeader(QPainter &p,int id,int &y)
-{Q_UNUSED(p)Q_UNUSED(id)Q_UNUSED(y)}
-void InvoiceGenerator::drawInvoiceDetails(QPainter &p,int id,int &y)
-{Q_UNUSED(p)Q_UNUSED(id)Q_UNUSED(y)}
-void InvoiceGenerator::drawItemsTable(QPainter &p,int id,int &y)
-{Q_UNUSED(p)Q_UNUSED(id)Q_UNUSED(y)}
-void InvoiceGenerator::drawTotals(QPainter &p,int id,int &y)
-{Q_UNUSED(p)Q_UNUSED(id)Q_UNUSED(y)}
-void InvoiceGenerator::drawFooter(QPainter &p,const QPageSize &ps)
-{Q_UNUSED(p)Q_UNUSED(ps)}
+void InvoiceGenerator::drawInvoiceContent(QPainter &p, int id, const QPageSize &ps)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(id)
+    Q_UNUSED(ps)
+}
+
+void InvoiceGenerator::drawHeader(QPainter &p, int id, int &y)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(id)
+    Q_UNUSED(y)
+}
+
+void InvoiceGenerator::drawInvoiceDetails(QPainter &p, int id, int &y)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(id)
+    Q_UNUSED(y)
+}
+
+void InvoiceGenerator::drawItemsTable(QPainter &p, int id, int &y)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(id)
+    Q_UNUSED(y)
+}
+
+void InvoiceGenerator::drawTotals(QPainter &p, int id, int &y)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(id)
+    Q_UNUSED(y)
+}
+
+void InvoiceGenerator::drawFooter(QPainter &p, const QPageSize &ps)
+{
+    Q_UNUSED(p)
+    Q_UNUSED(ps)
+}
