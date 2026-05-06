@@ -16,6 +16,7 @@
 #include <QFileDialog>
 #include <QTabWidget>
 #include "utils/invoicegenerator.h"
+#include "views/dashboardwidget.h"
 #include "dialogs/invoicecreatedialog.h"
 #include "dialogs/invoiceactiondialog.h"
 AdminWindow::AdminWindow(QWidget *parent) : QMainWindow(parent)
@@ -147,6 +148,8 @@ clientTabLayout->addLayout(buttonLayout);
         &QPushButton::clicked,
         this,
         &AdminWindow::onDeleteClient);
+        DashboardWidget *dashboard = new DashboardWidget(this);
+tabWidget->addTab(dashboard, "📊 Dashboard");
     tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
 invoiceModel = new QSqlQueryModel(this);
 invoiceModel->setQuery(
@@ -188,6 +191,7 @@ connect(invoiceSearchEdit, &QLineEdit::returnPressed, this, &AdminWindow::onSear
         clientModel->setFilter("");
         refreshModel();
     });
+    
 
     // Ajouter le tab des clients
     tabWidget->addTab(clientTab, "📋 Gestion Clients");

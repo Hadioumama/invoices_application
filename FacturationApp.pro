@@ -1,4 +1,4 @@
-QT += core gui sql widgets network printsupport
+QT += core gui sql widgets network printsupport charts
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
@@ -19,6 +19,7 @@ SOURCES += \
     utils/invoicesenderdialog.cpp \
     utils/invoicegenerator.cpp \
     views/clientwindow.cpp \
+    views/dashboardwidget.cpp\
     views/adminwindow.cpp \
     views/invoicemanagementwidget.cpp
 HEADERS += \
@@ -39,6 +40,7 @@ HEADERS += \
     utils/invoicegenerator.h \
     views/clientwindow.h \
     views/adminwindow.h \
+     views/dashboardwidget.h\
     views/invoicemanagementwidget.h
 
 FORMS += \
