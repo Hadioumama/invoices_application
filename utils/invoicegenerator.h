@@ -17,7 +17,7 @@ struct InvoiceStyle {
     QString companyWebsite = "www.entreprise.com";
     QString companyICE     = "000000000000000";
     QString terms;
-    
+  
 };
 
 class InvoiceGenerator

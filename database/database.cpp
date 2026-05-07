@@ -48,19 +48,20 @@ bool Database::initializeTables() {
         qDebug() << "Erreur création table clients:" << query.lastError().text();
         return false;
     }
-
-    // 2. Tables articles et factures (inchangées)
-    ok = query.exec(R"(
-        CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            reference TEXT UNIQUE NOT NULL,
-            designation TEXT NOT NULL,
-            prix_ht REAL NOT NULL,
-            taux_tva REAL DEFAULT 20.0,
-            stock INTEGER DEFAULT 0
-        )
-    )");
-    if (!ok) qDebug() << "Erreur articles:" << query.lastError().text();
+//unité:kg,m,L,boite 
+ok = query.exec(R"(
+    CREATE TABLE IF NOT EXISTS articles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        reference TEXT UNIQUE NOT NULL,
+        designation TEXT NOT NULL,
+        prix_ht REAL NOT NULL,
+        taux_tva REAL DEFAULT 20.0,
+        stock INTEGER DEFAULT 0,
+        unite TEXT DEFAULT 'unité',
+        description TEXT
+    )
+)");
+if (!ok) qDebug() << "Erreur articles:" << query.lastError().text();
 
    ok = query.exec(R"(
     CREATE TABLE IF NOT EXISTS factures (

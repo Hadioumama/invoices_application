@@ -56,99 +56,99 @@ void InvoiceCreateDialog::setupUI()
     factureForm->addRow("Date échéance:", dateEcheanceEdit);
     factureForm->addRow("Statut:", statusCombo);
     mainLayout->addWidget(factureGroup);
-// ===== GROUPE PERSONNALISATION =====
-QGroupBox *persoGroup = new QGroupBox("Personnalisation (Entreprise)");
-QFormLayout *persoForm = new QFormLayout(persoGroup);
-// Logo
-QHBoxLayout *logoLayout = new QHBoxLayout;
-logoPathEdit = new QLineEdit;
-logoPathEdit->setPlaceholderText("Chemin du logo...");
-logoPathEdit->setReadOnly(true);
-logoBtn = new QPushButton("📁 Choisir Logo");
-logoBtn->setFixedWidth(130);
-logoPreview = new QLabel;
-logoPreview->setFixedSize(80, 50);
-logoPreview->setStyleSheet("border:1px solid #ccc;");
-logoPreview->setScaledContents(true);
-logoLayout->addWidget(logoPathEdit);
-logoLayout->addWidget(logoBtn);
-logoLayout->addWidget(logoPreview);
-persoForm->addRow("Logo entreprise:", logoLayout);
 
-// Signature
-QHBoxLayout *signLayout = new QHBoxLayout;
-signaturePathEdit = new QLineEdit;
-signaturePathEdit->setPlaceholderText("Chemin de la signature...");
-signaturePathEdit->setReadOnly(true);
-signatureBtn = new QPushButton("📁 Choisir Signature");
-signatureBtn->setFixedWidth(130);
-signaturePreview = new QLabel;
-signaturePreview->setFixedSize(80, 50);
-signaturePreview->setStyleSheet("border:1px solid #ccc;");
-signaturePreview->setScaledContents(true);
-signLayout->addWidget(signaturePathEdit);
-signLayout->addWidget(signatureBtn);
-signLayout->addWidget(signaturePreview);
-persoForm->addRow("Signature:", signLayout);
+    // ===== GROUPE PERSONNALISATION =====
+    QGroupBox *persoGroup = new QGroupBox("Personnalisation (Entreprise)");
+    QFormLayout *persoForm = new QFormLayout(persoGroup);
 
-mainLayout->addWidget(persoGroup);
+    // Logo
+    QHBoxLayout *logoLayout = new QHBoxLayout;
+    logoPathEdit = new QLineEdit;
+    logoPathEdit->setPlaceholderText("Chemin du logo...");
+    logoPathEdit->setReadOnly(true);
+    logoBtn = new QPushButton("📁 Choisir Logo");
+    logoBtn->setFixedWidth(130);
+    logoPreview = new QLabel;
+    logoPreview->setFixedSize(80, 50);
+    logoPreview->setStyleSheet("border:1px solid #ccc;");
+    logoPreview->setScaledContents(true);
+    logoLayout->addWidget(logoPathEdit);
+    logoLayout->addWidget(logoBtn);
+    logoLayout->addWidget(logoPreview);
+    persoForm->addRow("Logo entreprise:", logoLayout);
+
+    // Signature
+    QHBoxLayout *signLayout = new QHBoxLayout;
+    signaturePathEdit = new QLineEdit;
+    signaturePathEdit->setPlaceholderText("Chemin de la signature...");
+    signaturePathEdit->setReadOnly(true);
+    signatureBtn = new QPushButton("📁 Choisir Signature");
+    signatureBtn->setFixedWidth(130);
+    signaturePreview = new QLabel;
+    signaturePreview->setFixedSize(80, 50);
+    signaturePreview->setStyleSheet("border:1px solid #ccc;");
+    signaturePreview->setScaledContents(true);
+    signLayout->addWidget(signaturePathEdit);
+    signLayout->addWidget(signatureBtn);
+    signLayout->addWidget(signaturePreview);
+    persoForm->addRow("Signature:", signLayout);
+
+    mainLayout->addWidget(persoGroup);
+
     // ===== GROUPE INFOS CLIENT =====
-   QGroupBox *clientGroup = new QGroupBox("Informations Client");
-QFormLayout *clientForm = new QFormLayout(clientGroup);
+    QGroupBox *clientGroup = new QGroupBox("Informations Client");
+    QFormLayout *clientForm = new QFormLayout(clientGroup);
 
-// ComboBox avec clients existants + option saisie libre
-clientComboBox = new QComboBox;
-clientComboBox->setEditable(true);
-clientComboBox->addItem("-- Nouveau client --", -1);
+    clientComboBox = new QComboBox;
+    clientComboBox->setEditable(true);
+    clientComboBox->addItem("-- Nouveau client --", -1);
 
-// Charger les clients existants
-QSqlQuery qc("SELECT id, nom, prenom, adresse, telephone, email "
-             "FROM clients WHERE role = 'client' ORDER BY nom");
-while (qc.next()) {
-    QString display = qc.value(1).toString() + " " + 
-                      qc.value(2).toString();
-    clientComboBox->addItem(display, qc.value(0).toInt());
-}
+    QSqlQuery qc("SELECT id, nom, prenom, adresse, telephone, email "
+                 "FROM clients WHERE role = 'client' ORDER BY nom");
+    while (qc.next()) {
+        QString display = qc.value(1).toString() + " " + 
+                          qc.value(2).toString();
+        clientComboBox->addItem(display, qc.value(0).toInt());
+    }
 
-clientNomEdit = new QLineEdit;
-clientNomEdit->setPlaceholderText("Nom complet ou entreprise...");
-clientAdresseEdit = new QLineEdit;
-clientAdresseEdit->setPlaceholderText("Adresse complète...");
-clientTelEdit = new QLineEdit;
-clientTelEdit->setPlaceholderText("+212 6XX XXX XXX");
-clientEmailEdit = new QLineEdit;
-clientEmailEdit->setPlaceholderText("email@exemple.com");
+    clientNomEdit = new QLineEdit;
+    clientNomEdit->setPlaceholderText("Nom complet ou entreprise...");
+    clientAdresseEdit = new QLineEdit;
+    clientAdresseEdit->setPlaceholderText("Adresse complète...");
+    clientTelEdit = new QLineEdit;
+    clientTelEdit->setPlaceholderText("+212 6XX XXX XXX");
+    clientEmailEdit = new QLineEdit;
+    clientEmailEdit->setPlaceholderText("email@exemple.com");
 
-clientForm->addRow("Choisir client:", clientComboBox);
-clientForm->addRow("Nom / Entreprise:*", clientNomEdit);
-clientForm->addRow("Adresse:", clientAdresseEdit);
-clientForm->addRow("Téléphone:", clientTelEdit);
-clientForm->addRow("Email:", clientEmailEdit);
-mainLayout->addWidget(clientGroup);
+    clientForm->addRow("Choisir client:", clientComboBox);
+    clientForm->addRow("Nom / Entreprise:*", clientNomEdit);
+    clientForm->addRow("Adresse:", clientAdresseEdit);
+    clientForm->addRow("Téléphone:", clientTelEdit);
+    clientForm->addRow("Email:", clientEmailEdit);
+    mainLayout->addWidget(clientGroup);
 
-// Quand on sélectionne un client existant, remplir les champs
-connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-    [this](int index) {
-        int clientId = clientComboBox->currentData().toInt();
-        if (clientId <= 0) {
-            clientNomEdit->clear();
-            clientAdresseEdit->clear();
-            clientTelEdit->clear();
-            clientEmailEdit->clear();
-            return;
-        }
-        QSqlQuery q;
-        q.prepare("SELECT nom, prenom, adresse, telephone, email "
-                  "FROM clients WHERE id = ?");
-        q.addBindValue(clientId);
-        if (q.exec() && q.next()) {
-            clientNomEdit->setText(
-                q.value(0).toString() + " " + q.value(1).toString());
-            clientAdresseEdit->setText(q.value(2).toString());
-            clientTelEdit->setText(q.value(3).toString());
-            clientEmailEdit->setText(q.value(4).toString());
-        }
-    });
+    connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        [this](int index) {
+            int clientId = clientComboBox->currentData().toInt();
+            if (clientId <= 0) {
+                clientNomEdit->clear();
+                clientAdresseEdit->clear();
+                clientTelEdit->clear();
+                clientEmailEdit->clear();
+                return;
+            }
+            QSqlQuery q;
+            q.prepare("SELECT nom, prenom, adresse, telephone, email "
+                      "FROM clients WHERE id = ?");
+            q.addBindValue(clientId);
+            if (q.exec() && q.next()) {
+                clientNomEdit->setText(
+                    q.value(0).toString() + " " + q.value(1).toString());
+                clientAdresseEdit->setText(q.value(2).toString());
+                clientTelEdit->setText(q.value(3).toString());
+                clientEmailEdit->setText(q.value(4).toString());
+            }
+        });
 
     // ===== TABLE LIGNES =====
     QGroupBox *lignesGroup = new QGroupBox("Articles / Services");
@@ -165,14 +165,18 @@ connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
     linesTable->setColumnWidth(3, 70);
     lignesLayout->addWidget(linesTable);
 
-    // Saisie ligne
+    // ===== SAISIE LIGNE AVEC COMBO ARTICLES =====
     QHBoxLayout *lineEditLayout = new QHBoxLayout;
-    lineEditLayout->addWidget(new QLabel("Désignation:"));
-    designationEdit = new QLineEdit;
-    designationEdit->setPlaceholderText("Nom article/service...");
-    designationEdit->setMinimumWidth(200);
-    lineEditLayout->addWidget(designationEdit);
-
+    
+    // ComboBox articles
+    articleComboBox = new QComboBox;
+    articleComboBox->setEditable(true);
+    articleComboBox->addItem("-- Saisie manuelle --", -1);
+    articleComboBox->setMinimumWidth(250);
+    
+    lineEditLayout->addWidget(new QLabel("Article:"));
+    lineEditLayout->addWidget(articleComboBox);
+    
     lineEditLayout->addWidget(new QLabel("Qté:"));
     quantitySpinBox = new QSpinBox;
     quantitySpinBox->setMinimum(1);
@@ -196,6 +200,15 @@ connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
     lineEditLayout->addWidget(taxRateSpinBox);
 
     lignesLayout->addLayout(lineEditLayout);
+    
+    // Champ désignation (pour saisie manuelle ou affichage)
+    designationEdit = new QLineEdit;
+    designationEdit->setPlaceholderText("Nom article/service...");
+    designationEdit->setMinimumWidth(200);
+    QHBoxLayout *descLayout = new QHBoxLayout;
+    descLayout->addWidget(new QLabel("Désignation:"));
+    descLayout->addWidget(designationEdit);
+    lignesLayout->addLayout(descLayout);
 
     // Boutons lignes
     QHBoxLayout *lineBtnLayout = new QHBoxLayout;
@@ -209,6 +222,13 @@ connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
     lignesLayout->addLayout(lineBtnLayout);
 
     mainLayout->addWidget(lignesGroup);
+
+    // Charger les articles dans le combo
+    loadArticles();
+
+    // Connexion combo article
+    connect(articleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+            this, &InvoiceCreateDialog::onArticleSelected);
 
     // ===== TOTAUX =====
     QHBoxLayout *totalsLayout = new QHBoxLayout;
@@ -243,29 +263,44 @@ connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
     connect(removeLineBtn, &QPushButton::clicked, this, &InvoiceCreateDialog::onRemoveLine);
     connect(saveBtn, &QPushButton::clicked, this, &InvoiceCreateDialog::onSave);
     connect(cancelBtn, &QPushButton::clicked, this, &InvoiceCreateDialog::onCancel);
-    // Connexions boutons
-connect(logoBtn, &QPushButton::clicked, this, [this]() {
-    QString path = QFileDialog::getOpenFileName(this, "Choisir le logo",
-                   "", "Images (*.png *.jpg *.jpeg)");
-    if (!path.isEmpty()) {
-        logoPathEdit->setText(path);
-        logoPreview->setPixmap(QPixmap(path));
-    }
-});
+    
+    connect(logoBtn, &QPushButton::clicked, this, [this]() {
+        QString path = QFileDialog::getOpenFileName(this, "Choisir le logo",
+                       "", "Images (*.png *.jpg *.jpeg)");
+        if (!path.isEmpty()) {
+            logoPathEdit->setText(path);
+            logoPreview->setPixmap(QPixmap(path));
+        }
+    });
 
-connect(signatureBtn, &QPushButton::clicked, this, [this]() {
-    QString path = QFileDialog::getOpenFileName(this, "Choisir la signature",
-                   "", "Images (*.png *.jpg *.jpeg)");
-    if (!path.isEmpty()) {
-        signaturePathEdit->setText(path);
-        signaturePreview->setPixmap(QPixmap(path));
-    }
-});
+    connect(signatureBtn, &QPushButton::clicked, this, [this]() {
+        QString path = QFileDialog::getOpenFileName(this, "Choisir la signature",
+                       "", "Images (*.png *.jpg *.jpeg)");
+        if (!path.isEmpty()) {
+            signaturePathEdit->setText(path);
+            signaturePreview->setPixmap(QPixmap(path));
+        }
+    });
 }
 
-
 void InvoiceCreateDialog::loadClients() {}
-void InvoiceCreateDialog::loadArticles() {}
+void InvoiceCreateDialog::loadArticles()
+{
+    articleComboBox->clear();
+    articleComboBox->addItem("-- Saisie manuelle --", -1);
+    
+    QSqlQuery q("SELECT id, reference, designation, prix_ht, taux_tva "
+                "FROM articles ORDER BY designation");
+    while (q.next()) {
+        QString display = q.value(2).toString() + " (" + q.value(1).toString() + ")";
+        articleComboBox->addItem(display, q.value(0).toInt());
+        // Stocker les données supplémentaires
+        articleComboBox->setItemData(articleComboBox->count() - 1, 
+                                     q.value(3).toDouble(), Qt::UserRole + 1);  // prix_ht
+        articleComboBox->setItemData(articleComboBox->count() - 1, 
+                                     q.value(4).toDouble(), Qt::UserRole + 2);  // taux_tva
+    }
+}
 void InvoiceCreateDialog::loadInvoiceLines() {}
 void InvoiceCreateDialog::updateLineData() {}
 
@@ -298,7 +333,18 @@ void InvoiceCreateDialog::calculateTotals() { refreshLineTable(); }
 
 void InvoiceCreateDialog::onAddLine()
 {
-    if (designationEdit->text().trimmed().isEmpty()) {
+    QString designation;
+    int articleId = articleComboBox->currentData().toInt();
+    
+    if (articleId > 0) {
+        // Article du catalogue
+        designation = designationEdit->text().trimmed();
+    } else {
+        // Saisie manuelle
+        designation = articleComboBox->currentText().trimmed();
+    }
+    
+    if (designation.isEmpty()) {
         QMessageBox::warning(this, "Erreur", "Entrez une désignation");
         return;
     }
@@ -308,13 +354,15 @@ void InvoiceCreateDialog::onAddLine()
     }
 
     InvoiceLineItem item;
-    item.articleId = 0;
-    item.designation = designationEdit->text().trimmed();
+    item.articleId = articleId > 0 ? articleId : 0;  // 0 si saisie manuelle
+    item.designation = designation;
     item.quantity = quantitySpinBox->value();
     item.priceHT = priceHTSpinBox->value();
     item.taxRate = taxRateSpinBox->value();
     m_lineItems.append(item);
 
+    // Réinitialiser
+    articleComboBox->setCurrentIndex(0);
     designationEdit->clear();
     quantitySpinBox->setValue(1);
     priceHTSpinBox->setValue(0);
@@ -333,9 +381,29 @@ void InvoiceCreateDialog::onRemoveLine()
 }
 
 void InvoiceCreateDialog::onEditLine() {}
-void InvoiceCreateDialog::onArticleSelected(int index) { Q_UNUSED(index) }
+void InvoiceCreateDialog::onArticleSelected(int index)
+{
+    int articleId = articleComboBox->currentData().toInt();
+    
+    if (articleId <= 0) {
+        // Saisie manuelle - vider les champs
+        designationEdit->clear();
+        priceHTSpinBox->setValue(0);
+        taxRateSpinBox->setValue(20);
+        return;
+    }
+    
+    // Article existant - remplir automatiquement
+    QSqlQuery q;
+    q.prepare("SELECT designation, prix_ht, taux_tva FROM articles WHERE id = ?");
+    q.addBindValue(articleId);
+    if (q.exec() && q.next()) {
+        designationEdit->setText(q.value(0).toString());
+        priceHTSpinBox->setValue(q.value(1).toDouble());
+        taxRateSpinBox->setValue(q.value(2).toDouble());
+    }
+}
 void InvoiceCreateDialog::onLineDataChanged() {}
-
 void InvoiceCreateDialog::onSave()
 {
     if (clientNomEdit->text().trimmed().isEmpty()) {
@@ -358,14 +426,18 @@ void InvoiceCreateDialog::onSave()
         totalTVA += ht * item.taxRate / 100.0;
     }
 
+    m_logoPath = logoPathEdit->text();
+    m_signaturePath = signaturePathEdit->text();
+
     QSqlQuery q;
     q.prepare("INSERT INTO factures "
               "(numero, type, client_id, client_nom, client_adresse, client_tel, client_email, "
-              "date_creation, date_echeance, statut, total_ht, total_tva, total_ttc) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)");
+              "date_creation, date_echeance, statut, total_ht, total_tva, total_ttc, "
+              "logo_path, signature_path) "
+              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
     q.addBindValue(numeroEdit->text().trimmed());
     q.addBindValue(typeCombo->currentText());
-    q.addBindValue(1); // client_id admin par défaut
+    q.addBindValue(1);
     q.addBindValue(clientNomEdit->text().trimmed());
     q.addBindValue(clientAdresseEdit->text().trimmed());
     q.addBindValue(clientTelEdit->text().trimmed());
@@ -376,7 +448,10 @@ void InvoiceCreateDialog::onSave()
     q.addBindValue(totalHT);
     q.addBindValue(totalTVA);
     q.addBindValue(totalHT + totalTVA);
+    q.addBindValue(m_logoPath);
+    q.addBindValue(m_signaturePath);
 
+    // SUPPRIMÉ le deuxième if (!q.exec()) dupliqué
     if (!q.exec()) {
         QMessageBox::critical(this, "Erreur", q.lastError().text());
         return;
@@ -397,10 +472,20 @@ void InvoiceCreateDialog::onSave()
         lq.addBindValue(item.taxRate);
         lq.exec();
     }
-   m_logoPath = logoPathEdit->text();
-m_signaturePath = signaturePathEdit->text();
+
     QMessageBox::information(this, "Succès", "Facture enregistrée avec succès !");
     accept();
 }
-
 void InvoiceCreateDialog::onCancel() { reject(); }
+void InvoiceCreateDialog::onArticleFromCatalog(int id, const QString &name, double price, double taxRate)
+{
+    InvoiceLineItem item;
+    item.articleId = id;
+    item.designation = name;
+    item.quantity = 1;
+    item.priceHT = price;
+    item.taxRate = taxRate;
+    
+    m_lineItems.append(item);
+    refreshLineTable();
+}

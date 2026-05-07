@@ -13,7 +13,9 @@
 #include <QtCharts/QPieSlice>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
-
+#include <QtCharts/QSplineSeries>
+#include <QtCharts/QAreaSeries>
+#include <QLinearGradient>
 DashboardWidget::DashboardWidget(QWidget *parent)
     : QWidget(parent)
 {
@@ -205,11 +207,9 @@ void DashboardWidget::updateStats()
 
 void DashboardWidget::updateBarChart()
 {
-    QBarSet *set = new QBarSet("CA (MAD)");
-    set->setColor(QColor("#2B6CB0"));
-    set->setBorderColor(QColor("#1A365D"));
-
+    // Collecte des données (6 derniers mois)
     QStringList moisLabels;
+    QVector<double> values;
     double maxVal = 0;
 
     for (int i = 5; i >= 0; i--) {
@@ -224,45 +224,68 @@ void DashboardWidget::updateBarChart()
         q.addBindValue(moisStr);
         q.exec();
         double val = q.next() ? q.value(0).toDouble() : 0;
-        *set << val;
+        values << val;
         if (val > maxVal) maxVal = val;
     }
 
-    QBarSeries *series = new QBarSeries;
-    series->append(set);
-    series->setBarWidth(0.6);
+    // --- Spline series (courbe lissée) ---
+    QSplineSeries *series = new QSplineSeries;
+    series->setName("CA (DH)");
+    series->setPen(QPen(QColor("#4285F4"), 2.5));  // ligne bleue Google-like
 
+    for (int i = 0; i < values.size(); i++)
+        series->append(i, values[i]);
+
+    // --- Area series (dégradé sous la courbe) ---
+    QAreaSeries *areaSeries = new QAreaSeries(series);
+    areaSeries->setName("CA (DH)");
+
+    QPen pen(QColor("#4285F4"));
+    pen.setWidth(2);
+    areaSeries->setPen(pen);
+
+    QLinearGradient gradient(0, 0, 0, 1);
+    gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
+    gradient.setColorAt(0.0, QColor(66, 133, 244, 100));   // bleu semi-transparent
+    gradient.setColorAt(1.0, QColor(66, 133, 244, 5));     // fondu vers transparent
+    areaSeries->setBrush(gradient);
+
+    // --- Chart ---
     QChart *chart = new QChart;
-    chart->addSeries(series);
+    chart->addSeries(areaSeries);
     chart->setAnimationOptions(QChart::SeriesAnimations);
     chart->legend()->hide();
     chart->setBackgroundBrush(Qt::white);
     chart->setContentsMargins(0, 0, 0, 0);
+    chart->setMargins(QMargins(10, 10, 10, 20));
 
-    // AxeX avec marges suffisantes
+    // --- Axe X (catégories mois) ---
     QBarCategoryAxis *axisX = new QBarCategoryAxis;
     axisX->append(moisLabels);
-    axisX->setLabelsAngle(-30);  // ← inclinaison pour lisibilité
-    axisX->setLabelsColor(QColor("#4A5568"));
+    axisX->setLabelsAngle(-30);
+    axisX->setLabelsColor(QColor("#9AA0A6"));
     axisX->setGridLineVisible(false);
+    axisX->setLinePenColor(QColor("#E8EAED"));
     chart->addAxis(axisX, Qt::AlignBottom);
-    series->attachAxis(axisX);
+    areaSeries->attachAxis(axisX);
 
-    // AxeY
+    // --- Axe Y ---
     QValueAxis *axisY = new QValueAxis;
-    axisY->setLabelFormat("%.0f");
-    axisY->setRange(0, maxVal > 0 ? maxVal * 1.2 : 100);
-    axisY->setGridLineColor(QColor("#EDF2F7"));
-    axisY->setLabelsColor(QColor("#4A5568"));
+    // Format DH avec séparateur de milliers
+    axisY->setLabelFormat("%.0f DH");
+    axisY->setRange(0, maxVal > 0 ? maxVal * 1.25 : 1000);
+    axisY->setTickCount(6);
+    axisY->setGridLineColor(QColor("#F1F3F4"));
+    axisY->setLabelsColor(QColor("#9AA0A6"));
+    axisY->setLinePenColor(Qt::transparent);
     chart->addAxis(axisY, Qt::AlignLeft);
-    series->attachAxis(axisY);
-
-    // Marges internes du graphique
-    chart->setMargins(QMargins(10, 10, 10, 20));
+    areaSeries->attachAxis(axisY);
 
     barChartView->setChart(chart);
     barChartView->setMinimumHeight(300);
     barChartView->setRenderHint(QPainter::Antialiasing);
+    barChartView->setBackgroundBrush(Qt::white);
+    barChartView->setFrameStyle(QFrame::NoFrame);
 }
 void DashboardWidget::updatePieChart()
 {

@@ -1,6 +1,6 @@
 #ifndef ADMINWINDOW_H
 #define ADMINWINDOW_H
-
+#include "dialogs/invoicecreatedialog.h" 
 #include <QMainWindow>
 #include <QComboBox>
 #include <QSqlTableModel>
@@ -52,6 +52,7 @@ private:
     QPushButton *createInvoiceBtn, *editInvoiceBtn, *deleteInvoiceBtn, *actionsBtn, *refreshInvoicesBtn;
     QLineEdit *invoiceSearchEdit;
     QPushButton *invoiceSearchBtn;
+    InvoiceCreateDialog *m_invoiceDialog;
 };
 
 #endif // ADMINWINDOW_H

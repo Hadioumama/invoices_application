@@ -2,7 +2,6 @@
 #define INVOICECREATEDIALOG_H
 #include <QDialog>
 #include <QVector>
-
 class QLineEdit;
 class QDateEdit;
 class QComboBox;
@@ -36,6 +35,8 @@ private slots:
     void onLineDataChanged();
     void onSave();
     void onCancel();
+      public slots:
+    void onArticleFromCatalog(int id, const QString &name, double price, double taxRate);
 
 private:
     void setupUI();
@@ -63,7 +64,8 @@ private:
     QLabel *logoPreview;
     QLabel *signaturePreview;
     QString m_logoPath;
-QString m_signaturePath;
+    QString m_signaturePath;
+    QComboBox *articleComboBox;
     // Table lignes
     QTableWidget *linesTable;
 

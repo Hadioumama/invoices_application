@@ -21,7 +21,9 @@ SOURCES += \
     views/clientwindow.cpp \
     views/dashboardwidget.cpp\
     views/adminwindow.cpp \
-    views/invoicemanagementwidget.cpp
+    views/invoicemanagementwidget.cpp\
+    views/articleswidget.cpp \
+        dialogs/articleeditdialog.cpp
 HEADERS += \
     mainwindow.h \
     database/database.h \
@@ -41,7 +43,9 @@ HEADERS += \
     views/clientwindow.h \
     views/adminwindow.h \
      views/dashboardwidget.h\
-    views/invoicemanagementwidget.h
+    views/invoicemanagementwidget.h\
+    views/articleswidget.h \
+      dialogs/articleeditdialog.h
 
 FORMS += \
     mainwindow.ui

@@ -2,6 +2,7 @@
 #include "invoicemanagementwidget.h"
 #include "dialogs/invoiceeditdialog.h"
 #include "dialogs/client_edit_dialog.h"
+#include "views/articleswidget.h"
 #include <QTableView>
 #include <QHeaderView>
 #include <QPushButton>
@@ -21,6 +22,7 @@
 #include "dialogs/invoiceactiondialog.h"
 AdminWindow::AdminWindow(QWidget *parent) : QMainWindow(parent)
 {
+     m_invoiceDialog = nullptr;
     setupUI();
     refreshModel();
 }
@@ -39,7 +41,8 @@ void AdminWindow::setupUI()
     // ===== CRÉER LE TAB WIDGET =====
     QTabWidget *tabWidget = new QTabWidget(this);
     mainLayout->addWidget(tabWidget);
-
+    ArticlesWidget *articlesWidget = new ArticlesWidget(this);
+    tabWidget->addTab(articlesWidget, "📦 Articles");
     // ===== TAB 1: GESTION CLIENTS =====
     QWidget *clientTab = new QWidget();
     QVBoxLayout *clientTabLayout = new QVBoxLayout(clientTab);
@@ -144,11 +147,13 @@ clientTabLayout->addLayout(buttonLayout);
     connect(deleteInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
     connect(actionsBtn, &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
     connect(refreshInvoicesBtn, &QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
-    connect(deleteButton,
-        &QPushButton::clicked,
-        this,
-        &AdminWindow::onDeleteClient);
-        DashboardWidget *dashboard = new DashboardWidget(this);
+    connect(deleteButton,&QPushButton::clicked, this,&AdminWindow::onDeleteClient);
+if (!m_invoiceDialog) {
+    m_invoiceDialog = new InvoiceCreateDialog(-1, this);
+}
+connect(articlesWidget, &ArticlesWidget::articleSelected, 
+        m_invoiceDialog, &InvoiceCreateDialog::onArticleFromCatalog);
+    DashboardWidget *dashboard = new DashboardWidget(this);
 tabWidget->addTab(dashboard, "📊 Dashboard");
     tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
 invoiceModel = new QSqlQueryModel(this);
@@ -179,6 +184,7 @@ invoiceView->horizontalHeader()->setStretchLastSection(true);
 invoiceTabLayout->addWidget(invoiceView);
 
     // Connexions (code existant)
+     
     connect(invoiceSearchBtn, &QPushButton::clicked, this, &AdminWindow::onSearchInvoice);
 connect(invoiceSearchEdit, &QLineEdit::returnPressed, this, &AdminWindow::onSearchInvoice);
     connect(addButton, &QPushButton::clicked, this, &AdminWindow::onAddClient);
