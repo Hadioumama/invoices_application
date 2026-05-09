@@ -13,7 +13,7 @@ public:
     void disconnect();
     QSqlDatabase getConnection() const { return db; }
     bool initializeTables();
-
+     bool createPaymentsTable();
 private:
     Database() = default;
     QSqlDatabase db;

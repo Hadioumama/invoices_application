@@ -13,58 +13,57 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
 
-    if (!Database::instance().connect("facturation.db"))
-    {
+    if (!Database::instance().connect("facturation.db")) {
         return -1;
     }
     Database::instance().initializeTables();
 
     bool authenticated = false;
     QString role;
-    QString email;
+    int clientId = -1;  // ← Variable pour stocker l'ID
 
     while (!authenticated)
     {
         LoginDialog login;
-        // On connecte le signal pour ouvrir l'inscription
-        QObject::connect(&login, &LoginDialog::createAccountRequested, [&]()
-                         {
+        QObject::connect(&login, &LoginDialog::createAccountRequested, [&]() {
             RegisterDialog registerDlg;
             if (registerDlg.exec() == QDialog::Accepted) {
                 QMessageBox::information(nullptr, "Succès", "Compte créé. Veuillez vous connecter.");
-            } });
+            }
+        });
 
-        if (login.exec() != QDialog::Accepted)
-        {
-            return 0; // L'utilisateur a fermé la fenêtre
+        if (login.exec() != QDialog::Accepted) {
+            return 0;
         }
 
-       email = login.getEmail();
-QString password = login.getPassword(); // mot de passe en clair
+        QString email = login.getEmail();
+        QString password = login.getPassword();
 
-QSqlQuery query;
-query.prepare("SELECT role FROM clients WHERE email = :email AND mot_de_passe = :mdp");
-query.bindValue(":email", email);
-query.bindValue(":mdp", password);  // comparaison directe (en clair)
+        QSqlQuery query;
+        query.prepare("SELECT id, role FROM clients WHERE email = :email AND mot_de_passe = :mdp");
+        query.bindValue(":email", email);
+        query.bindValue(":mdp", password);
 
-if (query.exec() && query.next()) {
-    role = query.value("role").toString();
-    authenticated = true;
-} else {
-    QMessageBox::critical(nullptr, "Erreur", "Email ou mot de passe incorrect.");
-}
-       
+        if (query.exec() && query.next()) {
+            clientId = query.value(0).toInt();   // ✅ Stocker l'ID
+            role = query.value(1).toString();      // Stocker le rôle
+            authenticated = true;
+        } else {
+            QMessageBox::critical(nullptr, "Erreur", "Email ou mot de passe incorrect.");
+        }
     }
-    // Lancer l'interface appropriée
-    if (role == "admin")
-    {
+
+    // Lancer l'interface
+    if (role == "admin") {
         AdminWindow w;
         w.show();
         return a.exec();
-    }
-    else
-    {
-        ClientWindow w(email);
+    } else {
+        if (clientId < 0) {  // Sécurité
+            QMessageBox::critical(nullptr, "Erreur", "ID client invalide.");
+            return -1;
+        }
+        ClientWindow w(clientId);  // ✅ Passe l'int, pas le QString !
         w.show();
         return a.exec();
     }

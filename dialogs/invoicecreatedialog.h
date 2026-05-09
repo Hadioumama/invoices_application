@@ -35,7 +35,8 @@ private slots:
     void onLineDataChanged();
     void onSave();
     void onCancel();
-      public slots:
+    void onClientSelected(int index);
+    public slots:
     void onArticleFromCatalog(int id, const QString &name, double price, double taxRate);
 
 private:
@@ -49,32 +50,33 @@ private:
 
     // Infos facture
     QLineEdit *numeroEdit;
-    QLineEdit *clientNomEdit;      // ← nom client libre
-    QLineEdit *clientAdresseEdit;  // ← adresse client
-    QLineEdit *clientTelEdit;      // ← téléphone
-    QLineEdit *clientEmailEdit;    // ← email client
     QComboBox *typeCombo;
+    QComboBox *clientComboBox; 
+    QLineEdit *clientNomEdit;  
     QDateEdit *dateCreationEdit;
     QDateEdit *dateEcheanceEdit;
+    QLineEdit *clientAdresseEdit;
     QComboBox *statusCombo;
     QLineEdit *logoPathEdit;
     QLineEdit *signaturePathEdit;
     QPushButton *logoBtn;
+    QLineEdit *clientTelEdit;
     QPushButton *signatureBtn;
     QLabel *logoPreview;
+    QLineEdit *clientEmailEdit;
     QLabel *signaturePreview;
     QString m_logoPath;
     QString m_signaturePath;
-    QComboBox *articleComboBox;
+   
     // Table lignes
     QTableWidget *linesTable;
 
     // Saisie ligne
-    QLineEdit *designationEdit;
+    QComboBox *designationEdit;  
     QSpinBox *quantitySpinBox;
     QDoubleSpinBox *priceHTSpinBox;
     QDoubleSpinBox *taxRateSpinBox;
-    QComboBox *clientComboBox;
+  
    
 
 

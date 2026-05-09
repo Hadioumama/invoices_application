@@ -23,7 +23,6 @@ private slots:
     void onEditArticle();
     void onDeleteArticle();
     void onSearch();
-    void onArticleDoubleClicked(const QModelIndex &index);
     void refreshModel();
 
 private:

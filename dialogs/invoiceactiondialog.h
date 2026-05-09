@@ -17,6 +17,7 @@ private slots:
     void onExportPDF();
     void onPrint();
     void onSendEmail();
+     void onManagePayments();
 
 private:
     void setupUI();
@@ -26,6 +27,7 @@ private:
     QPushButton *printBtn;
     QPushButton *emailBtn;
     QPushButton *closeBtn;
+    QPushButton *paymentBtn; 
     QLineEdit *emailEdit;
 };
 

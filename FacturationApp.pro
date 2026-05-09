@@ -3,6 +3,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
 SOURCES += \
+    dialogs/paymentdialog.cpp \
     main.cpp \
     mainwindow.cpp \
     database/database.cpp \
@@ -25,6 +26,7 @@ SOURCES += \
     views/articleswidget.cpp \
         dialogs/articleeditdialog.cpp
 HEADERS += \
+    dialogs/paymentdialog.h \
     mainwindow.h \
     database/database.h \
     models/client.h \
@@ -36,6 +38,7 @@ HEADERS += \
     dialogs/invoiceeditdialog.h\
     dialogs/invoicedialog.h \
     dialogs/invoiceitemdialog.h \
+    models/payment.h \
     utils/emailsender.h \
     utils/invoicehtmlgenerator.h \
     utils/invoicesenderdialog.h \
@@ -45,7 +48,8 @@ HEADERS += \
      views/dashboardwidget.h\
     views/invoicemanagementwidget.h\
     views/articleswidget.h \
-      dialogs/articleeditdialog.h
+    dialogs/articleeditdialog.h
+    dialogs/paymentdialog.h
 
 FORMS += \
     mainwindow.ui

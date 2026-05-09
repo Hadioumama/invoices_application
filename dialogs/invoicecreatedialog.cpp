@@ -95,60 +95,58 @@ void InvoiceCreateDialog::setupUI()
 
     mainLayout->addWidget(persoGroup);
 
-    // ===== GROUPE INFOS CLIENT =====
+        // ===== GROUPE INFOS CLIENT =====
     QGroupBox *clientGroup = new QGroupBox("Informations Client");
     QFormLayout *clientForm = new QFormLayout(clientGroup);
 
+    // ComboBox Client (comme le combo Désignation d'articles)
     clientComboBox = new QComboBox;
     clientComboBox->setEditable(true);
     clientComboBox->addItem("-- Nouveau client --", -1);
+    clientComboBox->setMinimumWidth(300);
+    clientComboBox->setPlaceholderText("Choisir client existant ou saisir nouveau...");
 
+    // Charger les clients existants
     QSqlQuery qc("SELECT id, nom, prenom, adresse, telephone, email "
                  "FROM clients WHERE role = 'client' ORDER BY nom");
     while (qc.next()) {
         QString display = qc.value(1).toString() + " " + 
                           qc.value(2).toString();
+        int idx = clientComboBox->count();
         clientComboBox->addItem(display, qc.value(0).toInt());
+        // Stocker les données supplémentaires
+        clientComboBox->setItemData(idx, qc.value(3).toString(), Qt::UserRole + 1);  // adresse
+        clientComboBox->setItemData(idx, qc.value(4).toString(), Qt::UserRole + 2);  // telephone
+        clientComboBox->setItemData(idx, qc.value(5).toString(), Qt::UserRole + 3);  // email
     }
 
+    // Champs client (read-only, remplis automatiquement)
     clientNomEdit = new QLineEdit;
+    clientNomEdit->setReadOnly(true);
     clientNomEdit->setPlaceholderText("Nom complet ou entreprise...");
+    
     clientAdresseEdit = new QLineEdit;
+    clientAdresseEdit->setReadOnly(true);
     clientAdresseEdit->setPlaceholderText("Adresse complète...");
+    
     clientTelEdit = new QLineEdit;
+    clientTelEdit->setReadOnly(true);
     clientTelEdit->setPlaceholderText("+212 6XX XXX XXX");
+    
     clientEmailEdit = new QLineEdit;
+    clientEmailEdit->setReadOnly(true);
     clientEmailEdit->setPlaceholderText("email@exemple.com");
 
-    clientForm->addRow("Choisir client:", clientComboBox);
-    clientForm->addRow("Nom / Entreprise:*", clientNomEdit);
+    clientForm->addRow("Client:", clientComboBox);
+    clientForm->addRow("Nom / Entreprise:", clientNomEdit);
     clientForm->addRow("Adresse:", clientAdresseEdit);
     clientForm->addRow("Téléphone:", clientTelEdit);
     clientForm->addRow("Email:", clientEmailEdit);
     mainLayout->addWidget(clientGroup);
 
+    // Connexion combo client
     connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-        [this](int index) {
-            int clientId = clientComboBox->currentData().toInt();
-            if (clientId <= 0) {
-                clientNomEdit->clear();
-                clientAdresseEdit->clear();
-                clientTelEdit->clear();
-                clientEmailEdit->clear();
-                return;
-            }
-            QSqlQuery q;
-            q.prepare("SELECT nom, prenom, adresse, telephone, email "
-                      "FROM clients WHERE id = ?");
-            q.addBindValue(clientId);
-            if (q.exec() && q.next()) {
-                clientNomEdit->setText(
-                    q.value(0).toString() + " " + q.value(1).toString());
-                clientAdresseEdit->setText(q.value(2).toString());
-                clientTelEdit->setText(q.value(3).toString());
-                clientEmailEdit->setText(q.value(4).toString());
-            }
-        });
+            this, &InvoiceCreateDialog::onClientSelected);
 
     // ===== TABLE LIGNES =====
     QGroupBox *lignesGroup = new QGroupBox("Articles / Services");
@@ -165,17 +163,18 @@ void InvoiceCreateDialog::setupUI()
     linesTable->setColumnWidth(3, 70);
     lignesLayout->addWidget(linesTable);
 
-    // ===== SAISIE LIGNE AVEC COMBO ARTICLES =====
+       // ===== SAISIE LIGNE AVEC DESIGNATION COMBO =====
     QHBoxLayout *lineEditLayout = new QHBoxLayout;
     
-    // ComboBox articles
-    articleComboBox = new QComboBox;
-    articleComboBox->setEditable(true);
-    articleComboBox->addItem("-- Saisie manuelle --", -1);
-    articleComboBox->setMinimumWidth(250);
+    // ComboBox Désignation (remplace Article + Désignation)
+    designationEdit = new QComboBox;  // ← QComboBox au lieu de QLineEdit
+    designationEdit->setEditable(true);
+    designationEdit->addItem("-- Saisie manuelle --", -1);
+    designationEdit->setMinimumWidth(300);
+    designationEdit->setPlaceholderText("Choisir article ou saisir manuellement...");
     
-    lineEditLayout->addWidget(new QLabel("Article:"));
-    lineEditLayout->addWidget(articleComboBox);
+    lineEditLayout->addWidget(new QLabel("Désignation:"));
+    lineEditLayout->addWidget(designationEdit);
     
     lineEditLayout->addWidget(new QLabel("Qté:"));
     quantitySpinBox = new QSpinBox;
@@ -200,15 +199,6 @@ void InvoiceCreateDialog::setupUI()
     lineEditLayout->addWidget(taxRateSpinBox);
 
     lignesLayout->addLayout(lineEditLayout);
-    
-    // Champ désignation (pour saisie manuelle ou affichage)
-    designationEdit = new QLineEdit;
-    designationEdit->setPlaceholderText("Nom article/service...");
-    designationEdit->setMinimumWidth(200);
-    QHBoxLayout *descLayout = new QHBoxLayout;
-    descLayout->addWidget(new QLabel("Désignation:"));
-    descLayout->addWidget(designationEdit);
-    lignesLayout->addLayout(descLayout);
 
     // Boutons lignes
     QHBoxLayout *lineBtnLayout = new QHBoxLayout;
@@ -223,13 +213,12 @@ void InvoiceCreateDialog::setupUI()
 
     mainLayout->addWidget(lignesGroup);
 
-    // Charger les articles dans le combo
+    // Charger les articles dans le combo désignation
     loadArticles();
 
-    // Connexion combo article
-    connect(articleComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+    // Connexion combo désignation
+    connect(designationEdit, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, &InvoiceCreateDialog::onArticleSelected);
-
     // ===== TOTAUX =====
     QHBoxLayout *totalsLayout = new QHBoxLayout;
     totalsLayout->addStretch();
@@ -286,18 +275,18 @@ void InvoiceCreateDialog::setupUI()
 void InvoiceCreateDialog::loadClients() {}
 void InvoiceCreateDialog::loadArticles()
 {
-    articleComboBox->clear();
-    articleComboBox->addItem("-- Saisie manuelle --", -1);
+    designationEdit->clear();
+    designationEdit->addItem("-- Saisie manuelle --", -1);
     
     QSqlQuery q("SELECT id, reference, designation, prix_ht, taux_tva "
                 "FROM articles ORDER BY designation");
     while (q.next()) {
         QString display = q.value(2).toString() + " (" + q.value(1).toString() + ")";
-        articleComboBox->addItem(display, q.value(0).toInt());
+        designationEdit->addItem(display, q.value(0).toInt());
         // Stocker les données supplémentaires
-        articleComboBox->setItemData(articleComboBox->count() - 1, 
+        designationEdit->setItemData(designationEdit->count() - 1, 
                                      q.value(3).toDouble(), Qt::UserRole + 1);  // prix_ht
-        articleComboBox->setItemData(articleComboBox->count() - 1, 
+        designationEdit->setItemData(designationEdit->count() - 1, 
                                      q.value(4).toDouble(), Qt::UserRole + 2);  // taux_tva
     }
 }
@@ -328,82 +317,6 @@ void InvoiceCreateDialog::refreshLineTable()
     totalTVALabel->setText(QString("TVA: %1 MAD").arg(totalTVA, 0, 'f', 2));
     totalTTCLabel->setText(QString("Total TTC: %1 MAD").arg(totalHT + totalTVA, 0, 'f', 2));
 }
-
-void InvoiceCreateDialog::calculateTotals() { refreshLineTable(); }
-
-void InvoiceCreateDialog::onAddLine()
-{
-    QString designation;
-    int articleId = articleComboBox->currentData().toInt();
-    
-    if (articleId > 0) {
-        // Article du catalogue
-        designation = designationEdit->text().trimmed();
-    } else {
-        // Saisie manuelle
-        designation = articleComboBox->currentText().trimmed();
-    }
-    
-    if (designation.isEmpty()) {
-        QMessageBox::warning(this, "Erreur", "Entrez une désignation");
-        return;
-    }
-    if (priceHTSpinBox->value() <= 0) {
-        QMessageBox::warning(this, "Erreur", "Entrez un prix valide");
-        return;
-    }
-
-    InvoiceLineItem item;
-    item.articleId = articleId > 0 ? articleId : 0;  // 0 si saisie manuelle
-    item.designation = designation;
-    item.quantity = quantitySpinBox->value();
-    item.priceHT = priceHTSpinBox->value();
-    item.taxRate = taxRateSpinBox->value();
-    m_lineItems.append(item);
-
-    // Réinitialiser
-    articleComboBox->setCurrentIndex(0);
-    designationEdit->clear();
-    quantitySpinBox->setValue(1);
-    priceHTSpinBox->setValue(0);
-    taxRateSpinBox->setValue(20);
-
-    refreshLineTable();
-}
-
-void InvoiceCreateDialog::onRemoveLine()
-{
-    int row = linesTable->currentRow();
-    if (row >= 0 && row < m_lineItems.size()) {
-        m_lineItems.removeAt(row);
-        refreshLineTable();
-    }
-}
-
-void InvoiceCreateDialog::onEditLine() {}
-void InvoiceCreateDialog::onArticleSelected(int index)
-{
-    int articleId = articleComboBox->currentData().toInt();
-    
-    if (articleId <= 0) {
-        // Saisie manuelle - vider les champs
-        designationEdit->clear();
-        priceHTSpinBox->setValue(0);
-        taxRateSpinBox->setValue(20);
-        return;
-    }
-    
-    // Article existant - remplir automatiquement
-    QSqlQuery q;
-    q.prepare("SELECT designation, prix_ht, taux_tva FROM articles WHERE id = ?");
-    q.addBindValue(articleId);
-    if (q.exec() && q.next()) {
-        designationEdit->setText(q.value(0).toString());
-        priceHTSpinBox->setValue(q.value(1).toDouble());
-        taxRateSpinBox->setValue(q.value(2).toDouble());
-    }
-}
-void InvoiceCreateDialog::onLineDataChanged() {}
 void InvoiceCreateDialog::onSave()
 {
     if (clientNomEdit->text().trimmed().isEmpty()) {
@@ -429,29 +342,57 @@ void InvoiceCreateDialog::onSave()
     m_logoPath = logoPathEdit->text();
     m_signaturePath = signaturePathEdit->text();
 
+    // ============================================
+    // RÉCUPÉRER LES INFOS CLIENT 
+    // ============================================
+    QString clientNom, clientAdresse, clientTel, clientEmail;
+    int clientId = clientComboBox->currentData().toInt();
+    
+    if (clientId > 0) {
+        // Client existant - récupérer depuis la base
+        QSqlQuery cq;
+        cq.prepare("SELECT id, nom, prenom, adresse, telephone, email "
+                   "FROM clients WHERE id = ?");
+        cq.addBindValue(clientId);
+        if (cq.exec() && cq.next()) {
+            clientId = cq.value(0).toInt();
+            clientNom = cq.value(1).toString() + " " + cq.value(2).toString();
+            clientAdresse = cq.value(3).toString();
+            clientTel = cq.value(4).toString();
+            clientEmail = cq.value(5).toString();
+        }
+    } else {
+        // Nouveau client - récupérer depuis les champs saisis manuellement
+        clientId = 1; // admin par défaut
+        clientNom = clientNomEdit->text().trimmed();
+        clientAdresse = clientAdresseEdit->text().trimmed();
+        clientTel = clientTelEdit->text().trimmed();
+        clientEmail = clientEmailEdit->text().trimmed();
+    }
+
     QSqlQuery q;
     q.prepare("INSERT INTO factures "
               "(numero, type, client_id, client_nom, client_adresse, client_tel, client_email, "
               "date_creation, date_echeance, statut, total_ht, total_tva, total_ttc, "
               "logo_path, signature_path) "
               "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
-    q.addBindValue(numeroEdit->text().trimmed());
-    q.addBindValue(typeCombo->currentText());
-    q.addBindValue(1);
-    q.addBindValue(clientNomEdit->text().trimmed());
-    q.addBindValue(clientAdresseEdit->text().trimmed());
-    q.addBindValue(clientTelEdit->text().trimmed());
-    q.addBindValue(clientEmailEdit->text().trimmed());
-    q.addBindValue(dateCreationEdit->date().toString("yyyy-MM-dd"));
-    q.addBindValue(dateEcheanceEdit->date().toString("yyyy-MM-dd"));
-    q.addBindValue(statusCombo->currentText());
-    q.addBindValue(totalHT);
-    q.addBindValue(totalTVA);
-    q.addBindValue(totalHT + totalTVA);
-    q.addBindValue(m_logoPath);
-    q.addBindValue(m_signaturePath);
 
-    // SUPPRIMÉ le deuxième if (!q.exec()) dupliqué
+    q.addBindValue(numeroEdit->text().trimmed());           // ?1  numero
+    q.addBindValue(typeCombo->currentText());                // ?2  type
+    q.addBindValue(clientId);                                // ?3  client_id (MODIFIÉ)
+    q.addBindValue(clientNom);                               // ?4  client_nom (MODIFIÉ)
+    q.addBindValue(clientAdresse);                           // ?5  client_adresse (MODIFIÉ)
+    q.addBindValue(clientTel);                               // ?6  client_tel (MODIFIÉ)
+    q.addBindValue(clientEmail);                             // ?7  client_email (MODIFIÉ)
+    q.addBindValue(dateCreationEdit->date().toString("yyyy-MM-dd"));  // ?8  date_creation
+    q.addBindValue(dateEcheanceEdit->date().toString("yyyy-MM-dd"));  // ?9  date_echeance
+    q.addBindValue(statusCombo->currentText());              // ?10 statut
+    q.addBindValue(totalHT);                                  // ?11 total_ht
+    q.addBindValue(totalTVA);                                 // ?12 total_tva
+    q.addBindValue(totalHT + totalTVA);                       // ?13 total_ttc
+    q.addBindValue(m_logoPath);                               // ?14 logo_path
+    q.addBindValue(m_signaturePath);                          // ?15 signature_path
+
     if (!q.exec()) {
         QMessageBox::critical(this, "Erreur", q.lastError().text());
         return;
@@ -476,6 +417,86 @@ void InvoiceCreateDialog::onSave()
     QMessageBox::information(this, "Succès", "Facture enregistrée avec succès !");
     accept();
 }
+void InvoiceCreateDialog::calculateTotals() { refreshLineTable(); }
+
+void InvoiceCreateDialog::onAddLine()
+{
+    QString designation;
+    int articleId = designationEdit->currentData().toInt();
+    
+    if (articleId > 0) {
+        // Article du catalogue - extraire la désignation sans la référence
+        QString fullText = designationEdit->currentText();
+        // Enlever " (REF-XXX)" à la fin si présent
+        int idx = fullText.lastIndexOf(" (");
+        if (idx > 0) {
+            designation = fullText.left(idx).trimmed();
+        } else {
+            designation = fullText.trimmed();
+        }
+    } else {
+        // Saisie manuelle
+        designation = designationEdit->currentText().trimmed();
+    }
+    
+    if (designation.isEmpty() || designation == "-- Saisie manuelle --") {
+        QMessageBox::warning(this, "Erreur", "Entrez une désignation");
+        return;
+    }
+    if (priceHTSpinBox->value() <= 0) {
+        QMessageBox::warning(this, "Erreur", "Entrez un prix valide");
+        return;
+    }
+
+    InvoiceLineItem item;
+    item.articleId = articleId > 0 ? articleId : 0;  // 0 si saisie manuelle
+    item.designation = designation;
+    item.quantity = quantitySpinBox->value();
+    item.priceHT = priceHTSpinBox->value();
+    item.taxRate = taxRateSpinBox->value();
+    m_lineItems.append(item);
+
+    // Réinitialiser
+    designationEdit->setCurrentIndex(0);
+    quantitySpinBox->setValue(1);
+    priceHTSpinBox->setValue(0);
+    taxRateSpinBox->setValue(20);
+
+    refreshLineTable();
+}
+
+void InvoiceCreateDialog::onRemoveLine()
+{
+    int row = linesTable->currentRow();
+    if (row >= 0 && row < m_lineItems.size()) {
+        m_lineItems.removeAt(row);
+        refreshLineTable();
+    }
+}
+
+void InvoiceCreateDialog::onEditLine() {}
+void InvoiceCreateDialog::onArticleSelected(int index)
+{
+    int articleId = designationEdit->currentData().toInt();
+    
+    if (articleId <= 0) {
+        // Saisie manuelle - vider les champs
+        priceHTSpinBox->setValue(0);
+        taxRateSpinBox->setValue(20);
+        return;
+    }
+    
+    // Article existant - remplir automatiquement
+    QSqlQuery q;
+    q.prepare("SELECT prix_ht, taux_tva FROM articles WHERE id = ?");
+    q.addBindValue(articleId);
+    if (q.exec() && q.next()) {
+        priceHTSpinBox->setValue(q.value(0).toDouble());
+        taxRateSpinBox->setValue(q.value(1).toDouble());
+    }
+}
+void InvoiceCreateDialog::onLineDataChanged() {}
+
 void InvoiceCreateDialog::onCancel() { reject(); }
 void InvoiceCreateDialog::onArticleFromCatalog(int id, const QString &name, double price, double taxRate)
 {
@@ -488,4 +509,40 @@ void InvoiceCreateDialog::onArticleFromCatalog(int id, const QString &name, doub
     
     m_lineItems.append(item);
     refreshLineTable();
+}
+void InvoiceCreateDialog::onClientSelected(int index)
+{
+    int clientId = clientComboBox->currentData().toInt();
+    
+    if (clientId <= 0) {
+        // Nouveau client - déverrouiller les champs pour saisie manuelle
+        clientNomEdit->setReadOnly(false);
+        clientAdresseEdit->setReadOnly(false);
+        clientTelEdit->setReadOnly(false);
+        clientEmailEdit->setReadOnly(false);
+        
+        clientNomEdit->clear();
+        clientAdresseEdit->clear();
+        clientTelEdit->clear();
+        clientEmailEdit->clear();
+        return;
+    }
+    
+    // Client existant - remplir automatiquement et verrouiller
+    QSqlQuery q;
+    q.prepare("SELECT nom, prenom, adresse, telephone, email "
+              "FROM clients WHERE id = ?");
+    q.addBindValue(clientId);
+    if (q.exec() && q.next()) {
+        clientNomEdit->setText(q.value(0).toString() + " " + q.value(1).toString());
+        clientAdresseEdit->setText(q.value(2).toString());
+        clientTelEdit->setText(q.value(3).toString());
+        clientEmailEdit->setText(q.value(4).toString());
+        
+        // Verrouiller les champs (lecture seule)
+        clientNomEdit->setReadOnly(true);
+        clientAdresseEdit->setReadOnly(true);
+        clientTelEdit->setReadOnly(true);
+        clientEmailEdit->setReadOnly(true);
+    }
 }

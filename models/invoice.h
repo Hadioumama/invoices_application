@@ -22,6 +22,9 @@ public:
 
     bool isValid() const;
     QString getStatusString() const;
+    double getMontantPaye() const;
+    double getResteAPayer() const;
+    bool isFullyPaid() const;
 };
 
 #endif // INVOICE_H

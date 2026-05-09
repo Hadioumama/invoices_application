@@ -106,7 +106,7 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
 
        QString logoHtml = imageToBase64Html(finalStyle.logoPath, 130, 65);
     if (logoHtml.isEmpty())
-        logoHtml = QString("<span style='font-size:16px;font-weight:900;color:white;letter-spacing:2px;'>LOGO HERE</span>");
+        logoHtml = QString("<span style='font-size:16px;font-weight:900;color:white;letter-spacing:2px;'></span>");
 
     // Signature en base64 si fournie
     QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);

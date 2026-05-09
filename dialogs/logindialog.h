@@ -8,18 +8,18 @@
 class LoginDialog : public QDialog
 {
     Q_OBJECT
-
 public:
     explicit LoginDialog(QWidget *parent = nullptr);
+
     QString getEmail() const;
     QString getPassword() const;
 
 signals:
-    void createAccountRequested();   // une seule fois
+    void createAccountRequested();
 
 private slots:
-    void onLoginClicked();
-    void onCreateAccountClicked();   // à ajouter
+    void onLogin();               // ✅ AJOUTER CECI
+    void onCreateAccountClicked();
 
 private:
     QLineEdit *emailEdit;

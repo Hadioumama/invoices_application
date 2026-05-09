@@ -103,15 +103,6 @@ void ArticlesWidget::setupUI()
     tableView->setColumnHidden(0, true);
     tableView->setMinimumHeight(300);
     mainLayout->addWidget(tableView);
-
-    // Info double-clic
-    QLabel *hint = new QLabel(
-        "💡 Double-cliquez sur un article pour l'ajouter "
-        "à la facture");
-    hint->setStyleSheet(
-        "font-size:10px;color:#718096;font-style:italic;");
-    mainLayout->addWidget(hint);
-
     // Boutons action
     QHBoxLayout *btnLayout = new QHBoxLayout;
     addBtn = new QPushButton("➕ Ajouter");
@@ -157,8 +148,7 @@ void ArticlesWidget::setupUI()
         model->setFilter("");
         refreshModel();
     });
-    connect(tableView, &QTableView::doubleClicked,
-            this, &ArticlesWidget::onArticleDoubleClicked);
+    
 }
 
 void ArticlesWidget::refreshModel()
@@ -240,24 +230,3 @@ void ArticlesWidget::onDeleteArticle()
     }
 }
 
-void ArticlesWidget::onArticleDoubleClicked(
-    const QModelIndex &index)
-{
-    int row = index.row();
-    int id = model->data(
-        model->index(row, 0)).toInt();
-    QString designation = model->data(
-        model->index(row, 2)).toString();
-    double prixHT = model->data(
-        model->index(row, 3)).toDouble();
-    double tva = model->data(
-        model->index(row, 4)).toDouble();
-
-    emit articleSelected(id, designation, prixHT, tva);
-    QMessageBox::information(this, "Article sélectionné",
-        QString("✅ \"%1\" ajouté à la facture\n"
-                "Prix HT: %2 MAD | TVA: %3%%")
-        .arg(designation)
-        .arg(QString::number(prixHT, 'f', 2))
-        .arg(tva));
-}

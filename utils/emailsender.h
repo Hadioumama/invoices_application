@@ -21,15 +21,17 @@ public:
                                 const QString &subject,
                                 const QString &body,
                                 const QString &attachmentPath);
+    bool sendSmtp(const QString &to,
+                  const QString &subject,
+                  const QString &body);
+                                
 private:
 
  bool sendSmtpWithAttachment(const QString &to,
                                const QString &subject,
                                const QString &body,
                                const QString &attachmentPath);
-    bool sendSmtp(const QString &to,
-                  const QString &subject,
-                  const QString &body);
+    
      QString encodeBase64(const QByteArray &data);
     QString getMimeType(const QString &filePath);
     QString gmailUser;

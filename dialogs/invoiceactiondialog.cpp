@@ -3,6 +3,7 @@
 #include "utils/invoicegenerator.h"
 #include "utils/emailsender.h"
 #include "database/database.h"
+#include "dialogs/paymentdialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -54,6 +55,11 @@ void InvoiceActionDialog::setupUI()
     pdfBtn = new QPushButton("📄 Exporter PDF");
     printBtn = new QPushButton("🖨️ Imprimer");
     emailBtn = new QPushButton("📧 Envoyer par Email");
+    paymentBtn = new QPushButton("💳 Gérer les Paiements");
+paymentBtn->setStyleSheet(
+    "background:#9B59B6; color:white; font-weight:bold; "
+    "padding:8px 16px; border-radius:4px; border:none;"
+);
 
     connect(pdfBtn, &QPushButton::clicked, this, &InvoiceActionDialog::onExportPDF);
     connect(printBtn, &QPushButton::clicked, this, &InvoiceActionDialog::onPrint);
@@ -62,8 +68,10 @@ void InvoiceActionDialog::setupUI()
     buttonLayout->addWidget(pdfBtn);
     buttonLayout->addWidget(printBtn);
     buttonLayout->addWidget(emailBtn);
-    mainLayout->addLayout(buttonLayout);
+    buttonLayout->addWidget(paymentBtn);
 
+    mainLayout->addLayout(buttonLayout);
+    
     // Email section
     mainLayout->addWidget(new QLabel("Email pour envoi:"));
     emailEdit = new QLineEdit;
@@ -77,6 +85,7 @@ void InvoiceActionDialog::setupUI()
     connect(closeBtn, &QPushButton::clicked, this, &QDialog::accept);
     closeLayout->addWidget(closeBtn);
     mainLayout->addLayout(closeLayout);
+    connect(paymentBtn, &QPushButton::clicked, this, &InvoiceActionDialog::onManagePayments);
 }
 
 void InvoiceActionDialog::onExportPDF()
@@ -362,4 +371,9 @@ void InvoiceActionDialog::onSendEmail()
             "• Le mot de passe d'application Gmail\n"
             "• Que l'accès IMAP est activé dans Gmail");
     }
+}
+void InvoiceActionDialog::onManagePayments()
+{
+    PaymentDialog dlg(m_invoiceId, this);
+    dlg.exec();
 }

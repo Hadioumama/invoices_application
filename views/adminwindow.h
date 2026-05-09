@@ -1,5 +1,6 @@
 #ifndef ADMINWINDOW_H
 #define ADMINWINDOW_H
+
 #include "dialogs/invoicecreatedialog.h" 
 #include <QMainWindow>
 #include <QComboBox>
@@ -26,30 +27,35 @@ private slots:
     void refreshModel();
     void onSearch();
     
-    // NOUVELLES SLOTS POUR FACTURES
+    // FACTURES
     void onCreateInvoice();
     void onEditInvoice();
     void onDeleteInvoice();
     void onInvoiceActions();
     void onRefreshInvoices();
     void onSearchInvoice();
+    void onPaymentClicked();  // ← AJOUTÉ
 
 private:
     void setupUI();
 
-   QSqlQueryModel *invoiceModel;
-   QSqlTableModel *clientModel;
-   QComboBox *clientComboBox;
+    QSqlQueryModel *invoiceModel;
+    QSqlTableModel *clientModel;
+    QComboBox *clientComboBox;
     QTableView *clientView;
     QPushButton *addButton, *editButton, *deleteButton, *refreshButton;
     QLineEdit *searchEdit;
     QPushButton *searchButton;
     
-    // WIDGETS FACTURES
+    // FACTURES
     QTabWidget *tabWidget;
-
     QTableView *invoiceView;
-    QPushButton *createInvoiceBtn, *editInvoiceBtn, *deleteInvoiceBtn, *actionsBtn, *refreshInvoicesBtn;
+    QPushButton *createInvoiceBtn;
+    QPushButton *editInvoiceBtn;
+    QPushButton *deleteInvoiceBtn;
+    QPushButton *actionsBtn;
+    QPushButton *refreshInvoicesBtn;
+    QPushButton *paymentBtn;        // ← AJOUTÉ
     QLineEdit *invoiceSearchEdit;
     QPushButton *invoiceSearchBtn;
     InvoiceCreateDialog *m_invoiceDialog;
