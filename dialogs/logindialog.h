@@ -13,20 +13,25 @@ class LoginDialog : public QDialog
 public:
     explicit LoginDialog(QWidget *parent = nullptr);
     
-      static QString hashPassword(const QString &password); 
+    static QString hashPassword(const QString &password); 
     QString getEmail() const;
     QString getPassword() const;
+    void clearFields();
 
 signals:
-    void loginSuccess(int userId, const QString &role);  // ✅ const QString &
+    void loginSuccess(int userId, const QString &role);
     void createAccountRequested();
 
 private slots:
     void onLogin();
     void onCreateAccountClicked();
     void onForgotPassword();
+    void togglePasswordVisibility(bool checked);
 
 private:
+    void setupUI();
+    void applyStyles();
+    
     bool isValidEmail(const QString &email);
     bool isGmailEmail(const QString &email);
     
@@ -35,11 +40,13 @@ private:
     void showVerificationDialog(const QString &email);
     void showPasswordResetDialog(const QString &email);
 
+    // Widgets
     QLineEdit *emailEdit;
     QLineEdit *passwordEdit;
     QPushButton *loginButton;
     QPushButton *createButton;
     QPushButton *forgotButton;
+    QPushButton *togglePwdButton;
 
     QTimer *m_countdownTimer;
     int m_remainingSeconds;

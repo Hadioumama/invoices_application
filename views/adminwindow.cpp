@@ -20,33 +20,56 @@
 #include "views/dashboardwidget.h"
 #include "dialogs/invoicecreatedialog.h"
 #include "dialogs/invoiceactiondialog.h"
-#include "dialogs/paymentdialog.h"  // ← AJOUTÉ
+#include "dialogs/paymentdialog.h"
+
 AdminWindow::AdminWindow(int adminId, QWidget *parent)
-    : QMainWindow(parent), m_adminId(adminId)
+    : QWidget(parent),  // ✅ QWidget, pas QMainWindow
+      m_adminId(adminId),
+      m_invoiceDialog(nullptr)
 {
     setupUI();
 }
-   
+
+AdminWindow::~AdminWindow()
+{
+}
+
 void AdminWindow::setupUI()
 {
-    setWindowTitle("Panneau Administrateur");
-    setGeometry(100, 100, 1200, 700);
+    // ✅ PAS de setWindowTitle ni setGeometry - c'est un widget enfant
+    // ✅ PAS de setCentralWidget - QWidget n'a pas ça
+    
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
 
-    QWidget *central = new QWidget(this);
-    setCentralWidget(central);
-    QVBoxLayout *mainLayout = new QVBoxLayout(central);
+    // ===== TITRE =====
+    QLabel *titleLabel = new QLabel(QString("Panneau Administrateur ").arg(m_adminId));
+    titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #2B6CB0;");
+    titleLabel->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(titleLabel);
+
+    // ===== BOUTON DÉCONNEXION =====
+    QPushButton *logoutBtn = new QPushButton("🔒 Déconnexion");
+    logoutBtn->setStyleSheet(
+        "background:#E53E3E; color:white; font-weight:bold; padding:8px; border-radius:6px;");
+    connect(logoutBtn, &QPushButton::clicked, this, &AdminWindow::onLogout);
+    
+    QHBoxLayout *topLayout = new QHBoxLayout;
+    topLayout->addStretch();
+    topLayout->addWidget(logoutBtn);
+    mainLayout->addLayout(topLayout);
 
     // ===== TAB WIDGET =====
     QTabWidget *tabWidget = new QTabWidget(this);
     mainLayout->addWidget(tabWidget);
 
-    // ===== TAB ARTICLES =====
-    ArticlesWidget *articlesWidget = new ArticlesWidget(this);
-    tabWidget->addTab(articlesWidget, "📦 Articles");
-
     // ===== TAB DASHBOARD =====
     DashboardWidget *dashboard = new DashboardWidget(this);
     tabWidget->addTab(dashboard, "📊 Dashboard");
+
+    // ===== TAB ARTICLES =====
+    ArticlesWidget *articlesWidget = new ArticlesWidget(this);
+    tabWidget->addTab(articlesWidget, "📦 Articles");
 
     // ===== TAB GESTION FACTURES =====
     QWidget *invoiceTab = new QWidget();
@@ -68,7 +91,7 @@ void AdminWindow::setupUI()
     editInvoiceBtn = new QPushButton("✎ Modifier");
     deleteInvoiceBtn = new QPushButton("🗑️ Supprimer");
     actionsBtn = new QPushButton("⚙️ Actions (PDF/Email)");
-    paymentBtn = new QPushButton("💳 Paiements");           // ← CORRIGÉ : déclaré comme membre
+    paymentBtn = new QPushButton("💳 Paiements");
     paymentBtn->setStyleSheet("background:#9B59B6; color:white; font-weight:bold;");
     refreshInvoicesBtn = new QPushButton("🔄 Actualiser");
 
@@ -76,7 +99,7 @@ void AdminWindow::setupUI()
     invoiceButtonLayout->addWidget(editInvoiceBtn);
     invoiceButtonLayout->addWidget(deleteInvoiceBtn);
     invoiceButtonLayout->addWidget(actionsBtn);
-    invoiceButtonLayout->addWidget(paymentBtn);            // ← CORRIGÉ : ajouté au bon layout
+    invoiceButtonLayout->addWidget(paymentBtn);
     invoiceButtonLayout->addWidget(refreshInvoicesBtn);
     invoiceTabLayout->addLayout(invoiceButtonLayout);
 
@@ -107,6 +130,7 @@ void AdminWindow::setupUI()
     invoiceView->setSelectionBehavior(QAbstractItemView::SelectRows);
     invoiceView->setSelectionMode(QAbstractItemView::SingleSelection);
     invoiceView->horizontalHeader()->setStretchLastSection(true);
+    invoiceView->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     invoiceTabLayout->addWidget(invoiceView);
 
     tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
@@ -165,7 +189,7 @@ void AdminWindow::setupUI()
     connect(editInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onEditInvoice);
     connect(deleteInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
     connect(actionsBtn, &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
-    connect(paymentBtn, &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);  // ← CORRIGÉ
+    connect(paymentBtn, &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);
     connect(refreshInvoicesBtn, &QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
     connect(invoiceSearchBtn, &QPushButton::clicked, this, &AdminWindow::onSearchInvoice);
     connect(invoiceSearchEdit, &QLineEdit::returnPressed, this, &AdminWindow::onSearchInvoice);
@@ -191,7 +215,7 @@ void AdminWindow::setupUI()
 }
 
 // ============================================
-// MÉTHODES FACTURES
+// MÉTHODES FACTURES (inchangées)
 // ============================================
 
 void AdminWindow::onSearchInvoice()
@@ -283,8 +307,9 @@ void AdminWindow::onInvoiceActions()
     
     InvoiceActionDialog dlg(invoiceId, this);
     dlg.exec();
-    onRefreshInvoices();  // Rafraîchir au cas où statut changé
+    onRefreshInvoices();
 }
+
 void AdminWindow::onPaymentClicked()
 {
     int row = invoiceView->currentIndex().row();
@@ -295,16 +320,12 @@ void AdminWindow::onPaymentClicked()
     
     int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
     
-    qDebug() << ">>> Création PaymentDialog avec invoiceId:" << invoiceId;
-    
-    PaymentDialog *dlg = new PaymentDialog(invoiceId, this);  // ← Test avec pointeur
-    qDebug() << ">>> PaymentDialog créé, appel exec()";
+    PaymentDialog *dlg = new PaymentDialog(invoiceId, this);
     dlg->exec();
-    qDebug() << ">>> PaymentDialog fermé";
-    
-    delete dlg;  // ← Nettoyage explicite
+    delete dlg;
     onRefreshInvoices();
 }
+
 void AdminWindow::onRefreshInvoices()
 {
     delete invoiceModel;
@@ -338,7 +359,7 @@ void AdminWindow::onRefreshInvoices()
 }
 
 // ============================================
-// MÉTHODES CLIENTS
+// MÉTHODES CLIENTS (inchangées)
 // ============================================
 
 void AdminWindow::refreshModel()
@@ -406,6 +427,7 @@ void AdminWindow::onDeleteClient()
         }
     }
 }
+
 void AdminWindow::onLogout()
 {
     auto reply = QMessageBox::question(this, "Déconnexion",
@@ -413,6 +435,6 @@ void AdminWindow::onLogout()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        emit logoutRequested();  // ✅ Émettre le signal au lieu de close()
+        emit logoutRequested();
     }
 }

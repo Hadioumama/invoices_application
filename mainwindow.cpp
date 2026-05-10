@@ -5,6 +5,7 @@
 #include "views/clientwindow.h"
 #include <QVBoxLayout>
 #include <QDebug>
+#include <QMessageBox>
 
 MainWindow *MainWindow::s_instance = nullptr;
 
@@ -28,27 +29,20 @@ void MainWindow::setupUI()
 {
     setMinimumSize(1100, 700);
     resize(1200, 750);
+    setStyleSheet("background: #F7FAFC;");
 
     m_stack = new QStackedWidget(this);
     setCentralWidget(m_stack);
 
     // Page login
     m_loginPage = new LoginDialog(this);
+    m_loginPage->setWindowFlags(Qt::Widget);
     m_stack->addWidget(m_loginPage);
 
     // Page register
     m_registerPage = new RegisterDialog(this);
+    m_registerPage->setWindowFlags(Qt::Widget);
     m_stack->addWidget(m_registerPage);
-
-    // Bouton retour
-    m_backButton = new QPushButton("← Retour", this);
-    m_backButton->setStyleSheet(
-        "background:#718096;color:white;"
-        "border-radius:4px;padding:6px 14px;"
-        "border:none;font-weight:bold;");
-    m_backButton->setFixedSize(100, 32);
-    m_backButton->move(10, 10);
-    m_backButton->hide();
 
     // Afficher login
     m_stack->setCurrentWidget(m_loginPage);
@@ -56,62 +50,71 @@ void MainWindow::setupUI()
     // Connexions
     connect(m_loginPage, &LoginDialog::loginSuccess,
             this, &MainWindow::onLoginSuccess);
-    connect(m_loginPage,
-            &LoginDialog::createAccountRequested,
+    connect(m_loginPage, &LoginDialog::createAccountRequested,
             this, &MainWindow::onRegisterRequested);
-    connect(m_registerPage,
-            &RegisterDialog::registerSuccess,
+    connect(m_registerPage, &RegisterDialog::registerSuccess,
             this, &MainWindow::showLogin);
-    connect(m_backButton, &QPushButton::clicked,
-            this, &MainWindow::goBack);
 }
 
-void MainWindow::onLoginSuccess(int userId,
-                                 const QString &role)
+void MainWindow::onLoginSuccess(int userId, const QString &role)
 {
-    qDebug() << "onLoginSuccess:" << userId << role;
+    qDebug() << ">>> onLoginSuccess:" << userId << role;
+    
+    QString normalizedRole = role.toLower().trimmed();
+    qDebug() << "Rôle normalisé:" << normalizedRole;
 
-    if (role == "admin") {
+    if (normalizedRole == "admin") {
+        qDebug() << "Ouverture AdminWindow...";
         showAdmin(userId);
-    } else if (role == "client") {
+    } else if (normalizedRole == "client") {
+        qDebug() << "Ouverture ClientWindow...";
         showClient(userId);
     } else {
-        qDebug() << "Rôle inconnu:" << role;
+        qDebug() << "!!! RÔLE INCONNU:" << role;
+        QMessageBox::warning(this, "Erreur", 
+            "Rôle utilisateur inconnu : '" + role + "'\n"
+            "Rôles attendus : 'admin' ou 'client'");
     }
 }
 
 void MainWindow::showLogin()
 {
     m_stack->setCurrentWidget(m_loginPage);
-    m_backButton->hide();
+    m_loginPage->clearFields(); // Nettoyer les champs
 }
 
 void MainWindow::showRegister()
 {
     m_stack->setCurrentWidget(m_registerPage);
-    m_backButton->show();
 }
 
 void MainWindow::showAdmin(int adminId)
 {
-    Q_UNUSED(adminId)
+    qDebug() << "showAdmin appelé avec ID:" << adminId;
+    
     if (m_adminPage) {
         m_stack->removeWidget(m_adminPage);
         delete m_adminPage;
         m_adminPage = nullptr;
     }
 
- m_adminPage = new AdminWindow(adminId, this);
+    m_adminPage = new AdminWindow(adminId, this);
+    
+    if (!m_adminPage) {
+        qDebug() << "ERREUR: AdminWindow non créé !";
+        return;
+    }
+    
     m_stack->addWidget(m_adminPage);
     m_stack->setCurrentWidget(m_adminPage);
-    m_backButton->hide();
-
-    // Déconnexion depuis AdminWindow
-    // (si tu as un signal logout dans AdminWindow)
+    
+    qDebug() << "AdminWindow affichée avec succès";
 }
 
 void MainWindow::showClient(int clientId)
 {
+    qDebug() << "showClient appelé avec ID:" << clientId;
+    
     if (m_clientPage) {
         m_stack->removeWidget(m_clientPage);
         delete m_clientPage;
@@ -121,7 +124,6 @@ void MainWindow::showClient(int clientId)
     m_clientPage = new ClientWindow(clientId, this);
     m_stack->addWidget(m_clientPage);
     m_stack->setCurrentWidget(m_clientPage);
-    m_backButton->hide();
 }
 
 void MainWindow::onRegisterRequested()
@@ -129,12 +131,17 @@ void MainWindow::onRegisterRequested()
     showRegister();
 }
 
-void MainWindow::goBack()
-{
-    showLogin();
-}
-
 void MainWindow::onLogout()
 {
+    if (m_adminPage) {
+        m_stack->removeWidget(m_adminPage);
+        delete m_adminPage;
+        m_adminPage = nullptr;
+    }
+    if (m_clientPage) {
+        m_stack->removeWidget(m_clientPage);
+        delete m_clientPage;
+        m_clientPage = nullptr;
+    }
     showLogin();
 }

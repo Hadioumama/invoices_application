@@ -1,64 +1,80 @@
 #ifndef ADMINWINDOW_H
 #define ADMINWINDOW_H
 
-#include "dialogs/invoicecreatedialog.h" 
-#include <QMainWindow>
-#include <QComboBox>
-#include <QSqlTableModel>
-#include <QSqlQueryModel>
+#include <QWidget>  // ✅ PAS QMainWindow !
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QTableView>
+#include <QPushButton>
+#include <QLineEdit>
 #include <QTabWidget>
+#include <QSqlQueryModel>
+#include <QSqlTableModel>
 
-class QTableView;
-class QPushButton;
-class QLineEdit;
-class InvoiceEditDialog;   
+// Forward declarations
+class ArticlesWidget;
+class DashboardWidget;
+class InvoiceCreateDialog;
+class PaymentDialog;
 
-class AdminWindow : public QMainWindow
+class AdminWindow : public QWidget  // ✅ QWidget, pas QMainWindow
 {
     Q_OBJECT
 public:
     explicit AdminWindow(int adminId, QWidget *parent = nullptr);
+    ~AdminWindow();
+
 signals:
     void logoutRequested();
+
 private slots:
+    // Factures
+    void onCreateInvoice();
+    void onEditInvoice();
+    void onDeleteInvoice();
+    void onInvoiceActions();
+    void onPaymentClicked();
+    void onRefreshInvoices();
+    void onSearchInvoice();
+    
+    // Clients
     void onAddClient();
     void onEditClient();
     void onDeleteClient();
     void refreshModel();
     void onSearch();
-    void onLogout();  
-    // FACTURES
-    void onCreateInvoice();
-    void onEditInvoice();
-    void onDeleteInvoice();
-    void onInvoiceActions();
-    void onRefreshInvoices();
-    void onSearchInvoice();
-    void onPaymentClicked();  // ← AJOUTÉ
+    
+    // Logout
+    void onLogout();
 
 private:
     void setupUI();
-      
+
     int m_adminId;
-    QSqlQueryModel *invoiceModel;
-    QSqlTableModel *clientModel;
-    QComboBox *clientComboBox;
-    QTableView *clientView;
-    QPushButton *addButton, *editButton, *deleteButton, *refreshButton;
-    QLineEdit *searchEdit;
-    QPushButton *searchButton;
     
-    // FACTURES
-    QTabWidget *tabWidget;
-    QTableView *invoiceView;
+    // Widgets factures
+    QLineEdit *invoiceSearchEdit;
+    QPushButton *invoiceSearchBtn;
     QPushButton *createInvoiceBtn;
     QPushButton *editInvoiceBtn;
     QPushButton *deleteInvoiceBtn;
     QPushButton *actionsBtn;
+    QPushButton *paymentBtn;
     QPushButton *refreshInvoicesBtn;
-    QPushButton *paymentBtn;        // ← AJOUTÉ
-    QLineEdit *invoiceSearchEdit;
-    QPushButton *invoiceSearchBtn;
+    QTableView *invoiceView;
+    QSqlQueryModel *invoiceModel;
+    
+    // Widgets clients
+    QLineEdit *searchEdit;
+    QPushButton *searchButton;
+    QPushButton *addButton;
+    QPushButton *editButton;
+    QPushButton *deleteButton;
+    QPushButton *refreshButton;
+    QTableView *clientView;
+    QSqlTableModel *clientModel;
+    
+    // Dialog
     InvoiceCreateDialog *m_invoiceDialog;
 };
 

@@ -3,7 +3,6 @@
 
 #include <QMainWindow>
 #include <QStackedWidget>
-#include <QPushButton>
 
 class LoginDialog;
 class RegisterDialog;
@@ -22,19 +21,16 @@ public:
     void showRegister();
     void showAdmin(int adminId);
     void showClient(int clientId);
-    void goBack();
 
 private slots:
-    void onLoginSuccess(int userId, const QString &role);  // ✅ const QString &
+    void onLoginSuccess(int userId, const QString &role);
     void onRegisterRequested();
     void onLogout();
 
 private:
     void setupUI();
-    void updateBackButtonVisibility();
 
     QStackedWidget *m_stack;
-    QPushButton *m_backButton;
     LoginDialog *m_loginPage;
     RegisterDialog *m_registerPage;
     AdminWindow *m_adminPage;
