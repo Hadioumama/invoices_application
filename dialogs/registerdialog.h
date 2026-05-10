@@ -15,7 +15,8 @@ public:
     explicit RegisterDialog(QWidget *parent = nullptr);
     ~RegisterDialog();
     Client getClient() const;
-
+signals:
+    void registerSuccess();
 private slots:
     void on_typeChanged(const QString &type);
     void on_enregistrerClicked();

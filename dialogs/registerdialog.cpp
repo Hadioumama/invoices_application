@@ -2,6 +2,7 @@
 #include "dialogs/registerdialog.h"
 #include "database/database.h"
 #include "utils/emailsender.h"
+#include "dialogs/logindialog.h"
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QDebug>
@@ -173,7 +174,6 @@ query.prepare("INSERT INTO clients (nom, prenom, email, adresse, telephone, mot_
     qDebug() << "Envoi d'email à" << client.email;
     EmailSender *sender = new EmailSender(this);
     sender->sendWelcomeEmail(client.email, client.prenom + " " + client.nom);
-
     accept(); // ferme la boîte de dialogue
 
 }

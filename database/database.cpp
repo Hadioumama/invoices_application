@@ -140,8 +140,8 @@ bool Database::initializeTables() {
     QSqlQuery insertAdmin;
     insertAdmin.prepare(R"(
         INSERT OR IGNORE INTO clients 
-        (nom, prenom, email, mot_de_passe, type, role) 
-        VALUES ('Admin', 'System', 'admin@facturation.com', 'admin123', 'admin', 'admin')
+        (nom, prenom, email, mot_de_passe, type, role)
+        VALUES ('Admin', 'System', 'admin@gmail.com', 'admin123', 'admin', 'admin')
     )");
     if (!insertAdmin.exec()) {
         qDebug() << "Erreur insertion admin:" << insertAdmin.lastError().text();

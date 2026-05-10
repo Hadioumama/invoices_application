@@ -21,16 +21,12 @@
 #include "dialogs/invoicecreatedialog.h"
 #include "dialogs/invoiceactiondialog.h"
 #include "dialogs/paymentdialog.h"  // ← AJOUTÉ
-
-AdminWindow::AdminWindow(QWidget *parent) : QMainWindow(parent)
+AdminWindow::AdminWindow(int adminId, QWidget *parent)
+    : QMainWindow(parent), m_adminId(adminId)
 {
-    m_invoiceDialog = nullptr;
     setupUI();
-    refreshModel();
 }
-
-AdminWindow::~AdminWindow() {}
-
+   
 void AdminWindow::setupUI()
 {
     setWindowTitle("Panneau Administrateur");
@@ -408,5 +404,15 @@ void AdminWindow::onDeleteClient()
         } else {
             QMessageBox::critical(this, "Erreur", "Échec suppression : " + query.lastError().text());
         }
+    }
+}
+void AdminWindow::onLogout()
+{
+    auto reply = QMessageBox::question(this, "Déconnexion",
+        "Voulez-vous vous déconnecter ?",
+        QMessageBox::Yes | QMessageBox::No);
+
+    if (reply == QMessageBox::Yes) {
+        emit logoutRequested();  // ✅ Émettre le signal au lieu de close()
     }
 }

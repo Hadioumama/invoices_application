@@ -12,6 +12,7 @@ EmailSender::EmailSender(QObject *parent) : QObject(parent)
     gmailPassword = "lohyyfqczkiktyec";
 }
 
+
 bool EmailSender::sendWelcomeEmail(const QString &to, const QString &name)
 {
     QString subject = "Bienvenue sur FacturationApp";

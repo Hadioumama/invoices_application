@@ -17,16 +17,16 @@ class AdminWindow : public QMainWindow
 {
     Q_OBJECT
 public:
-    explicit AdminWindow(QWidget *parent = nullptr);
-    ~AdminWindow();
-
+    explicit AdminWindow(int adminId, QWidget *parent = nullptr);
+signals:
+    void logoutRequested();
 private slots:
     void onAddClient();
     void onEditClient();
     void onDeleteClient();
     void refreshModel();
     void onSearch();
-    
+    void onLogout();  
     // FACTURES
     void onCreateInvoice();
     void onEditInvoice();
@@ -38,7 +38,8 @@ private slots:
 
 private:
     void setupUI();
-
+      
+    int m_adminId;
     QSqlQueryModel *invoiceModel;
     QSqlTableModel *clientModel;
     QComboBox *clientComboBox;

@@ -1,6 +1,8 @@
 #include "clientwindow.h"
+#include "mainwindow.h"
 #include "utils/invoicegenerator.h"
 #include "utils/emailsender.h"
+#include "dialogs/logindialog.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGridLayout>
@@ -886,11 +888,11 @@ void ClientWindow::onChangePassword()
         return;
     }
 
-    // Vérifier l'ancien mot de passe
-    QString hashedOld = QCryptographicHash::hash(
-        oldPwd.toUtf8(),
-        QCryptographicHash::Sha256).toHex();
+    // ✅ Hashage des mots de passe
+    QString hashedOld = LoginDialog::hashPassword(oldPwd);
+    QString hashedNew = LoginDialog::hashPassword(newPwd);
 
+    // Vérifier l'ancien mot de passe (comparaison hashée)
     QSqlQuery checkQ;
     checkQ.prepare(
         "SELECT id FROM clients "
@@ -899,25 +901,12 @@ void ClientWindow::onChangePassword()
     checkQ.addBindValue(hashedOld);
 
     if (!checkQ.exec() || !checkQ.next()) {
-        // Essayer aussi en clair (pour admin123)
-        QSqlQuery checkQ2;
-        checkQ2.prepare(
-            "SELECT id FROM clients "
-            "WHERE id = ? AND mot_de_passe = ?");
-        checkQ2.addBindValue(m_clientId);
-        checkQ2.addBindValue(oldPwd);
-        if (!checkQ2.exec() || !checkQ2.next()) {
-            QMessageBox::warning(this, "Erreur",
-                "Mot de passe actuel incorrect.");
-            return;
-        }
+        QMessageBox::warning(this, "Erreur",
+            "Mot de passe actuel incorrect.");
+        return;
     }
 
-    // Mettre à jour
-    QString hashedNew = QCryptographicHash::hash(
-        newPwd.toUtf8(),
-        QCryptographicHash::Sha256).toHex();
-
+    // Mettre à jour avec le nouveau hash
     QSqlQuery upd;
     upd.prepare(
         "UPDATE clients SET mot_de_passe = ? "
@@ -1039,6 +1028,7 @@ void ClientWindow::onSendMessage()
     }
 }
 
+
 void ClientWindow::onLogout()
 {
     auto reply = QMessageBox::question(this,
@@ -1047,6 +1037,8 @@ void ClientWindow::onLogout()
         QMessageBox::Yes | QMessageBox::No);
 
     if (reply == QMessageBox::Yes) {
-        close();
+        // Retourner à la page de login
+        if (MainWindow::instance())
+            MainWindow::instance()->showLogin();
     }
 }

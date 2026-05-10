@@ -17,7 +17,8 @@ class ClientWindow : public QMainWindow
     Q_OBJECT
 public:
     explicit ClientWindow(int clientId, QWidget *parent = nullptr);
-
+signals:
+    void logoutRequested();
 private slots:
     // Dashboard
     void refreshDashboard();
