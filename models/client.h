@@ -15,6 +15,7 @@ public:
     QString type;           // "personne" ou "entreprise"
     QString ice;
     QString nomEntreprise;
+    QString role = "client";  // ✅ AJOUTÉ — correspond à la requête SQL
 
     bool isValid() const;
 };

@@ -21,7 +21,7 @@ public:
 signals:
     void loginSuccess(int userId, const QString &role);
     void createAccountRequested();
-
+   
 private slots:
     void onLogin();
     void onCreateAccountClicked();

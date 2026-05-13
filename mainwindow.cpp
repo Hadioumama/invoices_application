@@ -90,8 +90,6 @@ void MainWindow::showRegister()
 
 void MainWindow::showAdmin(int adminId)
 {
-    qDebug() << "showAdmin appelé avec ID:" << adminId;
-    
     if (m_adminPage) {
         m_stack->removeWidget(m_adminPage);
         delete m_adminPage;
@@ -99,16 +97,14 @@ void MainWindow::showAdmin(int adminId)
     }
 
     m_adminPage = new AdminWindow(adminId, this);
-    
-    if (!m_adminPage) {
-        qDebug() << "ERREUR: AdminWindow non créé !";
-        return;
-    }
-    
     m_stack->addWidget(m_adminPage);
     m_stack->setCurrentWidget(m_adminPage);
-    
-    qDebug() << "AdminWindow affichée avec succès";
+
+    connect(m_adminPage, &AdminWindow::logoutRequested, [this]() {
+        qDebug() << ">>> logoutRequested reçu - retour à login";
+        showLogin();
+    });
+
 }
 
 void MainWindow::showClient(int clientId)
@@ -131,17 +127,3 @@ void MainWindow::onRegisterRequested()
     showRegister();
 }
 
-void MainWindow::onLogout()
-{
-    if (m_adminPage) {
-        m_stack->removeWidget(m_adminPage);
-        delete m_adminPage;
-        m_adminPage = nullptr;
-    }
-    if (m_clientPage) {
-        m_stack->removeWidget(m_clientPage);
-        delete m_clientPage;
-        m_clientPage = nullptr;
-    }
-    showLogin();
-}

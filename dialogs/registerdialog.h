@@ -13,16 +13,17 @@ class QCheckBox;
 class RegisterDialog : public QDialog
 {
     Q_OBJECT
+
 public:
     explicit RegisterDialog(QWidget *parent = nullptr);
     ~RegisterDialog();
+
     Client getClient() const;
 
 signals:
-    void registerSuccess();
-
+    void registerSuccess(const Client &client);
+    void goToLogin(); 
 private slots:
-    void on_typeChanged(const QString &type);
     void on_enregistrerClicked();
     void togglePasswordVisibility(bool checked);
 
@@ -32,21 +33,38 @@ private:
     bool validateInputs();
     QString hashPassword(const QString &password);
 
-    // Widgets
-    QLineEdit *lineEditNom;
-    QLineEdit *lineEditPrenom;
-    QLineEdit *lineEditEmail;
-    QLineEdit *lineEditAdresse;
-    QLineEdit *lineEditTelephone;
-    QLineEdit *lineEditMotDePasse;
-    QLineEdit *lineEditConfirmation;
-    QComboBox *comboBoxType;
-    QLineEdit *lineEditNomEntreprise;
-    QLineEdit *lineEditICE;
-    QPushButton *pushButtonEnregistrer;
-    QPushButton *pushButtonAnnuler;
-    QCheckBox *showPasswordCheck;
-    QLabel *statusLabel;
+    // -- Header --
+    QLabel *m_titleLabel;
+    QLabel *m_subtitleLabel;
+
+    // -- Identité --
+    QLineEdit *m_lineEditNom;
+    QLineEdit *m_lineEditPrenom;
+
+    // -- Contact --
+    QLineEdit *m_lineEditEmail;
+    QLineEdit *m_lineEditTelephone;
+    QLineEdit *m_lineEditAdresse;
+
+    // -- Sécurité --
+    QLineEdit *m_lineEditMotDePasse;
+    QLineEdit *m_lineEditConfirmation;
+    QCheckBox *m_showPasswordCheck;
+
+    // -- Type compte --
+    QComboBox *m_comboBoxType;
+
+    // -- Entreprise (conditionnel) --
+    QWidget *m_entrepriseWidget;
+    QLineEdit *m_lineEditNomEntreprise;
+    QLineEdit *m_lineEditICE;
+
+    // -- Actions --
+    QPushButton *m_pushButtonEnregistrer;
+    QPushButton *m_pushButtonAnnuler;
+
+    // -- Feedback --
+    QLabel *m_statusLabel;
 };
 
 #endif

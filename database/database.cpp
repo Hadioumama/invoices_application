@@ -74,26 +74,31 @@ bool Database::initializeTables() {
     // ============================================
     // 3. TABLE FACTURES
     // ============================================
-    ok = query.exec(R"(
-        CREATE TABLE IF NOT EXISTS factures (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            numero TEXT UNIQUE NOT NULL,
-            type TEXT NOT NULL CHECK(type IN ('Devis', 'Facture')),
-            client_id INTEGER,
-            client_nom TEXT,
-            client_adresse TEXT,
-            client_tel TEXT,
-            client_email TEXT,
-            date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
-            date_echeance DATE,
-            date_validite DATE,
-            total_ht REAL DEFAULT 0,
-            total_tva REAL DEFAULT 0,
-            total_ttc REAL DEFAULT 0,
-            statut TEXT DEFAULT 'Brouillon',
-            facture_source_id INTEGER
-        )
-    )");
+    // Dans database.cpp, remplace la création de la table factures par :
+ok = query.exec(R"(
+    CREATE TABLE IF NOT EXISTS factures (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        numero TEXT UNIQUE NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('Devis', 'Facture')),
+        client_id INTEGER,
+        client_nom TEXT,
+        client_adresse TEXT,
+        client_tel TEXT,
+        client_email TEXT,
+        date_creation DATETIME DEFAULT CURRENT_TIMESTAMP,
+        date_echeance DATE,
+        date_validite DATE,
+        statut TEXT DEFAULT 'Brouillon',
+        total_ht REAL DEFAULT 0,
+        total_tva REAL DEFAULT 0,
+        total_ttc REAL DEFAULT 0,
+        facture_source_id INTEGER,
+        montant_paye REAL DEFAULT 0,
+        reste_a_payer REAL DEFAULT 0,
+        logo_path TEXT,
+        signature_path TEXT
+    )
+)");
     if (!ok) {
         qDebug() << "Erreur factures:" << query.lastError().text();
         return false;

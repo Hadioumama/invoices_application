@@ -25,8 +25,8 @@ public:
 private slots:
     void onLoginSuccess(int userId, const QString &role);
     void onRegisterRequested();
-    void onLogout();
 
+   
 private:
     void setupUI();
 

@@ -95,58 +95,56 @@ void InvoiceCreateDialog::setupUI()
 
     mainLayout->addWidget(persoGroup);
 
-        // ===== GROUPE INFOS CLIENT =====
-    QGroupBox *clientGroup = new QGroupBox("Informations Client");
-    QFormLayout *clientForm = new QFormLayout(clientGroup);
+ // ===== GROUPE INFOS CLIENT =====
+QGroupBox *clientGroup = new QGroupBox("Informations Client");
+QFormLayout *clientForm = new QFormLayout(clientGroup);
 
-    // ComboBox Client (comme le combo Désignation d'articles)
-    clientComboBox = new QComboBox;
-    clientComboBox->setEditable(true);
-    clientComboBox->addItem("-- Nouveau client --", -1);
-    clientComboBox->setMinimumWidth(300);
-    clientComboBox->setPlaceholderText("Choisir client existant ou saisir nouveau...");
+// ComboBox Client
+clientComboBox = new QComboBox;
+clientComboBox->setEditable(true);
+clientComboBox->addItem("-- Nouveau client --", -1);
+clientComboBox->setMinimumWidth(300);
 
-    // Charger les clients existants
-    QSqlQuery qc("SELECT id, nom, prenom, adresse, telephone, email "
-                 "FROM clients WHERE role = 'client' ORDER BY nom");
-    while (qc.next()) {
-        QString display = qc.value(1).toString() + " " + 
-                          qc.value(2).toString();
-        int idx = clientComboBox->count();
-        clientComboBox->addItem(display, qc.value(0).toInt());
-        // Stocker les données supplémentaires
-        clientComboBox->setItemData(idx, qc.value(3).toString(), Qt::UserRole + 1);  // adresse
-        clientComboBox->setItemData(idx, qc.value(4).toString(), Qt::UserRole + 2);  // telephone
-        clientComboBox->setItemData(idx, qc.value(5).toString(), Qt::UserRole + 3);  // email
-    }
+// Charger les clients existants
+QSqlQuery qc("SELECT id, nom, prenom, adresse, telephone, email "
+             "FROM clients WHERE role = 'client' ORDER BY nom");
+while (qc.next()) {
+    QString display = qc.value(1).toString() + " " + 
+                      qc.value(2).toString();
+    int idx = clientComboBox->count();
+    clientComboBox->addItem(display, qc.value(0).toInt());
+    clientComboBox->setItemData(idx, qc.value(3).toString(), Qt::UserRole + 1);
+    clientComboBox->setItemData(idx, qc.value(4).toString(), Qt::UserRole + 2);
+    clientComboBox->setItemData(idx, qc.value(5).toString(), Qt::UserRole + 3);
+}
 
-    // Champs client (read-only, remplis automatiquement)
-    clientNomEdit = new QLineEdit;
-    clientNomEdit->setReadOnly(true);
-    clientNomEdit->setPlaceholderText("Nom complet ou entreprise...");
-    
-    clientAdresseEdit = new QLineEdit;
-    clientAdresseEdit->setReadOnly(true);
-    clientAdresseEdit->setPlaceholderText("Adresse complète...");
-    
-    clientTelEdit = new QLineEdit;
-    clientTelEdit->setReadOnly(true);
-    clientTelEdit->setPlaceholderText("+212 6XX XXX XXX");
-    
-    clientEmailEdit = new QLineEdit;
-    clientEmailEdit->setReadOnly(true);
-    clientEmailEdit->setPlaceholderText("email@exemple.com");
+// Champs client - ÉDITABLES par défaut
+clientNomEdit = new QLineEdit;
+clientNomEdit->setPlaceholderText("Nom complet ou entreprise...");
+clientNomEdit->setReadOnly(false);  // ✅ ÉDITABLE
 
-    clientForm->addRow("Client:", clientComboBox);
-    clientForm->addRow("Nom / Entreprise:", clientNomEdit);
-    clientForm->addRow("Adresse:", clientAdresseEdit);
-    clientForm->addRow("Téléphone:", clientTelEdit);
-    clientForm->addRow("Email:", clientEmailEdit);
-    mainLayout->addWidget(clientGroup);
+clientAdresseEdit = new QLineEdit;
+clientAdresseEdit->setPlaceholderText("Adresse complète...");
+clientAdresseEdit->setReadOnly(false);  // ✅ ÉDITABLE
 
-    // Connexion combo client
-    connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &InvoiceCreateDialog::onClientSelected);
+clientTelEdit = new QLineEdit;
+clientTelEdit->setPlaceholderText("+212 6XX XXX XXX");
+clientTelEdit->setReadOnly(false);  // ✅ ÉDITABLE
+
+clientEmailEdit = new QLineEdit;
+clientEmailEdit->setPlaceholderText("email@exemple.com");
+clientEmailEdit->setReadOnly(false);  // ✅ ÉDITABLE
+
+clientForm->addRow("Client:", clientComboBox);
+clientForm->addRow("Nom / Entreprise:", clientNomEdit);
+clientForm->addRow("Adresse:", clientAdresseEdit);
+clientForm->addRow("Téléphone:", clientTelEdit);
+clientForm->addRow("Email:", clientEmailEdit);
+mainLayout->addWidget(clientGroup);
+
+// Connexion combo client
+connect(clientComboBox, QOverload<int>::of(&QComboBox::currentIndexChanged),
+        this, &InvoiceCreateDialog::onClientSelected);
 
     // ===== TABLE LIGNES =====
     QGroupBox *lignesGroup = new QGroupBox("Articles / Services");
@@ -338,21 +336,18 @@ void InvoiceCreateDialog::onSave()
         totalHT += ht;
         totalTVA += ht * item.taxRate / 100.0;
     }
+    double totalTTC = totalHT + totalTVA;
 
     m_logoPath = logoPathEdit->text();
     m_signaturePath = signaturePathEdit->text();
 
-    // ============================================
     // RÉCUPÉRER LES INFOS CLIENT 
-    // ============================================
     QString clientNom, clientAdresse, clientTel, clientEmail;
     int clientId = clientComboBox->currentData().toInt();
     
     if (clientId > 0) {
-        // Client existant - récupérer depuis la base
         QSqlQuery cq;
-        cq.prepare("SELECT id, nom, prenom, adresse, telephone, email "
-                   "FROM clients WHERE id = ?");
+        cq.prepare("SELECT id, nom, prenom, adresse, telephone, email FROM clients WHERE id = ?");
         cq.addBindValue(clientId);
         if (cq.exec() && cq.next()) {
             clientId = cq.value(0).toInt();
@@ -362,51 +357,64 @@ void InvoiceCreateDialog::onSave()
             clientEmail = cq.value(5).toString();
         }
     } else {
-        // Nouveau client - récupérer depuis les champs saisis manuellement
-        clientId = 1; // admin par défaut
+        clientId = 1;
         clientNom = clientNomEdit->text().trimmed();
         clientAdresse = clientAdresseEdit->text().trimmed();
         clientTel = clientTelEdit->text().trimmed();
         clientEmail = clientEmailEdit->text().trimmed();
     }
+QSqlQuery q;
+q.prepare("INSERT INTO factures ("
+    "numero, type, client_id, client_nom, client_adresse, client_tel, client_email, "
+    "date_creation, date_echeance, date_validite, statut, total_ht, total_tva, total_ttc, "
+    "facture_source_id, logo_path, signature_path"
+    ") VALUES ("
+    "?, ?, ?, ?, ?, ?, ?, "   // 1-7
+    "?, ?, ?, ?, ?, ?, ?, "   // 8-14
+    "?, ?, ?"                 // 15-17  ← ✅ 17 ? AU TOTAL
+    ")");
 
-    QSqlQuery q;
-    q.prepare("INSERT INTO factures "
-              "(numero, type, client_id, client_nom, client_adresse, client_tel, client_email, "
-              "date_creation, date_echeance, statut, total_ht, total_tva, total_ttc, "
-              "logo_path, signature_path) "
-              "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+ q.addBindValue(numeroEdit->text().trimmed());           // ?1
+q.addBindValue(typeCombo->currentText());                // ?2
+q.addBindValue(clientId);                                // ?3
+q.addBindValue(clientNom);                               // ?4
+q.addBindValue(clientAdresse);                           // ?5
+q.addBindValue(clientTel);                               // ?6
+q.addBindValue(clientEmail);                             // ?7
+q.addBindValue(dateCreationEdit->date().toString("yyyy-MM-dd"));  // ?8
+q.addBindValue(dateEcheanceEdit->date().toString("yyyy-MM-dd"));  // ?9
+q.addBindValue(dateEcheanceEdit->date().toString("yyyy-MM-dd"));  // ?10 date_validite
+q.addBindValue(statusCombo->currentText());              // ?11
+q.addBindValue(totalHT);                                  // ?12
+q.addBindValue(totalTVA);                                 // ?13
+q.addBindValue(totalTTC);                                 // ?14
+q.addBindValue(QVariant());                               // ?15 facture_source_id (NULL)
+q.addBindValue(logoPathEdit->text());                     // ?16 logo_path
+q.addBindValue(signaturePathEdit->text());                // ?17 signature_path                         // ?17 signature_path
 
-    q.addBindValue(numeroEdit->text().trimmed());           // ?1  numero
-    q.addBindValue(typeCombo->currentText());                // ?2  type
-    q.addBindValue(clientId);                                // ?3  client_id (MODIFIÉ)
-    q.addBindValue(clientNom);                               // ?4  client_nom (MODIFIÉ)
-    q.addBindValue(clientAdresse);                           // ?5  client_adresse (MODIFIÉ)
-    q.addBindValue(clientTel);                               // ?6  client_tel (MODIFIÉ)
-    q.addBindValue(clientEmail);                             // ?7  client_email (MODIFIÉ)
-    q.addBindValue(dateCreationEdit->date().toString("yyyy-MM-dd"));  // ?8  date_creation
-    q.addBindValue(dateEcheanceEdit->date().toString("yyyy-MM-dd"));  // ?9  date_echeance
-    q.addBindValue(statusCombo->currentText());              // ?10 statut
-    q.addBindValue(totalHT);                                  // ?11 total_ht
-    q.addBindValue(totalTVA);                                 // ?12 total_tva
-    q.addBindValue(totalHT + totalTVA);                       // ?13 total_ttc
-    q.addBindValue(m_logoPath);                               // ?14 logo_path
-    q.addBindValue(m_signaturePath);                          // ?15 signature_path
+    // ✅ DEBUG - Vérification
+    qDebug() << "=== DEBUG INSERT ===";
+    qDebug() << "Nombre de ?:" << q.lastQuery().count('?');
+    qDebug() << "Requête:" << q.lastQuery();
 
     if (!q.exec()) {
-        QMessageBox::critical(this, "Erreur", q.lastError().text());
+        qDebug() << "ERREUR SQL:" << q.lastError().text();
+        QMessageBox::critical(this, "Erreur SQL", 
+            "Erreur: " + q.lastError().text() + 
+            "\n\nRequête: " + q.lastQuery());
         return;
     }
 
     m_invoiceId = q.lastInsertId().toInt();
 
+    // Insertion des lignes
     for (const InvoiceLineItem &item : m_lineItems) {
         QSqlQuery lq;
         lq.prepare("INSERT INTO lignes_facture "
                    "(facture_id, article_id, designation, quantite, prix_unitaire_ht, taux_tva) "
-                   "VALUES (?,?,?,?,?,?)");
+                   "VALUES (?, ?, ?, ?, ?, ?)");
         lq.addBindValue(m_invoiceId);
-        lq.addBindValue(item.articleId);
+        lq.addBindValue(item.articleId > 0 ? item.articleId : QVariant());
         lq.addBindValue(item.designation);
         lq.addBindValue(item.quantity);
         lq.addBindValue(item.priceHT);
@@ -515,7 +523,7 @@ void InvoiceCreateDialog::onClientSelected(int index)
     int clientId = clientComboBox->currentData().toInt();
     
     if (clientId <= 0) {
-        // Nouveau client - déverrouiller les champs pour saisie manuelle
+        // ✅ NOUVEAU CLIENT - Champs éditables et vidés
         clientNomEdit->setReadOnly(false);
         clientAdresseEdit->setReadOnly(false);
         clientTelEdit->setReadOnly(false);
@@ -525,10 +533,17 @@ void InvoiceCreateDialog::onClientSelected(int index)
         clientAdresseEdit->clear();
         clientTelEdit->clear();
         clientEmailEdit->clear();
+        
+        // Style pour indiquer éditable
+        clientNomEdit->setStyleSheet("");
+        clientAdresseEdit->setStyleSheet("");
+        clientTelEdit->setStyleSheet("");
+        clientEmailEdit->setStyleSheet("");
+        
         return;
     }
     
-    // Client existant - remplir automatiquement et verrouiller
+    // ✅ CLIENT EXISTANT - Remplir automatiquement et verrouiller
     QSqlQuery q;
     q.prepare("SELECT nom, prenom, adresse, telephone, email "
               "FROM clients WHERE id = ?");
@@ -539,10 +554,17 @@ void InvoiceCreateDialog::onClientSelected(int index)
         clientTelEdit->setText(q.value(3).toString());
         clientEmailEdit->setText(q.value(4).toString());
         
-        // Verrouiller les champs (lecture seule)
+        // Verrouiller les champs
         clientNomEdit->setReadOnly(true);
         clientAdresseEdit->setReadOnly(true);
         clientTelEdit->setReadOnly(true);
         clientEmailEdit->setReadOnly(true);
+        
+        // Style grisé pour indiquer lecture seule
+        QString readOnlyStyle = "background: #F7FAFC; color: #718096;";
+        clientNomEdit->setStyleSheet(readOnlyStyle);
+        clientAdresseEdit->setStyleSheet(readOnlyStyle);
+        clientTelEdit->setStyleSheet(readOnlyStyle);
+        clientEmailEdit->setStyleSheet(readOnlyStyle);
     }
 }
