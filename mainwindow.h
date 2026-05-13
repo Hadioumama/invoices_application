@@ -2,31 +2,35 @@
 #define MAINWINDOW_H
 
 #include <QMainWindow>
-#include <QStackedWidget>
 
+class QStackedWidget;
 class LoginDialog;
 class RegisterDialog;
 class AdminWindow;
 class ClientWindow;
+class Client;
 
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
+
 public:
     explicit MainWindow(QWidget *parent = nullptr);
     ~MainWindow();
 
     static MainWindow* instance();
+
+public slots:
     void showLogin();
     void showRegister();
-    void showAdmin(int adminId);
-    void showClient(int clientId);
 
 private slots:
     void onLoginSuccess(int userId, const QString &role);
-    void onRegisterRequested();
+    void onRegisterSuccess(const Client &client);
+    void showAdmin(int adminId);
+    void showClient(int clientId);
+    void onLogout();
 
-   
 private:
     void setupUI();
 
@@ -35,8 +39,8 @@ private:
     RegisterDialog *m_registerPage;
     AdminWindow *m_adminPage;
     ClientWindow *m_clientPage;
-    
+
     static MainWindow *s_instance;
 };
 
-#endif // MAINWINDOW_H
+#endif

@@ -481,6 +481,10 @@ void LoginDialog::onLogin()
     QString email = emailEdit->text().trimmed().toLower();
     QString pwd = passwordEdit->text();
 
+    qDebug() << "=== TENTATIVE LOGIN ===";
+    qDebug() << "Email saisi:" << email;
+    qDebug() << "Password saisi:" << pwd;
+
     if (email.isEmpty() || pwd.isEmpty()) {
         QMessageBox::warning(this, "Erreur", "Veuillez remplir tous les champs.");
         return;
@@ -490,7 +494,14 @@ void LoginDialog::onLogin()
     q.prepare("SELECT id, role, mot_de_passe FROM clients WHERE LOWER(email) = LOWER(?)");
     q.addBindValue(email);
 
-    if (!q.exec() || !q.next()) {
+    if (!q.exec()) {
+        qDebug() << "ERREUR SQL:" << q.lastError().text();
+        QMessageBox::warning(this, "Erreur", "Problème de base de données.");
+        return;
+    }
+
+    if (!q.next()) {
+        qDebug() << "Email NON TROUVÉ:" << email;
         QMessageBox::warning(this, "Erreur", "Email ou mot de passe incorrect.");
         passwordEdit->clear();
         return;
@@ -500,8 +511,14 @@ void LoginDialog::onLogin()
     QString role = q.value(1).toString();
     QString dbHash = q.value(2).toString();
 
+    qDebug() << "User trouvé - ID:" << userId << "Role:" << role;
+    qDebug() << "Hash BDD:" << dbHash;
+    qDebug() << "Hash saisi:" << hashPassword(pwd);
+
     QString hashedInput = hashPassword(pwd);
     bool match = (dbHash == hashedInput) || (dbHash == pwd);
+
+    qDebug() << "Match:" << match;
 
     if (!match) {
         QMessageBox::warning(this, "Erreur", "Email ou mot de passe incorrect.");
@@ -519,6 +536,7 @@ void LoginDialog::onLogin()
         update.exec();
     }
 
+    qDebug() << "EMISSION loginSuccess - ID:" << userId << "Role:" << role;
     emit loginSuccess(userId, role);
 }
 

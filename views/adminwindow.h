@@ -1,25 +1,23 @@
 #ifndef ADMINWINDOW_H
 #define ADMINWINDOW_H
 
-#include <QWidget>  // ✅ PAS QMainWindow !
-#include <QVBoxLayout>
-#include <QHBoxLayout>
-#include <QTableView>
-#include <QPushButton>
-#include <QLineEdit>
+#include <QWidget>  // ✅ Reste QWidget pour QStackedWidget
 #include <QTabWidget>
+#include <QTableView>
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
+#include <QLabel>
+#include <QLineEdit>
+#include <QPushButton>
 
-// Forward declarations
-class ArticlesWidget;
 class DashboardWidget;
+class ArticlesWidget;
 class InvoiceCreateDialog;
-class PaymentDialog;
 
-class AdminWindow : public QWidget  // ✅ QWidget, pas QMainWindow
+class AdminWindow : public QWidget
 {
     Q_OBJECT
+
 public:
     explicit AdminWindow(int adminId, QWidget *parent = nullptr);
     ~AdminWindow();
@@ -29,20 +27,20 @@ signals:
 
 private slots:
     // Factures
+    void onSearchInvoice();
     void onCreateInvoice();
     void onEditInvoice();
     void onDeleteInvoice();
     void onInvoiceActions();
     void onPaymentClicked();
     void onRefreshInvoices();
-    void onSearchInvoice();
     
     // Clients
+    void refreshModel();
+    void onSearch();
     void onAddClient();
     void onEditClient();
     void onDeleteClient();
-    void refreshModel();
-    void onSearch();
     
     // Logout
     void onLogout();

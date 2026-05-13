@@ -12,10 +12,10 @@
 #include <QComboBox>
 #include <QPushButton>
 #include <QVBoxLayout>
-#include <QFormLayout>
 #include <QHBoxLayout>
 #include <QCheckBox>
 #include <QFrame>
+#include <QScrollArea>
 #include <QCryptographicHash>
 
 // ============================================================
@@ -32,150 +32,177 @@ RegisterDialog::RegisterDialog(QWidget *parent)
 RegisterDialog::~RegisterDialog() = default;
 
 // ============================================================
-// UI SETUP - STRUCTURÉ ET ESPACÉ
+// UI SETUP - CARTE CENTRÉE PROFESSIONNELLE
 // ============================================================
 
 void RegisterDialog::setupUI()
 {
     setWindowTitle("Créer un compte");
-    setFixedSize(520, 720);           // ✅ Plus grand pour éviter la compression
+    setMinimumSize(520, 600);
+    resize(580, 720);
     setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 
-    // ===== LAYOUT PRINCIPAL =====
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
+    // ===== FOND GRIS CLAIR =====
+    setStyleSheet("background-color: #F0F2F5;");
+
+    // ===== LAYOUT PRINCIPAL (centre la carte) =====
+    QVBoxLayout *outerLayout = new QVBoxLayout(this);
+    outerLayout->setContentsMargins(20, 20, 20, 20);
+    outerLayout->setAlignment(Qt::AlignCenter);
+
+    // ===== CARTE BLANCHE =====
+    QFrame *card = new QFrame(this);
+    card->setObjectName("registerCard");
+    card->setStyleSheet(R"(
+        #registerCard {
+            background-color: white;
+            border-radius: 16px;
+            border: 1px solid #E2E8F0;
+        }
+    )");
+    card->setMaximumWidth(520);
+    card->setMinimumWidth(460);
+
+    QVBoxLayout *cardLayout = new QVBoxLayout(card);
+    cardLayout->setSpacing(0);
+    cardLayout->setContentsMargins(0, 0, 0, 0);
 
     // ========================================================
-    // 1. HEADER (inchangé)
+    // 1. HEADER (arrondi en haut)
     // ========================================================
-    QWidget *headerWidget = new QWidget(this);
-    headerWidget->setFixedHeight(100);
-    headerWidget->setStyleSheet("background-color: #2B6CB0;");
+    QWidget *headerWidget = new QWidget(card);
+    headerWidget->setFixedHeight(90);
+    headerWidget->setStyleSheet(R"(
+        background-color: #2B6CB0;
+        border-top-left-radius: 16px;
+        border-top-right-radius: 16px;
+    )");
 
     QVBoxLayout *headerLayout = new QVBoxLayout(headerWidget);
     headerLayout->setAlignment(Qt::AlignCenter);
     headerLayout->setSpacing(4);
+    headerLayout->setContentsMargins(20, 12, 20, 12);
 
     m_titleLabel = new QLabel("Créer un compte", headerWidget);
     m_titleLabel->setStyleSheet(
-        "color: white; font-size: 24px; font-weight: bold; background: transparent;");
+        "color: white; font-size: 22px; font-weight: bold; background: transparent;");
     m_titleLabel->setAlignment(Qt::AlignCenter);
 
     m_subtitleLabel = new QLabel("Rejoignez FacturationApp", headerWidget);
     m_subtitleLabel->setStyleSheet(
-        "color: #E2E8F0; font-size: 13px; background: transparent;");
+        "color: #E2E8F0; font-size: 12px; background: transparent;");
     m_subtitleLabel->setAlignment(Qt::AlignCenter);
 
     headerLayout->addWidget(m_titleLabel);
     headerLayout->addWidget(m_subtitleLabel);
-    mainLayout->addWidget(headerWidget);
+    cardLayout->addWidget(headerWidget);
 
     // ========================================================
-    // 2. CONTENU - FORMULAIRE AVEC ESPACEMENT
+    // 2. CONTENU SCROLLABLE
     // ========================================================
-    QWidget *contentWidget = new QWidget(this);
-    contentWidget->setStyleSheet("background-color: white;");
+    QScrollArea *scrollArea = new QScrollArea(card);
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameShape(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setStyleSheet(R"(
+        QScrollArea { background: transparent; border: none; }
+        QScrollBar:vertical {
+            background: transparent;
+            width: 6px;
+            margin: 0px;
+        }
+        QScrollBar::handle:vertical {
+            background: #CBD5E0;
+            border-radius: 3px;
+            min-height: 30px;
+        }
+        QScrollBar::handle:vertical:hover { background: #A0AEC0; }
+        QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+            height: 0px;
+        }
+    )");
 
-    // ✅ QFormLayout pour un alignement label/champ parfait
-    QFormLayout *formLayout = new QFormLayout(contentWidget);
-    formLayout->setSpacing(0);           // Pas d'espace entre label et champ (géré manuellement)
-    formLayout->setContentsMargins(35, 25, 35, 25);
-    formLayout->setLabelAlignment(Qt::AlignLeft);
-    formLayout->setFormAlignment(Qt::AlignLeft | Qt::AlignTop);
-    formLayout->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
-    formLayout->setRowWrapPolicy(QFormLayout::DontWrapRows);
+    QWidget *scrollContent = new QWidget;
+    QVBoxLayout *formLayout = new QVBoxLayout(scrollContent);
+    formLayout->setSpacing(0);
+    formLayout->setContentsMargins(32, 24, 32, 16);
+    formLayout->setAlignment(Qt::AlignTop);
 
     // --------------------------------------------------------
-    // 2.1 SECTION : IDENTITÉ
+    // HELPER : Créer un champ (label + input)
     // --------------------------------------------------------
-    // Ligne Nom + Prénom (2 colonnes)
+    auto addField = [&](const QString &labelText, const QString &placeholder,
+                      QLineEdit *&fieldRef, bool isPassword = false) {
+        QLabel *label = new QLabel(labelText);
+        label->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;");
+        formLayout->addWidget(label);
+
+        fieldRef = new QLineEdit;
+        fieldRef->setPlaceholderText(placeholder);
+        fieldRef->setFixedHeight(42);
+        if (isPassword) fieldRef->setEchoMode(QLineEdit::Password);
+        formLayout->addWidget(fieldRef);
+    };
+
+    // --------------------------------------------------------
+    // 2.1 NOM + PRÉNOM (côte à côte)
+    // --------------------------------------------------------
     QHBoxLayout *identityLayout = new QHBoxLayout;
-    identityLayout->setSpacing(14);
+    identityLayout->setSpacing(12);
 
     // Nom
-    QVBoxLayout *nomCol = new QVBoxLayout;
-    nomCol->setSpacing(6);
-    nomCol->setContentsMargins(0, 0, 0, 0);
+    QVBoxLayout *nomLayout = new QVBoxLayout;
+    nomLayout->setSpacing(4);
     QLabel *nomLabel = new QLabel("Nom *");
     nomLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
     m_lineEditNom = new QLineEdit;
     m_lineEditNom->setPlaceholderText("Votre nom");
     m_lineEditNom->setFixedHeight(42);
-    nomCol->addWidget(nomLabel);
-    nomCol->addWidget(m_lineEditNom);
+    nomLayout->addWidget(nomLabel);
+    nomLayout->addWidget(m_lineEditNom);
+    identityLayout->addLayout(nomLayout, 1);
 
     // Prénom
-    QVBoxLayout *prenomCol = new QVBoxLayout;
-    prenomCol->setSpacing(6);
-    prenomCol->setContentsMargins(0, 0, 0, 0);
+    QVBoxLayout *prenomLayout = new QVBoxLayout;
+    prenomLayout->setSpacing(4);
     QLabel *prenomLabel = new QLabel("Prénom *");
     prenomLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
     m_lineEditPrenom = new QLineEdit;
     m_lineEditPrenom->setPlaceholderText("Votre prénom");
     m_lineEditPrenom->setFixedHeight(42);
-    prenomCol->addWidget(prenomLabel);
-    prenomCol->addWidget(m_lineEditPrenom);
+    prenomLayout->addWidget(prenomLabel);
+    prenomLayout->addWidget(m_lineEditPrenom);
+    identityLayout->addLayout(prenomLayout, 1);
 
-    identityLayout->addLayout(nomCol, 1);
-    identityLayout->addLayout(prenomCol, 1);
-
-    // Ajouter la ligne identité au form
-    QWidget *identityRow = new QWidget;
-    identityRow->setLayout(identityLayout);
-    formLayout->addRow(identityRow);
-
-    // ✅ ESPACE entre sections
-    formLayout->addItem(new QSpacerItem(0, 16, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    formLayout->addLayout(identityLayout);
+    formLayout->addSpacing(14);
 
     // --------------------------------------------------------
-    // 2.2 SECTION : CONTACT
+    // 2.2 CONTACT
     // --------------------------------------------------------
-    // Email
-    QLabel *emailLabel = new QLabel("Email *");
-    emailLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditEmail = new QLineEdit;
-    m_lineEditEmail->setPlaceholderText("exemple@gmail.com");
-    m_lineEditEmail->setFixedHeight(42);
-    formLayout->addRow(emailLabel, m_lineEditEmail);
-    formLayout->addItem(new QSpacerItem(0, 12, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    addField("Email *", "exemple@gmail.com", m_lineEditEmail);
+    formLayout->addSpacing(14);
 
-    // Téléphone
-    QLabel *telLabel = new QLabel("Téléphone");
-    telLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditTelephone = new QLineEdit;
-    m_lineEditTelephone->setPlaceholderText("+212 6XX XXX XXX");
-    m_lineEditTelephone->setFixedHeight(42);
-    formLayout->addRow(telLabel, m_lineEditTelephone);
-    formLayout->addItem(new QSpacerItem(0, 12, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    addField("Téléphone", "+212 6XX XXX XXX", m_lineEditTelephone);
+    formLayout->addSpacing(14);
 
-    // Adresse
-    QLabel *adresseLabel = new QLabel("Adresse");
-    adresseLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditAdresse = new QLineEdit;
-    m_lineEditAdresse->setPlaceholderText("Votre adresse complète");
-    m_lineEditAdresse->setFixedHeight(42);
-    formLayout->addRow(adresseLabel, m_lineEditAdresse);
-
-    // ✅ ESPACE
-    formLayout->addItem(new QSpacerItem(0, 16, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    addField("Adresse", "Votre adresse complète", m_lineEditAdresse);
+    formLayout->addSpacing(14);
 
     // --------------------------------------------------------
-    // 2.3 SECTION : SÉCURITÉ
+    // 2.3 SÉCURITÉ
     // --------------------------------------------------------
-    // Mot de passe
-    QLabel *mdpLabel = new QLabel("Mot de passe *");
-    mdpLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditMotDePasse = new QLineEdit;
-    m_lineEditMotDePasse->setPlaceholderText("Min. 6 caractères");
-    m_lineEditMotDePasse->setEchoMode(QLineEdit::Password);
-    m_lineEditMotDePasse->setFixedHeight(42);
-    formLayout->addRow(mdpLabel, m_lineEditMotDePasse);
-    formLayout->addItem(new QSpacerItem(0, 12, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    addField("Mot de passe *", "Min. 6 caractères", m_lineEditMotDePasse, true);
+    formLayout->addSpacing(14);
 
     // Confirmation + Checkbox
-    QHBoxLayout *confirmRow = new QHBoxLayout;
-    confirmRow->setSpacing(10);
+    QLabel *confirmLabel = new QLabel("Confirmation *");
+    confirmLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;");
+    formLayout->addWidget(confirmLabel);
+
+    QHBoxLayout *confirmLayout = new QHBoxLayout;
+    confirmLayout->setSpacing(10);
 
     m_lineEditConfirmation = new QLineEdit;
     m_lineEditConfirmation->setPlaceholderText("Confirmer le mot de passe");
@@ -183,144 +210,87 @@ void RegisterDialog::setupUI()
     m_lineEditConfirmation->setFixedHeight(42);
 
     m_showPasswordCheck = new QCheckBox("Afficher");
-    m_showPasswordCheck->setStyleSheet("color: #718096; font-size: 12px; padding-top: 2px;");
+    m_showPasswordCheck->setStyleSheet("color: #718096; font-size: 12px;");
 
-    confirmRow->addWidget(m_lineEditConfirmation, 1);
-    confirmRow->addWidget(m_showPasswordCheck);
-
-    QLabel *confirmLabel = new QLabel("Confirmation *");
-    confirmLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    formLayout->addRow(confirmLabel, confirmRow);
-
-    // ✅ ESPACE
-    formLayout->addItem(new QSpacerItem(0, 16, QSizePolicy::Minimum, QSizePolicy::Fixed));
-
-  
-    // --------------------------------------------------------
-// 2.4 SECTION : TYPE DE COMPTE - FLÈCHE TRIANGLE
-// --------------------------------------------------------
-QLabel *typeLabel = new QLabel("Type de compte *");
-typeLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-
-m_comboBoxType = new QComboBox;
-m_comboBoxType->addItem("Personne", "personne");
-m_comboBoxType->addItem("Entreprise", "entreprise");
-m_comboBoxType->setFixedHeight(42);
-
-// Style avec padding droit pour laisser la place au triangle
-m_comboBoxType->setStyleSheet(R"(
-    QComboBox {
-        border: 2px solid #E2E8F0;
-        border-radius: 8px;
-        padding: 5px 36px 5px 14px;
-        font-size: 14px;
-        background: #F7FAFC;
-        color: #2D3748;
-        min-height: 20px;
-    }
-    QComboBox:focus {
-        border: 2px solid #2B6CB0;
-    }
-    QComboBox::drop-down {
-        border: none;
-        width: 30px;
-        background: transparent;
-    }
-    QComboBox::down-arrow {
-        image: none;
-        border: none;
-        width: 0px;
-        height: 0px;
-    }
-    QComboBox QAbstractItemView {
-        border: 1px solid #E2E8F0;
-        border-radius: 8px;
-        background: white;
-        selection-background-color: #2B6CB0;
-        selection-color: white;
-        padding: 5px;
-        outline: none;
-    }
-)");
-
-formLayout->addRow(typeLabel, m_comboBoxType);
+    confirmLayout->addWidget(m_lineEditConfirmation, 1);
+    confirmLayout->addWidget(m_showPasswordCheck);
+    formLayout->addLayout(confirmLayout);
+    formLayout->addSpacing(14);
 
     // --------------------------------------------------------
-    // 2.5 SECTION : ENTREPRISE (Conditionnelle)
+    // 2.4 TYPE DE COMPTE
     // --------------------------------------------------------
-    m_entrepriseWidget = new QWidget;
-    QFormLayout *entrepriseForm = new QFormLayout(m_entrepriseWidget);
-    entrepriseForm->setSpacing(0);
-    entrepriseForm->setContentsMargins(0, 12, 0, 0);
-    entrepriseForm->setLabelAlignment(Qt::AlignLeft);
+    QLabel *typeLabel = new QLabel("Type de compte *");
+    typeLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;");
+    formLayout->addWidget(typeLabel);
 
-    // Nom entreprise
-    QLabel *nomEntLabel = new QLabel("Nom entreprise *");
-    nomEntLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditNomEntreprise = new QLineEdit;
-    m_lineEditNomEntreprise->setPlaceholderText("Nom de l'entreprise");
-    m_lineEditNomEntreprise->setFixedHeight(42);
-    entrepriseForm->addRow(nomEntLabel, m_lineEditNomEntreprise);
-    entrepriseForm->addItem(new QSpacerItem(0, 12, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    m_comboBoxType = new QComboBox;
+    m_comboBoxType->addItem("Personne", "personne");
+    m_comboBoxType->addItem("Entreprise", "entreprise");
+    m_comboBoxType->setFixedHeight(42);
 
-    // ICE
-    QLabel *iceLabel = new QLabel("ICE");
-    iceLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568;");
-    m_lineEditICE = new QLineEdit;
-    m_lineEditICE->setPlaceholderText("Identifiant Commun de l'Entreprise");
-    m_lineEditICE->setFixedHeight(42);
-    entrepriseForm->addRow(iceLabel, m_lineEditICE);
-
-    m_entrepriseWidget->setVisible(false);
-    formLayout->addRow(m_entrepriseWidget);
-
-    // ✅ ESPACE avant actions
-    formLayout->addItem(new QSpacerItem(0, 20, QSizePolicy::Minimum, QSizePolicy::Fixed));
-
-    // --------------------------------------------------------
-    // 2.6 SECTION : FEEDBACK & ACTIONS
-    // --------------------------------------------------------
-    // Status
-    m_statusLabel = new QLabel("");
-    m_statusLabel->setAlignment(Qt::AlignCenter);
-    m_statusLabel->setStyleSheet("color: #E53E3E; font-size: 12px; padding: 8px;");
-    m_statusLabel->setWordWrap(true);
-    formLayout->addRow(m_statusLabel);
-
-    // Bouton S'enregistrer
-    m_pushButtonEnregistrer = new QPushButton("S'enregistrer");
-    m_pushButtonEnregistrer->setFixedHeight(46);
-    m_pushButtonEnregistrer->setCursor(Qt::PointingHandCursor);
-    formLayout->addRow(m_pushButtonEnregistrer);
-
-    // ✅ ESPACE entre boutons
-    formLayout->addItem(new QSpacerItem(0, 10, QSizePolicy::Minimum, QSizePolicy::Fixed));
-
-    // Bouton Annuler
-    m_pushButtonAnnuler = new QPushButton("Annuler");
-    m_pushButtonAnnuler->setFixedHeight(42);
-    m_pushButtonAnnuler->setCursor(Qt::PointingHandCursor);
-    m_pushButtonAnnuler->setStyleSheet(R"(
-        QPushButton {
-            background: transparent;
-            color: #718096;
-            font-weight: 600;
-            font-size: 14px;
+    m_comboBoxType->setStyleSheet(R"(
+        QComboBox {
             border: 2px solid #E2E8F0;
-            border-radius: 8px;
-        }
-        QPushButton:hover {
+            border-radius: 10px;
+            padding: 5px 14px;
+            font-size: 14px;
             background: #F7FAFC;
-            color: #4A5568;
-            border-color: #CBD5E0;
+            color: #2D3748;
+            min-height: 20px;
+        }
+        QComboBox:focus {
+            border: 2px solid #2B6CB0;
+            background: white;
+        }
+        QComboBox::drop-down {
+            border: none;
+            width: 36px;
+            background: transparent;
+        }
+        QComboBox::down-arrow {
+            image: none;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 7px solid #718096;
+            width: 0px;
+            height: 0px;
+        }
+        QComboBox QAbstractItemView {
+            border: 1px solid #E2E8F0;
+            border-radius: 8px;
+            background: white;
+            selection-background-color: #2B6CB0;
+            selection-color: white;
+            padding: 5px;
+            outline: none;
         }
     )");
-    formLayout->addRow(m_pushButtonAnnuler);
 
-    // ✅ ESPACE
-    formLayout->addItem(new QSpacerItem(0, 12, QSizePolicy::Minimum, QSizePolicy::Fixed));
+    formLayout->addWidget(m_comboBoxType);
+    formLayout->addSpacing(14);
 
-    // Lien connexion
+    // --------------------------------------------------------
+    // 2.5 ENTREPRISE (Conditionnelle)
+    // --------------------------------------------------------
+    m_entrepriseWidget = new QWidget;
+    QVBoxLayout *entrepriseLayout = new QVBoxLayout(m_entrepriseWidget);
+    entrepriseLayout->setSpacing(0);
+    entrepriseLayout->setContentsMargins(0, 0, 0, 0);
+
+    addField("Nom entreprise *", "Nom de l'entreprise", m_lineEditNomEntreprise);
+    entrepriseLayout->addSpacing(14);
+
+    addField("ICE", "Identifiant Commun de l'Entreprise", m_lineEditICE);
+
+    m_entrepriseWidget->setVisible(false);
+    formLayout->addWidget(m_entrepriseWidget);
+
+    // --------------------------------------------------------
+    // 2.6 LIEN CONNEXION
+    // --------------------------------------------------------
+    formLayout->addSpacing(8);
+
     QHBoxLayout *loginLinkLayout = new QHBoxLayout;
     loginLinkLayout->setAlignment(Qt::AlignCenter);
 
@@ -329,39 +299,67 @@ formLayout->addRow(typeLabel, m_comboBoxType);
 
     QPushButton *loginLinkBtn = new QPushButton("Se connecter");
     loginLinkBtn->setStyleSheet(R"(
-        QPushButton {
-            background: transparent;
-            color: #2B6CB0;
-            border: none;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: underline;
-        }
-        QPushButton:hover {
-            color: #1A365D;
-        }
+        QPushButton { background: transparent; color: #2B6CB0; border: none;
+            font-size: 13px; font-weight: 600; text-decoration: underline; }
+        QPushButton:hover { color: #1A365D; }
     )");
     loginLinkBtn->setCursor(Qt::PointingHandCursor);
     loginLinkBtn->setFlat(true);
 
     loginLinkLayout->addWidget(alreadyLabel);
     loginLinkLayout->addWidget(loginLinkBtn);
+    formLayout->addLayout(loginLinkLayout);
 
-    QWidget *linkRow = new QWidget;
-    linkRow->setLayout(loginLinkLayout);
-    formLayout->addRow(linkRow);
-
-    mainLayout->addWidget(contentWidget, 1);
+    scrollArea->setWidget(scrollContent);
+    cardLayout->addWidget(scrollArea, 1);
 
     // ========================================================
-    // 3. CONNEXIONS
+    // 3. FOOTER FIXE DANS LA CARTE (boutons toujours visibles)
+    // ========================================================
+    QWidget *footerWidget = new QWidget(card);
+    footerWidget->setStyleSheet("background-color: white; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;");
+    footerWidget->setFixedHeight(130);
+
+    QVBoxLayout *footerLayout = new QVBoxLayout(footerWidget);
+    footerLayout->setContentsMargins(32, 8, 32, 20);
+    footerLayout->setSpacing(8);
+
+    m_statusLabel = new QLabel("");
+    m_statusLabel->setAlignment(Qt::AlignCenter);
+    m_statusLabel->setStyleSheet("color: #E53E3E; font-size: 12px; padding: 2px;");
+    m_statusLabel->setWordWrap(true);
+    footerLayout->addWidget(m_statusLabel);
+
+    m_pushButtonEnregistrer = new QPushButton("S'enregistrer");
+    m_pushButtonEnregistrer->setFixedHeight(44);
+    m_pushButtonEnregistrer->setCursor(Qt::PointingHandCursor);
+    footerLayout->addWidget(m_pushButtonEnregistrer);
+
+    m_pushButtonAnnuler = new QPushButton("Annuler");
+    m_pushButtonAnnuler->setFixedHeight(40);
+    m_pushButtonAnnuler->setCursor(Qt::PointingHandCursor);
+    m_pushButtonAnnuler->setStyleSheet(R"(
+        QPushButton {
+            background: transparent; color: #718096; font-weight: 600;
+            font-size: 13px; border: 2px solid #E2E8F0; border-radius: 10px;
+        }
+        QPushButton:hover { background: #F7FAFC; color: #4A5568; border-color: #CBD5E0; }
+    )");
+    footerLayout->addWidget(m_pushButtonAnnuler);
+
+    cardLayout->addWidget(footerWidget);
+
+    // ===== AJOUTER LA CARTE AU LAYOUT PRINCIPAL =====
+    outerLayout->addWidget(card, 0, Qt::AlignCenter);
+
+    // ========================================================
+    // 4. CONNEXIONS
     // ========================================================
     connect(m_comboBoxType, QOverload<int>::of(&QComboBox::currentIndexChanged),
             this, [this](int index) {
-        bool isEntreprise = (m_comboBoxType->itemData(index).toString() == "entreprise");
+        Q_UNUSED(index)
+        bool isEntreprise = (m_comboBoxType->currentData().toString() == "entreprise");
         m_entrepriseWidget->setVisible(isEntreprise);
-        // ✅ Ajuster la taille quand on montre/cache
-        adjustSize();
     });
 
     connect(m_showPasswordCheck, &QCheckBox::toggled,
@@ -371,10 +369,10 @@ formLayout->addRow(typeLabel, m_comboBoxType);
             this, &RegisterDialog::on_enregistrerClicked);
 
     connect(m_pushButtonAnnuler, &QPushButton::clicked,
-            this, &QDialog::reject);
+            this, &RegisterDialog::goToLogin);
 
     connect(loginLinkBtn, &QPushButton::clicked,
-            this, &QDialog::reject);
+            this, &RegisterDialog::goToLogin);
 }
 
 // ============================================================
@@ -383,15 +381,15 @@ formLayout->addRow(typeLabel, m_comboBoxType);
 
 void RegisterDialog::applyStyles()
 {
-    const QString lineEditStyle = R"(
+    const QString fieldStyle = R"(
         QLineEdit {
             border: 2px solid #E2E8F0;
-            border-radius: 8px;
+            border-radius: 10px;
             padding: 5px 14px;
             font-size: 14px;
             background: #F7FAFC;
             color: #2D3748;
-            min-height: 20px;
+            min-height: 18px;
         }
         QLineEdit:focus {
             border: 2px solid #2B6CB0;
@@ -402,67 +400,23 @@ void RegisterDialog::applyStyles()
         }
     )";
 
-    QList<QLineEdit*> lineEdits = {
+    QList<QLineEdit*> allFields = {
         m_lineEditNom, m_lineEditPrenom, m_lineEditEmail,
         m_lineEditTelephone, m_lineEditAdresse, m_lineEditMotDePasse,
         m_lineEditConfirmation, m_lineEditNomEntreprise, m_lineEditICE
     };
-    for (QLineEdit *le : lineEdits) {
-        le->setStyleSheet(lineEditStyle);
+    for (QLineEdit *field : allFields) {
+        field->setStyleSheet(fieldStyle);
     }
-
-    m_comboBoxType->setStyleSheet(R"(
-        QComboBox {
-            border: 2px solid #E2E8F0;
-            border-radius: 8px;
-            padding: 5px 14px;
-            font-size: 14px;
-            background: #F7FAFC;
-            color: #2D3748;
-            min-height: 20px;
-        }
-        QComboBox:focus {
-            border: 2px solid #2B6CB0;
-        }
-        QComboBox::drop-down {
-            border: none;
-            width: 30px;
-        }
-        QComboBox::down-arrow {
-            width: 0;
-            height: 0;
-            border-left: 5px solid transparent;
-            border-right: 5px solid transparent;
-            border-top: 6px solid #718096;
-        }
-        QComboBox QAbstractItemView {
-            border: 1px solid #E2E8F0;
-            border-radius: 8px;
-            background: white;
-            selection-background-color: #2B6CB0;
-            selection-color: white;
-            padding: 5px;
-        }
-    )");
 
     m_pushButtonEnregistrer->setStyleSheet(R"(
         QPushButton {
-            background: #2B6CB0;
-            color: white;
-            font-weight: bold;
-            font-size: 15px;
-            border: none;
-            border-radius: 8px;
+            background: #2B6CB0; color: white; font-weight: bold;
+            font-size: 15px; border: none; border-radius: 10px;
         }
-        QPushButton:hover {
-            background: #1A365D;
-        }
-        QPushButton:pressed {
-            background: #2C5282;
-        }
-        QPushButton:disabled {
-            background: #A0AEC0;
-        }
+        QPushButton:hover { background: #1A365D; }
+        QPushButton:pressed { background: #2C5282; }
+        QPushButton:disabled { background: #A0AEC0; }
     )");
 }
 
@@ -572,7 +526,7 @@ void RegisterDialog::on_enregistrerClicked()
         QString("Compte créé avec succès !\nVous pouvez maintenant vous connecter."));
 
     emit registerSuccess(client);
-    accept();
+    emit goToLogin();
 }
 
 // ============================================================

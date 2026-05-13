@@ -36,14 +36,12 @@ AdminWindow::~AdminWindow()
 
 void AdminWindow::setupUI()
 {
-    // ✅ PAS de setWindowTitle ni setGeometry - c'est un widget enfant
-    // ✅ PAS de setCentralWidget - QWidget n'a pas ça
-    
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(10, 10, 10, 10);
+    mainLayout->setSpacing(10);
 
     // ===== TITRE =====
-    QLabel *titleLabel = new QLabel(QString("Panneau Administrateur ").arg(m_adminId));
+       QLabel *titleLabel = new QLabel(QString("Panneau Administrateur - ID: %1").arg(m_adminId));
     titleLabel->setStyleSheet("font-size: 20px; font-weight: bold; color: #2B6CB0;");
     titleLabel->setAlignment(Qt::AlignCenter);
     mainLayout->addWidget(titleLabel);
@@ -61,8 +59,7 @@ void AdminWindow::setupUI()
 
     // ===== TAB WIDGET =====
     QTabWidget *tabWidget = new QTabWidget(this);
-    mainLayout->addWidget(tabWidget);
-
+    mainLayout->addWidget(tabWidget, 1);
     // ===== TAB DASHBOARD =====
     DashboardWidget *dashboard = new DashboardWidget(this);
     tabWidget->addTab(dashboard, "📊 Dashboard");
@@ -212,6 +209,9 @@ void AdminWindow::setupUI()
     }
     connect(articlesWidget, &ArticlesWidget::articleSelected, 
             m_invoiceDialog, &InvoiceCreateDialog::onArticleFromCatalog);
+      
+    connect(logoutBtn, &QPushButton::clicked, this, &AdminWindow::onLogout);
+       
 }
 
 // ============================================
