@@ -368,6 +368,10 @@ void ClientWindow::refreshDashboard()
 // ═══════════════════════════════════════════════════════
 void ClientWindow::setupFactures()
 {
+    QScrollArea *scroll = new QScrollArea;
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+
     QWidget *widget = new QWidget;
     QVBoxLayout *layout = new QVBoxLayout(widget);
     layout->setSpacing(10);
@@ -380,15 +384,13 @@ void ClientWindow::setupFactures()
 
     // Filtres
     QGroupBox *filterGroup = new QGroupBox("🔍 Filtres");
-    QHBoxLayout *filterLayout =
-        new QHBoxLayout(filterGroup);
+    QHBoxLayout *filterLayout = new QHBoxLayout(filterGroup);
 
     filterLayout->addWidget(new QLabel("Statut:"));
     filterStatut = new QComboBox;
     filterStatut->addItems({
-        "Tous", "Brouillon", "Envoyée",
-        "Partiellement payée", "Payée", "Annulée"
-    });
+        "Tous","Brouillon","Envoyée",
+        "Partiellement payée","Payée","Annulée"});
     filterLayout->addWidget(filterStatut);
 
     filterLayout->addWidget(new QLabel("Du:"));
@@ -407,24 +409,19 @@ void ClientWindow::setupFactures()
 
     filterLayout->addWidget(new QLabel("N°:"));
     searchFacture = new QLineEdit;
-    searchFacture->setPlaceholderText(
-        "Numéro facture...");
-    searchFacture->setMaximumWidth(140);
+    searchFacture->setPlaceholderText("Numéro...");
+    searchFacture->setMaximumWidth(120);
     filterLayout->addWidget(searchFacture);
 
-    QPushButton *filterBtn = new QPushButton(
-        "🔍 Filtrer");
-    filterBtn->setStyleSheet(
-        "background:#3182CE;color:white;");
-    QPushButton *resetBtn = new QPushButton(
-        "✕ Reset");
-    resetBtn->setStyleSheet(
-        "background:#718096;color:white;");
+    QPushButton *filterBtn = new QPushButton("🔍 Filtrer");
+    filterBtn->setStyleSheet("background:#3182CE;color:white;");
+    QPushButton *resetBtn = new QPushButton("✕ Reset");
+    resetBtn->setStyleSheet("background:#718096;color:white;");
     filterLayout->addWidget(filterBtn);
     filterLayout->addWidget(resetBtn);
     layout->addWidget(filterGroup);
 
-    // Tableau
+    // Tableau — hauteur fixe pas minimum
     facturesModel = new QSqlQueryModel(this);
     facturesTable = new QTableView;
     facturesTable->setModel(facturesModel);
@@ -436,43 +433,54 @@ void ClientWindow::setupFactures()
     facturesTable->setSelectionBehavior(
         QAbstractItemView::SelectRows);
     facturesTable->setAlternatingRowColors(true);
-    facturesTable->setMinimumHeight(350);
+    facturesTable->setFixedHeight(280); // ← FIXE pas minimum
     layout->addWidget(facturesTable);
 
-    // Boutons actions
-    QHBoxLayout *btnLayout = new QHBoxLayout;
-    QPushButton *pdfBtn = new QPushButton(
-        "📄 Télécharger PDF");
-    QPushButton *detailBtn = new QPushButton(
-        "👁️ Voir Détails");
+   // ── Boutons juste sous le tableau ─────────────────
+QHBoxLayout *btnLayout = new QHBoxLayout;
+btnLayout->setSpacing(10);
+btnLayout->setContentsMargins(0, 6, 0, 6);
 
-    pdfBtn->setStyleSheet(
-        "background:#2B6CB0;color:white;");
-    detailBtn->setStyleSheet(
-        "background:#805AD5;color:white;");
+QPushButton *pdfBtn = new QPushButton(
+    "📄 Télécharger PDF");
+QPushButton *detailBtn = new QPushButton(
+    "👁️ Voir Détails");
 
-    btnLayout->addWidget(pdfBtn);
-    btnLayout->addWidget(detailBtn);
-    btnLayout->addStretch();
-    layout->addLayout(btnLayout);
+pdfBtn->setFixedHeight(36);
+detailBtn->setFixedHeight(36);
 
-    tabWidget->addTab(widget, "📄 Mes Factures");
+pdfBtn->setStyleSheet(
+    "background:#2B6CB0;color:white;"
+    "font-size:12px;padding:0 16px;");
+detailBtn->setStyleSheet(
+    "background:#805AD5;color:white;"
+    "font-size:12px;padding:0 16px;");
 
-    // Charger données initiales
+btnLayout->addWidget(pdfBtn);
+btnLayout->addWidget(detailBtn);
+btnLayout->addStretch();
+
+// ← Ajouter DIRECTEMENT après le tableau
+//   sans QGroupBox ni QScrollArea intermédiaire
+layout->addLayout(btnLayout);   // ← ici, pas addWidget
+layout->addStretch();           // ← pousse tout vers le haut
+
+    scroll->setWidget(widget);
+    tabWidget->addTab(scroll, "📄 Mes Factures");
+
     onResetFilter();
 
-    connect(filterBtn, &QPushButton::clicked,
+    connect(filterBtn,    &QPushButton::clicked,
             this, &ClientWindow::onFilterFactures);
-    connect(resetBtn, &QPushButton::clicked,
+    connect(resetBtn,     &QPushButton::clicked,
             this, &ClientWindow::onResetFilter);
-    connect(pdfBtn, &QPushButton::clicked,
+    connect(pdfBtn,       &QPushButton::clicked,
             this, &ClientWindow::onDownloadPDF);
-    connect(detailBtn, &QPushButton::clicked,
+    connect(detailBtn,    &QPushButton::clicked,
             this, &ClientWindow::onViewDetails);
-    connect(searchFacture, &QLineEdit::returnPressed,
+    connect(searchFacture,&QLineEdit::returnPressed,
             this, &ClientWindow::onFilterFactures);
 }
-
 void ClientWindow::onFilterFactures()
 {
     QString where = QString(
@@ -629,86 +637,116 @@ void ClientWindow::setupPaiements()
     layout->setSpacing(10);
     layout->setContentsMargins(14, 14, 14, 14);
 
-    QLabel *title = new QLabel(
-        "💰 Historique des Paiements");
+    QLabel *title = new QLabel("💰 Historique des Paiements");
     title->setStyleSheet(
         "font-size:18px;font-weight:bold;color:#1B2A3B;");
     layout->addWidget(title);
 
-    // Résumé financier
+    // ── Résumé financier ──────────────────────────────
     QGroupBox *resumeGroup = new QGroupBox(
         "📊 Résumé Financier");
     QHBoxLayout *resumeLayout =
         new QHBoxLayout(resumeGroup);
+    resumeLayout->setSpacing(12);
+    resumeLayout->setContentsMargins(10, 14, 10, 14);
 
-    auto makeFinCard = [](const QString &title,
+    auto makeFinCard = [](const QString &t,
                           const QString &color,
                           QLabel *&lbl) -> QFrame* {
         QFrame *f = new QFrame;
+        f->setFixedHeight(80);
+        f->setSizePolicy(QSizePolicy::Expanding,
+                         QSizePolicy::Fixed);
         f->setStyleSheet(QString(
-            "QFrame{background:white;"
-            "border-radius:8px;"
-            "border:1px solid #E2E8F0;"
-            "border-top:4px solid %1;}").arg(color));
+            "QFrame{"
+            "  background:white;"
+            "  border-radius:8px;"
+            "  border:1px solid #E2E8F0;"
+            "  border-top:4px solid %1;"
+            "}").arg(color));
         QVBoxLayout *vl = new QVBoxLayout(f);
-        QLabel *t = new QLabel(title);
-        t->setStyleSheet(
+        vl->setContentsMargins(14, 8, 14, 8);
+        QLabel *tl = new QLabel(t);
+        tl->setStyleSheet(
             "font-size:10px;color:#718096;"
             "font-weight:bold;border:none;");
         lbl = new QLabel("--");
         lbl->setStyleSheet(QString(
             "font-size:18px;font-weight:900;"
             "color:%1;border:none;").arg(color));
-        vl->addWidget(t);
+        vl->addWidget(tl);
         vl->addWidget(lbl);
         return f;
     };
 
     resumeLayout->addWidget(
-        makeFinCard("Total Facturé","#2B6CB0",
-                    totalDuLabel));
+        makeFinCard("Total Facturé",
+                    "#2B6CB0", totalDuLabel));
     resumeLayout->addWidget(
-        makeFinCard("Total Payé","#27AE60",
-                    totalPayeLabel));
+        makeFinCard("Total Payé",
+                    "#27AE60", totalPayeLabel));
     resumeLayout->addWidget(
-        makeFinCard("Reste à Payer","#E53E3E",
-                    resteLabel));
+        makeFinCard("Reste à Payer",
+                    "#E53E3E", resteLabel));
     layout->addWidget(resumeGroup);
 
-    // Tableau paiements
+    // ── Tableau pleine largeur ─────────────────────────
     QGroupBox *histGroup = new QGroupBox(
         "📋 Détail des Paiements");
+    histGroup->setSizePolicy(QSizePolicy::Expanding,
+                              QSizePolicy::Expanding);
     QVBoxLayout *histLayout =
         new QVBoxLayout(histGroup);
+    histLayout->setContentsMargins(10, 10, 10, 10);
+    histLayout->setSpacing(8);
 
     paiementsModel = new QSqlQueryModel(this);
+
     paiementsTable = new QTableView;
     paiementsTable->setModel(paiementsModel);
     paiementsTable->verticalHeader()->setVisible(false);
     paiementsTable->horizontalHeader()
                   ->setStretchLastSection(true);
+    paiementsTable->horizontalHeader()
+                  ->setSectionResizeMode(
+                      QHeaderView::Stretch); // ← pleine largeur
     paiementsTable->setEditTriggers(
         QAbstractItemView::NoEditTriggers);
     paiementsTable->setSelectionBehavior(
         QAbstractItemView::SelectRows);
     paiementsTable->setAlternatingRowColors(true);
-    paiementsTable->setMinimumHeight(300);
+    paiementsTable->setSizePolicy(
+        QSizePolicy::Expanding,
+        QSizePolicy::Expanding); // ← s'étend
     histLayout->addWidget(paiementsTable);
-    layout->addWidget(histGroup);
 
+    // ── Bouton actualiser DANS le groupbox ────────────
     QPushButton *refreshBtn = new QPushButton(
         "🔄 Actualiser");
+    refreshBtn->setFixedHeight(36);
+    refreshBtn->setFixedWidth(160);
     refreshBtn->setStyleSheet(
-        "background:#3182CE;color:white;");
-    layout->addWidget(refreshBtn);
+        "background:#3182CE;"
+        "color:white;"
+        "font-size:12px;"
+        "font-weight:bold;"
+        "border-radius:4px;"
+        "border:none;");
 
+    QHBoxLayout *btnRow = new QHBoxLayout;
+    btnRow->addWidget(refreshBtn);
+    btnRow->addStretch();
+    histLayout->addLayout(btnRow); // ← dans le même groupbox
+
+    layout->addWidget(histGroup);
+
+    // ← PAS de stretch final pour que le tableau s'étende
     tabWidget->addTab(widget, "💰 Paiements");
 
     refreshPaiements();
     connect(refreshBtn, &QPushButton::clicked,
             this, &ClientWindow::refreshPaiements);
 }
-
 void ClientWindow::refreshPaiements()
 {
     // ── Résumé financier ──────────────────────────────
