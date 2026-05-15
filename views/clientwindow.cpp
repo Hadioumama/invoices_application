@@ -272,30 +272,40 @@ void ClientWindow::refreshDashboard()
     q.addBindValue(m_clientId);
     q.exec();
     statTotalFactures->setText(
-        q.next() ? QString::number(q.value(0).toInt()) : "0");
+        q.next() ?
+        QString::number(q.value(0).toInt()) : "0");
 
-    // Montant total dû (reste)
-    q.prepare("SELECT COALESCE(SUM(reste_a_payer),0) "
-              "FROM factures WHERE client_id = ?");
+    // Montant total dû — calculé depuis paiements
+    q.prepare(
+        "SELECT "
+        "COALESCE(SUM(f.total_ttc), 0) - "
+        "COALESCE(SUM(p.montant), 0) "
+        "FROM factures f "
+        "LEFT JOIN paiements p ON p.facture_id = f.id "
+        "WHERE f.client_id = ?");
     q.addBindValue(m_clientId);
     q.exec();
+    double montantDu = q.next() ?
+        qMax(0.0, q.value(0).toDouble()) : 0;
     statMontantDu->setText(
-        q.next() ?
-        QString::number(q.value(0).toDouble(),'f',2) +
-        " MAD" : "0 MAD");
+        QString::number(montantDu, 'f', 2) + " MAD");
 
-    // Total payé
-    q.prepare("SELECT COALESCE(SUM(montant_paye),0) "
-              "FROM factures WHERE client_id = ?");
+    // Total payé — somme des paiements
+    q.prepare(
+        "SELECT COALESCE(SUM(p.montant), 0) "
+        "FROM paiements p "
+        "JOIN factures f ON p.facture_id = f.id "
+        "WHERE f.client_id = ?");
     q.addBindValue(m_clientId);
     q.exec();
     statTotalPaye->setText(
         q.next() ?
-        QString::number(q.value(0).toDouble(),'f',2) +
-        " MAD" : "0 MAD");
+        QString::number(q.value(0).toDouble(),
+                        'f', 2) + " MAD" : "0 MAD");
 
     // Factures ce mois
-    QString mois = QDate::currentDate().toString("yyyy-MM");
+    QString mois = QDate::currentDate()
+                   .toString("yyyy-MM");
     q.prepare(
         "SELECT COUNT(*) FROM factures "
         "WHERE client_id = ? AND "
@@ -315,33 +325,42 @@ void ClientWindow::refreshDashboard()
     q.addBindValue(m_clientId);
     q.exec();
     statDerniereFacture->setText(
-        q.next() ? "N°" + q.value(0).toString() : "Aucune");
+        q.next() ?
+        "N°" + q.value(0).toString() : "Aucune");
 
     // Statut compte
     q.prepare(
         "SELECT COUNT(*) FROM factures "
         "WHERE client_id = ? AND "
-        "statut IN ('Brouillon','Partiellement payée')");
+        "statut NOT IN ('Payée','Annulée')");
     q.addBindValue(m_clientId);
     q.exec();
-    int impayees = q.next() ? q.value(0).toInt() : 0;
+    int impayees = q.next() ?
+                   q.value(0).toInt() : 0;
     statStatutCompte->setText(
         impayees == 0 ? "✅ À jour" :
-        QString("⚠️ %1 impayée(s)").arg(impayees));
+        QString("⚠️ %1 en attente").arg(impayees));
 
-    // Dernières factures tableau
+    // Tableau dernières factures
     recentModel->setQuery(QString(
-        "SELECT f.numero AS 'N°', "
+        "SELECT "
+        "f.numero AS 'N°', "
         "date(f.date_creation) AS 'Date', "
         "f.total_ttc AS 'Total TTC', "
-        "COALESCE(f.montant_paye,0) AS 'Payé', "
-        "COALESCE(f.reste_a_payer,f.total_ttc) AS 'Reste', "
+        "COALESCE(SUM(p.montant), 0) AS 'Payé', "
+        "f.total_ttc - COALESCE(SUM(p.montant),0) "
+        "  AS 'Reste', "
         "f.statut AS 'Statut' "
         "FROM factures f "
+        "LEFT JOIN paiements p ON p.facture_id = f.id "
         "WHERE f.client_id = %1 "
+        "GROUP BY f.id "
         "ORDER BY f.date_creation DESC LIMIT 5"
     ).arg(m_clientId));
+
     recentTable->resizeColumnsToContents();
+    recentTable->horizontalHeader()
+               ->setStretchLastSection(true);
 }
 
 // ═══════════════════════════════════════════════════════
@@ -477,18 +496,22 @@ void ClientWindow::onFilterFactures()
         where += QString(
             " AND numero LIKE '%%1%'").arg(search);
 
-    facturesModel->setQuery(QString(
-        "SELECT id AS 'ID', "
-        "numero AS 'N° Facture', "
-        "date(date_creation) AS 'Date', "
-        "date(date_echeance) AS 'Échéance', "
-        "total_ttc AS 'Total TTC', "
-        "COALESCE(montant_paye,0) AS 'Payé', "
-        "COALESCE(reste_a_payer,total_ttc) AS 'Reste', "
-        "statut AS 'Statut' "
-        "FROM factures %1 "
-        "ORDER BY date_creation DESC"
-    ).arg(where));
+  facturesModel->setQuery(QString(
+    "SELECT "
+    "f.id AS 'ID', "
+    "f.numero AS 'N° Facture', "
+    "date(f.date_creation) AS 'Date', "
+    "date(f.date_echeance) AS 'Échéance', "
+    "f.total_ttc AS 'Total TTC', "
+    "COALESCE(SUM(p.montant), 0) AS 'Payé', "
+    "f.total_ttc - COALESCE(SUM(p.montant),0) AS 'Reste', "
+    "f.statut AS 'Statut' "
+    "FROM factures f "
+    "LEFT JOIN paiements p ON p.facture_id = f.id "
+    "%1 "
+    "GROUP BY f.id "
+    "ORDER BY f.date_creation DESC"
+).arg(where));
 
     facturesTable->setColumnHidden(0, true);
     facturesTable->resizeColumnsToContents();
@@ -688,46 +711,57 @@ void ClientWindow::setupPaiements()
 
 void ClientWindow::refreshPaiements()
 {
-    // Résumé
+    // ── Résumé financier ──────────────────────────────
     QSqlQuery q;
     q.prepare(
         "SELECT "
-        "COALESCE(SUM(total_ttc),0), "
-        "COALESCE(SUM(montant_paye),0), "
-        "COALESCE(SUM(reste_a_payer),0) "
-        "FROM factures WHERE client_id = ?");
+        "COALESCE(SUM(f.total_ttc), 0), "
+        "COALESCE(SUM(p.montant), 0), "
+        "COALESCE(SUM(f.total_ttc), 0) - "
+        "COALESCE(SUM(p.montant), 0) "
+        "FROM factures f "
+        "LEFT JOIN paiements p ON p.facture_id = f.id "
+        "WHERE f.client_id = ?");
     q.addBindValue(m_clientId);
+
     if (q.exec() && q.next()) {
         totalDuLabel->setText(
             QString::number(q.value(0).toDouble(),
-                            'f',2) + " MAD");
+                            'f', 2) + " MAD");
         totalPayeLabel->setText(
             QString::number(q.value(1).toDouble(),
-                            'f',2) + " MAD");
+                            'f', 2) + " MAD");
+        double reste = qMax(0.0, q.value(2).toDouble());
         resteLabel->setText(
-            QString::number(q.value(2).toDouble(),
-                            'f',2) + " MAD");
+            QString::number(reste, 'f', 2) + " MAD");
     }
 
-    // Historique paiements
+    // ── Historique paiements ──────────────────────────
+    // Colonnes correctes : methode et notes
+    // (pas mode_paiement ni reference)
     paiementsModel->setQuery(QString(
-        "SELECT p.id AS 'ID', "
-        "f.numero AS 'N° Facture', "
+        "SELECT "
+        "f.numero        AS 'N° Facture', "
         "date(p.date_paiement) AS 'Date', "
-        "p.montant AS 'Montant (MAD)', "
-        "p.mode_paiement AS 'Mode', "
-        "p.reference AS 'Référence', "
-        "f.statut AS 'Statut Facture' "
+        "p.montant       AS 'Montant (MAD)', "
+        "p.methode       AS 'Méthode', "
+        "p.notes         AS 'Notes', "
+        "f.statut        AS 'Statut Facture' "
         "FROM paiements p "
         "JOIN factures f ON p.facture_id = f.id "
         "WHERE f.client_id = %1 "
-        "ORDER BY p.date_paiement DESC"
+        "ORDER BY p.date_paiement DESC, p.id DESC"
     ).arg(m_clientId));
 
-    paiementsTable->setColumnHidden(0, true);
-    paiementsTable->resizeColumnsToContents();
-}
+    if (paiementsModel->lastError().isValid()) {
+        qDebug() << "Erreur paiements client:"
+                 << paiementsModel->lastError().text();
+    }
 
+    paiementsTable->resizeColumnsToContents();
+    paiementsTable->horizontalHeader()
+                  ->setStretchLastSection(true);
+}
 // ═══════════════════════════════════════════════════════
 // PROFIL
 // ═══════════════════════════════════════════════════════

@@ -8,7 +8,7 @@ class QLineEdit;
 
 class InvoiceActionDialog : public QDialog
 {
-    Q_OBJECT
+    Q_OBJECT;
 
 public:
     explicit InvoiceActionDialog(int invoiceId, QWidget *parent = nullptr);
