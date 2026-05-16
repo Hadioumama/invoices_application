@@ -3,6 +3,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
+#include <QTimer>
 #include <QDateEdit>
 #include <QComboBox>
 #include <QTableWidget>
@@ -94,522 +95,460 @@ QLabel* InvoiceCreateDialog::createSectionTitle(const QString &title, const QStr
 // ============================================================
 void InvoiceCreateDialog::setupUI()
 {
-    setWindowTitle(m_isEditMode ? 
+    setWindowTitle(m_isEditMode ?
         "Modifier la Facture" : "Créer une Facture");
-    setMinimumSize(900, 800);
-    resize(960, );
-    setStyleSheet("QDialog { background-color: #F5F7FA; }");
+    setMinimumSize(900, 700);
+    resize(960, 750);
+    setStyleSheet("QDialog{background:#F5F7FA;}");
 
-    // Layout principal
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setContentsMargins(0, 0, 0, 0);
     mainLayout->setSpacing(0);
 
-    // ── SCROLL AREA ──────────────────────────────────────
-    QScrollArea *scrollArea = new QScrollArea;
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setFrameShape(QFrame::NoFrame);
-    scrollArea->setHorizontalScrollBarPolicy(
+
+    // Zone scrollable
+    QScrollArea *scroll = new QScrollArea;
+    scroll->setWidgetResizable(true);
+    scroll->setFrameShape(QFrame::NoFrame);
+    scroll->setHorizontalScrollBarPolicy(
         Qt::ScrollBarAlwaysOff);
-    scrollArea->setStyleSheet(
-        "QScrollArea{background:#F5F7FA;border:none;}"
-        "QScrollBar:vertical{background:transparent;"
-        "width:5px;}"
-        "QScrollBar::handle:vertical{background:#6198d3;"
-        "border-radius:2px;min-height:10px;}"
-        "QScrollBar::add-line:vertical,"
-        "QScrollBar::sub-line:vertical{height:0px;}");
 
-    // Contenu scrollable
-    QWidget *scrollContent = new QWidget;
-    scrollContent->setStyleSheet(
-        "background:#F5F7FA;");
-    QVBoxLayout *contentLayout =
-        new QVBoxLayout(scrollContent);
-    contentLayout->setSpacing(6);
-    contentLayout->setContentsMargins(20, 16, 20, 8);
-    contentLayout->setAlignment(Qt::AlignTop);
+    QWidget *content = new QWidget;
+    QVBoxLayout *cl = new QVBoxLayout(content);
+    cl->setContentsMargins(16, 12, 16, 12);
+    cl->setSpacing(8);
+    cl->setAlignment(Qt::AlignTop);
 
-    // ════════════════════════════════════════════════════
-    // 1. INFORMATIONS FACTURE
-    // ════════════════════════════════════════════════════
-    contentLayout->addWidget(
-        createSectionTitle("Informations Facture","📄"));
+    // ── 1. FACTURE ────────────────────────────────────
+    cl->addWidget(createSectionTitle(
+        "Informations Facture","📄"));
+    QFrame *fc = createCard();
+    QVBoxLayout *fl =
+        qobject_cast<QVBoxLayout*>(fc->layout());
 
-    QFrame *factureCard = createCard();
-    QVBoxLayout *factureLayout =
-        qobject_cast<QVBoxLayout*>(factureCard->layout());
-
-    QHBoxLayout *row1 = new QHBoxLayout;
-    row1->setSpacing(10);
-    QVBoxLayout *numCol = new QVBoxLayout;
-    numCol->setSpacing(2);
-    numCol->addWidget(createFieldLabel("Numéro"));
-    numeroEdit = createStyledLineEdit("FAC-2026-0001");
-    numCol->addWidget(numeroEdit);
-    row1->addLayout(numCol, 1);
-    QVBoxLayout *typeCol = new QVBoxLayout;
-    typeCol->setSpacing(2);
-    typeCol->addWidget(createFieldLabel("Type"));
+    QHBoxLayout *r1 = new QHBoxLayout;
+    r1->setSpacing(10);
+    QVBoxLayout *nc = new QVBoxLayout;
+    nc->setSpacing(2);
+    nc->addWidget(createFieldLabel("Numéro"));
+    numeroEdit = createStyledLineEdit("FAC-2026-001");
+    nc->addWidget(numeroEdit);
+    r1->addLayout(nc,1);
+    QVBoxLayout *tc = new QVBoxLayout;
+    tc->setSpacing(2);
+    tc->addWidget(createFieldLabel("Type"));
     typeCombo = new QComboBox;
     typeCombo->addItems({"Facture","Devis"});
     typeCombo->setFixedHeight(34);
     typeCombo->setStyleSheet(
         "QComboBox{border:1px solid #E2E8F0;"
         "border-radius:6px;padding:4px 10px;"
-        "font-size:13px;background:#F7FAFC;color:#2D3748;}"
-        "QComboBox:focus{border:1px solid #2B6CB0;}"
-        "QComboBox::drop-down{border:none;width:24px;}"
-        "QComboBox::down-arrow{image:none;"
-        "border-left:4px solid transparent;"
-        "border-right:4px solid transparent;"
-        "border-top:5px solid #4068a3;"
-        "width:0px;height:0px;}");
-    typeCol->addWidget(typeCombo);
-    row1->addLayout(typeCol, 1);
-    factureLayout->addLayout(row1);
+        "font-size:13px;background:#F7FAFC;"
+        "color:#2D3748;}"
+        "QComboBox:focus{border:1px solid #2B6CB0;}");
+    tc->addWidget(typeCombo);
+    r1->addLayout(tc,1);
+    fl->addLayout(r1);
 
-    QHBoxLayout *row2 = new QHBoxLayout;
-    row2->setSpacing(10);
-    QString dateStyle =
+    QString ds =
         "QDateEdit{border:1px solid #E2E8F0;"
         "border-radius:6px;padding:4px 10px;"
         "font-size:13px;background:#F7FAFC;}"
         "QDateEdit:focus{border:1px solid #2B6CB0;}";
-    QString comboStyle =
+    QString cs =
         "QComboBox{border:1px solid #E2E8F0;"
         "border-radius:6px;padding:4px 10px;"
-        "font-size:13px;background:#F7FAFC;color:#2D3748;}"
-        "QComboBox:focus{border:1px solid #2B6CB0;}"
-        "QComboBox::drop-down{border:none;width:24px;}"
-        "QComboBox::down-arrow{image:none;"
-        "border-left:4px solid transparent;"
-        "border-right:4px solid transparent;"
-        "border-top:5px solid #2B6CB0;"
-        "width:0px;height:0px;}";
+        "font-size:13px;background:#F7FAFC;"
+        "color:#2D3748;}"
+        "QComboBox:focus{border:1px solid #2B6CB0;}";
 
-    QVBoxLayout *dateCreaCol = new QVBoxLayout;
-    dateCreaCol->setSpacing(2);
-    dateCreaCol->addWidget(createFieldLabel("Date création"));
+    QHBoxLayout *r2 = new QHBoxLayout;
+    r2->setSpacing(10);
+    QVBoxLayout *dc = new QVBoxLayout;
+    dc->setSpacing(2);
+    dc->addWidget(createFieldLabel("Date création"));
     dateCreationEdit = new QDateEdit(QDate::currentDate());
     dateCreationEdit->setCalendarPopup(true);
     dateCreationEdit->setFixedHeight(34);
-    dateCreationEdit->setStyleSheet(dateStyle);
-    dateCreaCol->addWidget(dateCreationEdit);
-    row2->addLayout(dateCreaCol, 1);
-
-    QVBoxLayout *dateEchCol = new QVBoxLayout;
-    dateEchCol->setSpacing(2);
-    dateEchCol->addWidget(
-        createFieldLabel("Date échéance"));
+    dateCreationEdit->setStyleSheet(ds);
+    dc->addWidget(dateCreationEdit);
+    r2->addLayout(dc,1);
+    QVBoxLayout *dec = new QVBoxLayout;
+    dec->setSpacing(2);
+    dec->addWidget(createFieldLabel("Date échéance"));
     dateEcheanceEdit = new QDateEdit(
         QDate::currentDate().addDays(30));
     dateEcheanceEdit->setCalendarPopup(true);
     dateEcheanceEdit->setFixedHeight(34);
-    dateEcheanceEdit->setStyleSheet(dateStyle);
-    dateEchCol->addWidget(dateEcheanceEdit);
-    row2->addLayout(dateEchCol, 1);
-
-    QVBoxLayout *statusCol = new QVBoxLayout;
-    statusCol->setSpacing(2);
-    statusCol->addWidget(createFieldLabel("Statut"));
+    dateEcheanceEdit->setStyleSheet(ds);
+    dec->addWidget(dateEcheanceEdit);
+    r2->addLayout(dec,1);
+    QVBoxLayout *sc = new QVBoxLayout;
+    sc->setSpacing(2);
+    sc->addWidget(createFieldLabel("Statut"));
     statusCombo = new QComboBox;
     statusCombo->addItems({
         "Brouillon","Envoyée","Payée","Annulée"});
     statusCombo->setFixedHeight(34);
-    statusCombo->setStyleSheet(comboStyle);
-    statusCol->addWidget(statusCombo);
-    row2->addLayout(statusCol, 1);
-    factureLayout->addLayout(row2);
-    contentLayout->addWidget(factureCard);
+    statusCombo->setStyleSheet(cs);
+    sc->addWidget(statusCombo);
+    r2->addLayout(sc,1);
+    fl->addLayout(r2);
+    cl->addWidget(fc);
 
-    // ════════════════════════════════════════════════════
-    // 2. PERSONNALISATION
-    // ════════════════════════════════════════════════════
-    contentLayout->addSpacing(4);
-    contentLayout->addWidget(createSectionTitle(
-        "Personnalisation (Entreprise)","🎨"));
-
-    QFrame *persoCard = createCard();
-    QVBoxLayout *persoLayout =
-        qobject_cast<QVBoxLayout*>(persoCard->layout());
-
-    QHBoxLayout *persoRow = new QHBoxLayout;
-    persoRow->setSpacing(10);
-
-    QString btnFileStyle =
+    // ── 2. PERSONNALISATION ───────────────────────────
+    cl->addWidget(createSectionTitle(
+        "Personnalisation","🎨"));
+    QFrame *pc = createCard();
+    QVBoxLayout *pl =
+        qobject_cast<QVBoxLayout*>(pc->layout());
+    QHBoxLayout *pr = new QHBoxLayout;
+    pr->setSpacing(10);
+    QString bfs =
         "QPushButton{background:#EDF2F7;color:#4A5568;"
-        "font-size:12px;border:1px solid #E2E8F0;"
-        "border-radius:6px;}"
+        "border:1px solid #E2E8F0;border-radius:6px;}"
         "QPushButton:hover{background:#E2E8F0;}";
-
-    QVBoxLayout *logoCol = new QVBoxLayout;
-    logoCol->setSpacing(2);
-    logoCol->addWidget(createFieldLabel("Logo entreprise"));
-    QHBoxLayout *logoRow = new QHBoxLayout;
-    logoRow->setSpacing(6);
-    logoPathEdit = createStyledLineEdit("Chemin du logo...");
+    QVBoxLayout *lgc = new QVBoxLayout;
+    lgc->setSpacing(2);
+    lgc->addWidget(createFieldLabel("Logo"));
+    QHBoxLayout *lgr = new QHBoxLayout;
+    lgr->setSpacing(4);
+    logoPathEdit = createStyledLineEdit("Logo...");
     logoPathEdit->setReadOnly(true);
     logoBtn = new QPushButton("📁");
-    logoBtn->setFixedSize(30, 34);
-    logoBtn->setCursor(Qt::PointingHandCursor);
-    logoBtn->setStyleSheet(btnFileStyle);
-    logoRow->addWidget(logoPathEdit);
-    logoRow->addWidget(logoBtn);
-    logoCol->addLayout(logoRow);
-    persoRow->addLayout(logoCol, 1);
-
-    QVBoxLayout *signCol = new QVBoxLayout;
-    signCol->setSpacing(2);
-    signCol->addWidget(createFieldLabel("Signature"));
-    QHBoxLayout *signRow = new QHBoxLayout;
-    signRow->setSpacing(6);
-    signaturePathEdit = createStyledLineEdit(
-        "Chemin de la signature...");
+    logoBtn->setFixedSize(30,34);
+    logoBtn->setStyleSheet(bfs);
+    lgr->addWidget(logoPathEdit);
+    lgr->addWidget(logoBtn);
+    lgc->addLayout(lgr);
+    pr->addLayout(lgc,1);
+    QVBoxLayout *sgc = new QVBoxLayout;
+    sgc->setSpacing(2);
+    sgc->addWidget(createFieldLabel("Signature"));
+    QHBoxLayout *sgr = new QHBoxLayout;
+    sgr->setSpacing(4);
+    signaturePathEdit = createStyledLineEdit("Signature...");
     signaturePathEdit->setReadOnly(true);
     signatureBtn = new QPushButton("📁");
-    signatureBtn->setFixedSize(30, 34);
-    signatureBtn->setCursor(Qt::PointingHandCursor);
-    signatureBtn->setStyleSheet(btnFileStyle);
-    signRow->addWidget(signaturePathEdit);
-    signRow->addWidget(signatureBtn);
-    signCol->addLayout(signRow);
-    persoRow->addLayout(signCol, 1);
+    signatureBtn->setFixedSize(30,34);
+    signatureBtn->setStyleSheet(bfs);
+    sgr->addWidget(signaturePathEdit);
+    sgr->addWidget(signatureBtn);
+    sgc->addLayout(sgr);
+    pr->addLayout(sgc,1);
+    pl->addLayout(pr);
+    cl->addWidget(pc);
 
-    persoLayout->addLayout(persoRow);
-    contentLayout->addWidget(persoCard);
-
-    // ════════════════════════════════════════════════════
-    // 3. INFORMATIONS CLIENT
-    // ════════════════════════════════════════════════════
-    contentLayout->addSpacing(4);
-    contentLayout->addWidget(
-        createSectionTitle("Informations Client","👤"));
-
-    QFrame *clientCard = createCard();
-    QVBoxLayout *clientLayout =
-        qobject_cast<QVBoxLayout*>(clientCard->layout());
-
-    QHBoxLayout *clientRow1 = new QHBoxLayout;
-    clientRow1->setSpacing(10);
-
-    QVBoxLayout *comboCol = new QVBoxLayout;
-    comboCol->setSpacing(2);
-    comboCol->addWidget(createFieldLabel("Client"));
+    // ── 3. CLIENT ─────────────────────────────────────
+    cl->addWidget(createSectionTitle(
+        "Informations Client","👤"));
+    QFrame *cc = createCard();
+    QVBoxLayout *ccl =
+        qobject_cast<QVBoxLayout*>(cc->layout());
+    QHBoxLayout *cr1 = new QHBoxLayout;
+    cr1->setSpacing(10);
+    QVBoxLayout *cmc = new QVBoxLayout;
+    cmc->setSpacing(2);
+    cmc->addWidget(createFieldLabel("Client"));
     clientComboBox = new QComboBox;
     clientComboBox->setEditable(true);
-    clientComboBox->addItem("-- Nouveau client --", -1);
+    clientComboBox->addItem("-- Nouveau client --",-1);
     clientComboBox->setFixedHeight(34);
-    clientComboBox->setStyleSheet(comboStyle);
-
+    clientComboBox->setStyleSheet(cs);
     QSqlQuery qc(
         "SELECT id,nom,prenom,adresse,telephone,email "
         "FROM clients WHERE role='client' ORDER BY nom");
-    while (qc.next()) {
-        QString d = qc.value(1).toString() + " " +
+    while(qc.next()){
+        QString d = qc.value(1).toString()+" "+
                     qc.value(2).toString();
-        int idx = clientComboBox->count();
-        clientComboBox->addItem(d, qc.value(0).toInt());
-        clientComboBox->setItemData(
-            idx, qc.value(3), Qt::UserRole+1);
-        clientComboBox->setItemData(
-            idx, qc.value(4), Qt::UserRole+2);
-        clientComboBox->setItemData(
-            idx, qc.value(5), Qt::UserRole+3);
+        int i = clientComboBox->count();
+        clientComboBox->addItem(d,qc.value(0).toInt());
+        clientComboBox->setItemData(i,qc.value(3),
+            Qt::UserRole+1);
+        clientComboBox->setItemData(i,qc.value(4),
+            Qt::UserRole+2);
+        clientComboBox->setItemData(i,qc.value(5),
+            Qt::UserRole+3);
     }
-    comboCol->addWidget(clientComboBox);
-    clientRow1->addLayout(comboCol, 1);
+    cmc->addWidget(clientComboBox);
+    cr1->addLayout(cmc,1);
+    QVBoxLayout *cnc = new QVBoxLayout;
+    cnc->setSpacing(2);
+    cnc->addWidget(createFieldLabel("Nom / Entreprise"));
+    clientNomEdit = createStyledLineEdit("Nom...");
+    cnc->addWidget(clientNomEdit);
+    cr1->addLayout(cnc,1);
+    ccl->addLayout(cr1);
+    QVBoxLayout *cac = new QVBoxLayout;
+    cac->setSpacing(2);
+    cac->addWidget(createFieldLabel("Adresse"));
+    clientAdresseEdit = createStyledLineEdit("Adresse...");
+    cac->addWidget(clientAdresseEdit);
+    ccl->addLayout(cac);
+    QHBoxLayout *ctc = new QHBoxLayout;
+    ctc->setSpacing(10);
+    QVBoxLayout *tlc = new QVBoxLayout;
+    tlc->setSpacing(2);
+    tlc->addWidget(createFieldLabel("Téléphone"));
+    clientTelEdit = createStyledLineEdit("+212...");
+    tlc->addWidget(clientTelEdit);
+    ctc->addLayout(tlc,1);
+    QVBoxLayout *elc = new QVBoxLayout;
+    elc->setSpacing(2);
+    elc->addWidget(createFieldLabel("Email"));
+    clientEmailEdit = createStyledLineEdit("email@...");
+    elc->addWidget(clientEmailEdit);
+    ctc->addLayout(elc,1);
+    ccl->addLayout(ctc);
+    cl->addWidget(cc);
 
-    QVBoxLayout *nomCol = new QVBoxLayout;
-    nomCol->setSpacing(2);
-    nomCol->addWidget(createFieldLabel("Nom / Entreprise"));
-    clientNomEdit = createStyledLineEdit("Nom complet...");
-    nomCol->addWidget(clientNomEdit);
-    clientRow1->addLayout(nomCol, 1);
-    clientLayout->addLayout(clientRow1);
+    // ── 4. ARTICLES ───────────────────────────────────
+    cl->addWidget(createSectionTitle(
+        "Articles","🛒"));
+    QFrame *ac = createCard();
+    QVBoxLayout *acl =
+        qobject_cast<QVBoxLayout*>(ac->layout());
 
-    QVBoxLayout *adrCol = new QVBoxLayout;
-    adrCol->setSpacing(2);
-    adrCol->addWidget(createFieldLabel("Adresse"));
-    clientAdresseEdit = createStyledLineEdit(
-        "Adresse complète...");
-    adrCol->addWidget(clientAdresseEdit);
-    clientLayout->addLayout(adrCol);
-
-    QHBoxLayout *contactRow = new QHBoxLayout;
-    contactRow->setSpacing(10);
-    QVBoxLayout *telCol = new QVBoxLayout;
-    telCol->setSpacing(2);
-    telCol->addWidget(createFieldLabel("Téléphone"));
-    clientTelEdit = createStyledLineEdit("+212 6XX XXX XXX");
-    telCol->addWidget(clientTelEdit);
-    contactRow->addLayout(telCol, 1);
-    QVBoxLayout *emailCol = new QVBoxLayout;
-    emailCol->setSpacing(2);
-    emailCol->addWidget(createFieldLabel("Email"));
-    clientEmailEdit = createStyledLineEdit(
-        "email@exemple.com");
-    emailCol->addWidget(clientEmailEdit);
-    contactRow->addLayout(emailCol, 1);
-    clientLayout->addLayout(contactRow);
-    contentLayout->addWidget(clientCard);
-
-    // ════════════════════════════════════════════════════
-    // 4. ARTICLES
-    // ════════════════════════════════════════════════════
-    contentLayout->addSpacing(4);
-    contentLayout->addWidget(createSectionTitle(
-        "Articles de la facture","🛒"));
-
-    QFrame *articlesCard = createCard();
-    QVBoxLayout *articlesLayout =
-        qobject_cast<QVBoxLayout*>(articlesCard->layout());
-
-    linesTable = new QTableWidget(0, 5);
+    linesTable = new QTableWidget(0,5);
     linesTable->setHorizontalHeaderLabels({
-        "Désignation","Qté","Prix HT","TVA %","Total HT"});
+        "Désignation","Qté","Prix HT","TVA%","Total HT"});
     linesTable->horizontalHeader()
               ->setStretchLastSection(true);
     linesTable->setEditTriggers(
         QAbstractItemView::NoEditTriggers);
     linesTable->setSelectionBehavior(
         QAbstractItemView::SelectRows);
-    linesTable->setColumnWidth(0, 300);
-    linesTable->setColumnWidth(1, 55);
-    linesTable->setColumnWidth(2, 85);
-    linesTable->setColumnWidth(3, 65);
     linesTable->setAlternatingRowColors(true);
+    linesTable->setColumnWidth(0,280);
+    linesTable->setColumnWidth(1,50);
+    linesTable->setColumnWidth(2,80);
+    linesTable->setColumnWidth(3,60);
+    linesTable->setFixedHeight(130);
     linesTable->setStyleSheet(
         "QTableWidget{border:1px solid #3d7bcd;"
         "border-radius:6px;background:white;"
         "gridline-color:#EDF2F7;}"
         "QHeaderView::section{background:#2B6CB0;"
-        "color:white;font-weight:bold;font-size:12px;"
-        "padding:5px;border:none;}"
+        "color:white;font-weight:bold;"
+        "font-size:12px;padding:5px;border:none;}"
         "QTableWidget::item{padding:4px;"
-        "border-bottom:1px solid #EDF2F7;font-size:12px;}"
+        "font-size:12px;}"
         "QTableWidget::item:selected{"
         "background:#EBF8FF;color:#2B6CB0;}"
         "QTableWidget::item:alternate{"
         "background:#F7FAFC;}");
-    linesTable->setMinimumHeight(80);
-    linesTable->setMaximumHeight(150);
-    articlesLayout->addWidget(linesTable);
+    acl->addWidget(linesTable);
 
-    // Saisie nouvelle ligne
-    QFrame *newLineFrame = new QFrame;
-    newLineFrame->setStyleSheet(
+    // Saisie ligne
+    QFrame *nlf = new QFrame;
+    nlf->setStyleSheet(
         "QFrame{background:#EBF8FF;"
-        "border:1px solid #BEE3F8;border-radius:8px;}");
-    QHBoxLayout *newLineLayout =
-        new QHBoxLayout(newLineFrame);
-    newLineLayout->setContentsMargins(10, 6, 10, 6);
-    newLineLayout->setSpacing(8);
+        "border:1px solid #BEE3F8;"
+        "border-radius:8px;}");
+    QHBoxLayout *nll = new QHBoxLayout(nlf);
+    nll->setContentsMargins(10,6,10,6);
+    nll->setSpacing(8);
 
-    QString spinStyle =
-        "border:1px solid #90CDF4;border-radius:6px;"
-        "padding:2px;font-size:12px;background:white;";
+    QString ss =
+        "border:1px solid #90CDF4;"
+        "border-radius:6px;padding:2px;"
+        "font-size:12px;background:white;";
 
-    QVBoxLayout *desCol = new QVBoxLayout;
-    desCol->setSpacing(1);
-    QLabel *desLbl = new QLabel("Désignation:");
-    desLbl->setStyleSheet(
-        "font-size:11px;font-weight:600;color:#030a17;");
-    desCol->addWidget(desLbl);
+    // Désignation
+    QVBoxLayout *dlc = new QVBoxLayout;
+    dlc->setSpacing(1);
+    QLabel *dll = new QLabel("Désignation:");
+    dll->setStyleSheet(
+        "font-size:11px;font-weight:600;");
+    dlc->addWidget(dll);
     designationEdit = new QComboBox;
     designationEdit->setEditable(true);
-    designationEdit->addItem("-- Saisie manuelle --", -1);
-    designationEdit->setMinimumWidth(180);
+    designationEdit->addItem("-- Saisie manuelle --",-1);
+    designationEdit->setMinimumWidth(160);
     designationEdit->setFixedHeight(28);
     designationEdit->setStyleSheet(
         "QComboBox{border:1px solid #90CDF4;"
         "border-radius:6px;padding:2px 8px;"
-        "font-size:12px;background:white;color:#2D3748;}"
-        "QComboBox:focus{border:1px solid #2B6CB0;}"
-        "QComboBox::drop-down{border:none;width:20px;}"
-        "QComboBox::down-arrow{image:none;"
-        "border-left:3px solid transparent;"
-        "border-right:3px solid transparent;"
-        "border-top:5px solid #2B6CB0;"
-        "width:0px;height:0px;}");
-    desCol->addWidget(designationEdit);
-    newLineLayout->addLayout(desCol, 2);
+        "font-size:12px;background:white;}"
+        "QComboBox:focus{border:1px solid #2B6CB0;}");
+    dlc->addWidget(designationEdit);
+    nll->addLayout(dlc,2);
 
-    QVBoxLayout *qteCol = new QVBoxLayout;
-    qteCol->setSpacing(1);
-    QLabel *qteLbl = new QLabel("Qté:");
-    qteLbl->setStyleSheet(
-        "font-size:11px;font-weight:600;color:#010a1a;");
-    qteCol->addWidget(qteLbl);
+    // Qté
+    QVBoxLayout *qlc = new QVBoxLayout;
+    qlc->setSpacing(1);
+    qlc->addWidget(new QLabel("Qté:"));
     quantitySpinBox = new QSpinBox;
-    quantitySpinBox->setMinimum(1);
-    quantitySpinBox->setMaximum(9999);
+    quantitySpinBox->setRange(1,9999);
     quantitySpinBox->setValue(1);
-    quantitySpinBox->setFixedWidth(55);
-    quantitySpinBox->setFixedHeight(28);
+    quantitySpinBox->setFixedSize(55,28);
     quantitySpinBox->setStyleSheet(
-        "QSpinBox{" + spinStyle + "}"
+        "QSpinBox{"+ss+"}"
         "QSpinBox:focus{border:1px solid #2B6CB0;}");
-    qteCol->addWidget(quantitySpinBox);
-    newLineLayout->addLayout(qteCol);
+    qlc->addWidget(quantitySpinBox);
+    nll->addLayout(qlc);
 
-    QVBoxLayout *prixCol = new QVBoxLayout;
-    prixCol->setSpacing(1);
-    QLabel *prixLbl = new QLabel("Prix HT:");
-    prixLbl->setStyleSheet(
-        "font-size:11px;font-weight:600;color:#020c1e;");
-    prixCol->addWidget(prixLbl);
+    // Prix HT
+    QVBoxLayout *plc = new QVBoxLayout;
+    plc->setSpacing(1);
+    plc->addWidget(new QLabel("Prix HT:"));
     priceHTSpinBox = new QDoubleSpinBox;
-    priceHTSpinBox->setMaximum(999999);
+    priceHTSpinBox->setRange(0,999999);
     priceHTSpinBox->setDecimals(2);
-    priceHTSpinBox->setFixedWidth(95);
-    priceHTSpinBox->setFixedHeight(28);
     priceHTSpinBox->setSuffix(" MAD");
+    priceHTSpinBox->setFixedSize(95,28);
     priceHTSpinBox->setStyleSheet(
-        "QDoubleSpinBox{" + spinStyle + "}"
-        "QDoubleSpinBox:focus{border:1px solid #2B6CB0;}");
-    prixCol->addWidget(priceHTSpinBox);
-    newLineLayout->addLayout(prixCol);
+        "QDoubleSpinBox{"+ss+"}"
+        "QDoubleSpinBox:focus{"
+        "border:1px solid #2B6CB0;}");
+    plc->addWidget(priceHTSpinBox);
+    nll->addLayout(plc);
 
-    QVBoxLayout *tvaCol = new QVBoxLayout;
-    tvaCol->setSpacing(1);
-    QLabel *tvaLbl = new QLabel("TVA %:");
-    tvaLbl->setStyleSheet(
-        "font-size:11px;font-weight:600;color:#010c1f;");
-    tvaCol->addWidget(tvaLbl);
+    // TVA
+    QVBoxLayout *tvlc = new QVBoxLayout;
+    tvlc->setSpacing(1);
+    tvlc->addWidget(new QLabel("TVA%:"));
     taxRateSpinBox = new QDoubleSpinBox;
-    taxRateSpinBox->setValue(20.0);
-    taxRateSpinBox->setMaximum(100);
+    taxRateSpinBox->setRange(0,100);
+    taxRateSpinBox->setValue(20);
     taxRateSpinBox->setDecimals(2);
-    taxRateSpinBox->setFixedWidth(70);
-    taxRateSpinBox->setFixedHeight(28);
-    taxRateSpinBox->setSuffix(" %");
+    taxRateSpinBox->setSuffix("%");
+    taxRateSpinBox->setFixedSize(70,28);
     taxRateSpinBox->setStyleSheet(
-        "QDoubleSpinBox{" + spinStyle + "}"
-        "QDoubleSpinBox:focus{border:1px solid #2B6CB0;}");
-    tvaCol->addWidget(taxRateSpinBox);
-    newLineLayout->addLayout(tvaCol);
+        "QDoubleSpinBox{"+ss+"}"
+        "QDoubleSpinBox:focus{"
+        "border:1px solid #2B6CB0;}");
+    tvlc->addWidget(taxRateSpinBox);
+    nll->addLayout(tvlc);
 
+    // Boutons ajouter/supprimer
     addLineBtn = new QPushButton("➕ Ajouter");
-    addLineBtn->setFixedSize(100, 32);
-    addLineBtn->setCursor(Qt::PointingHandCursor);
+    addLineBtn->setFixedSize(95,32);
     addLineBtn->setStyleSheet(
         "QPushButton{background:#2B6CB0;color:white;"
-        "font-size:12px;font-weight:bold;border:none;"
-        "border-radius:6px;padding:4px 12px;}"
+        "font-size:11px;font-weight:bold;border:none;"
+        "border-radius:6px;}"
         "QPushButton:hover{background:#1A365D;}");
-
-    removeLineBtn = new QPushButton("🗑️ Supprimer");
-    removeLineBtn->setFixedSize(100, 32);
-    removeLineBtn->setCursor(Qt::PointingHandCursor);
+    removeLineBtn = new QPushButton("🗑️ Supp.");
+    removeLineBtn->setFixedSize(80,32);
     removeLineBtn->setStyleSheet(
         "QPushButton{background:#E53E3E;color:white;"
-        "font-size:12px;font-weight:bold;border:none;"
-        "border-radius:6px;padding:4px 12px;}"
+        "font-size:11px;font-weight:bold;border:none;"
+        "border-radius:6px;}"
         "QPushButton:hover{background:#C53030;}");
-
-    newLineLayout->addWidget(addLineBtn);
-    newLineLayout->addWidget(removeLineBtn);
-    articlesLayout->addWidget(newLineFrame);
+    nll->addWidget(addLineBtn);
+    nll->addWidget(removeLineBtn);
+    acl->addWidget(nlf);
 
     // Totaux
-    QHBoxLayout *totalsLayout = new QHBoxLayout;
-    totalsLayout->addStretch();
-    totalHTLabel = new QLabel("Total HT: 0.00 MAD");
-    totalHTLabel->setStyleSheet("font-size:13px;color:#333;");
+    QHBoxLayout *tl = new QHBoxLayout;
+    tl->addStretch();
+    totalHTLabel = new QLabel("HT: 0.00 MAD");
     totalTVALabel = new QLabel("TVA: 0.00 MAD");
-    totalTVALabel->setStyleSheet("font-size:13px;color:#333;");
-    totalTTCLabel = new QLabel("Total TTC: 0.00 MAD");
+    totalTTCLabel = new QLabel("TTC: 0.00 MAD");
     totalTTCLabel->setStyleSheet(
-        "font-size:14px;font-weight:bold;color:#1B2A3B;");
-    totalsLayout->addWidget(totalHTLabel);
-    totalsLayout->addSpacing(14);
-    totalsLayout->addWidget(totalTVALabel);
-    totalsLayout->addSpacing(14);
-    totalsLayout->addWidget(totalTTCLabel);
-    articlesLayout->addLayout(totalsLayout);
-    contentLayout->addWidget(articlesCard);
+        "font-size:13px;font-weight:bold;"
+        "color:#1B2A3B;");
+    tl->addWidget(totalHTLabel);
+    tl->addSpacing(12);
+    tl->addWidget(totalTVALabel);
+    tl->addSpacing(12);
+    tl->addWidget(totalTTCLabel);
+    acl->addLayout(tl);
+    cl->addWidget(ac);
 
-    // ════════════════════════════════════════════════════
-    // ATTACHER CONTENU AU SCROLL — UNE SEULE FOIS
-    // ════════════════════════════════════════════════════
-    scrollArea->setWidget(scrollContent);
+  // ── ATTACHER SCROLL ───────────────────────────────
+scroll->setWidget(content);
+m_scroll = scroll;
 
-    // ════════════════════════════════════════════════════
-    // FOOTER FIXE EN BAS — HORS DU SCROLL
-    // ════════════════════════════════════════════════════
-    QFrame *footerFrame = new QFrame;
-    footerFrame->setFixedHeight(58);
-    footerFrame->setStyleSheet(
-        "QFrame{background:white;"
-        "border-top:1px solid #E2E8F0;}");
+// ── FOOTER ────────────────────────────────────────
+m_footer = new QWidget(this); // ← parent = this, PAS dans layout
+m_footer->setFixedHeight(56);
+m_footer->setStyleSheet(
+    "background:#FFFFFF;"
+    "border-top:2px solid #E2E8F0;");
 
-    QHBoxLayout *footerLayout =
-        new QHBoxLayout(footerFrame);
-    footerLayout->setContentsMargins(20, 8, 20, 8);
-    footerLayout->setSpacing(12);
-    footerLayout->addStretch();
+QHBoxLayout *fbl = new QHBoxLayout(m_footer);
+fbl->setContentsMargins(16, 8, 16, 8);
+fbl->setSpacing(10);
+fbl->addStretch();
 
-    cancelBtn = new QPushButton("❌ Annuler");
-    cancelBtn->setFixedSize(120, 38);
-    cancelBtn->setCursor(Qt::PointingHandCursor);
-    cancelBtn->setStyleSheet(
-        "QPushButton{background:#F7FAFC;color:#4A5568;"
-        "font-weight:600;font-size:13px;"
-        "border:1px solid #CBD5E0;border-radius:8px;}"
-        "QPushButton:hover{background:#EDF2F7;}");
+cancelBtn = new QPushButton("❌ Annuler");
+cancelBtn->setFixedSize(120, 38);
+cancelBtn->setStyleSheet(
+    "QPushButton{background:#F7FAFC;"
+    "color:#4A5568;font-weight:600;"
+    "font-size:13px;border:1px solid #CBD5E0;"
+    "border-radius:8px;}"
+    "QPushButton:hover{background:#EDF2F7;}");
 
-    saveBtn = new QPushButton("💾 Enregistrer");
-    saveBtn->setFixedSize(140, 38);
-    saveBtn->setCursor(Qt::PointingHandCursor);
-    saveBtn->setStyleSheet(
-        "QPushButton{background:#38A169;color:white;"
-        "font-weight:bold;font-size:13px;"
-        "border:none;border-radius:8px;}"
-        "QPushButton:hover{background:#276749;}");
+saveBtn = new QPushButton("💾 Enregistrer");
+saveBtn->setFixedSize(140, 38);
+saveBtn->setStyleSheet(
+    "QPushButton{background:#38A169;"
+    "color:white;font-weight:bold;"
+    "font-size:13px;border:none;"
+    "border-radius:8px;}"
+    "QPushButton:hover{background:#276749;}");
 
-    footerLayout->addWidget(cancelBtn);
-    footerLayout->addWidget(saveBtn);
+fbl->addWidget(cancelBtn);
+fbl->addWidget(saveBtn);
 
-    // ════════════════════════════════════════════════════
-    // ASSEMBLER LE LAYOUT PRINCIPAL
-    // ════════════════════════════════════════════════════
-    mainLayout->addWidget(scrollArea, 1); // stretch=1
-    mainLayout->addWidget(footerFrame, 0); // stretch=0
+// ← scroll prend tout sauf 56px du footer
+mainLayout->addWidget(scroll);
 
-    // ════════════════════════════════════════════════════
-    // CONNEXIONS
-    // ════════════════════════════════════════════════════
-    connect(clientComboBox,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &InvoiceCreateDialog::onClientSelected);
-    connect(designationEdit,
-            QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &InvoiceCreateDialog::onArticleSelected);
-    connect(addLineBtn, &QPushButton::clicked,
-            this, &InvoiceCreateDialog::onAddLine);
-    connect(removeLineBtn, &QPushButton::clicked,
-            this, &InvoiceCreateDialog::onRemoveLine);
-    connect(saveBtn, &QPushButton::clicked,
-            this, &InvoiceCreateDialog::onSave);
-    connect(cancelBtn, &QPushButton::clicked,
-            this, &InvoiceCreateDialog::onCancel);
-    connect(logoBtn, &QPushButton::clicked, [this]() {
-        QString p = QFileDialog::getOpenFileName(
-            this, "Choisir le logo", "",
-            "Images (*.png *.jpg *.jpeg)");
-        if (!p.isEmpty()) logoPathEdit->setText(p);
-    });
-    connect(signatureBtn, &QPushButton::clicked, [this]() {
-        QString p = QFileDialog::getOpenFileName(
-            this, "Choisir la signature", "",
-            "Images (*.png *.jpg *.jpeg)");
-        if (!p.isEmpty()) signaturePathEdit->setText(p);
-    });
+// ── CONNEXIONS ────────────────────────────────────
+connect(clientComboBox,
+    QOverload<int>::of(&QComboBox::currentIndexChanged),
+    this, &InvoiceCreateDialog::onClientSelected);
+connect(designationEdit,
+    QOverload<int>::of(&QComboBox::currentIndexChanged),
+    this, &InvoiceCreateDialog::onArticleSelected);
+connect(addLineBtn, &QPushButton::clicked,
+    this, &InvoiceCreateDialog::onAddLine);
+connect(removeLineBtn, &QPushButton::clicked,
+    this, &InvoiceCreateDialog::onRemoveLine);
+connect(saveBtn, &QPushButton::clicked,
+    this, &InvoiceCreateDialog::onSave);
+connect(cancelBtn, &QPushButton::clicked,
+    this, &InvoiceCreateDialog::onCancel);
+connect(logoBtn, &QPushButton::clicked, [this](){
+    QString p = QFileDialog::getOpenFileName(
+        this, "Logo", "",
+        "Images (*.png *.jpg *.jpeg)");
+    if (!p.isEmpty()) logoPathEdit->setText(p);
+});
+connect(signatureBtn, &QPushButton::clicked, [this](){
+    QString p = QFileDialog::getOpenFileName(
+        this, "Signature", "",
+        "Images (*.png *.jpg *.jpeg)");
+    if (!p.isEmpty()) signaturePathEdit->setText(p);
+});
 
-    loadArticles();
+loadArticles();
+}
+void InvoiceCreateDialog::resizeEvent(QResizeEvent *event)
+{
+    QDialog::resizeEvent(event);
+    if (m_footer && m_scroll) {
+        int fh = 56;
+        int w  = width();
+        int h  = height();
+        // Footer collé en bas
+        m_footer->setGeometry(0, h - fh, w, fh);
+        // Scroll prend tout sauf le footer
+        m_scroll->setGeometry(0, 0, w, h - fh);
+    }
 }
 
+void InvoiceCreateDialog::showEvent(QShowEvent *event)
+{
+    QDialog::showEvent(event);
+    // Forcer le positionnement dès l'affichage
+    resizeEvent(nullptr);
+    if (m_footer)
+        m_footer->raise(); // ← s'assure qu'il est au-dessus
+}
 // ============================================================
 // MÉTHODES MÉTIER (INCHANGÉES)
 // ============================================================

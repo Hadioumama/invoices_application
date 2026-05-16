@@ -13,6 +13,7 @@ class QLabel;
 class QDoubleSpinBox;
 class QSpinBox;
 class QFrame;
+class QScrollArea;
 
 struct InvoiceLineItem {
     int articleId = 0;
@@ -44,7 +45,13 @@ private slots:
 
 public slots:
     void onArticleFromCatalog(int id, const QString &name, double price, double taxRate);
+protected:
+    void resizeEvent(QResizeEvent *event) override;
+    void showEvent(QShowEvent *event) override;
 
+private:
+    QWidget *m_footer = nullptr;
+    QScrollArea *m_scroll = nullptr;
 private:
     void setupUI();
     void loadClients();
