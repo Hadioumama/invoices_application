@@ -40,17 +40,24 @@ void ArticlesWidget::setupUI()
         "}"
     );
 
+    // ============================================
+    // LAYOUT PRINCIPAL - CORRIGÉ
+    // ============================================
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
     mainLayout->setSpacing(10);
     mainLayout->setContentsMargins(12, 12, 12, 12);
 
-    // Titre
+    // ============================================
+    // TITRE
+    // ============================================
     QLabel *title = new QLabel("📦 Catalogue Articles");
     title->setStyleSheet(
         "font-size:16px;font-weight:bold;color:#1B2A3B;");
     mainLayout->addWidget(title);
 
-    // Recherche
+    // ============================================
+    // BARRE DE RECHERCHE
+    // ============================================
     QHBoxLayout *searchLayout = new QHBoxLayout;
     searchEdit = new QLineEdit;
     searchEdit->setPlaceholderText(
@@ -69,7 +76,9 @@ void ArticlesWidget::setupUI()
     searchLayout->addWidget(resetBtn);
     mainLayout->addLayout(searchLayout);
 
-    // Tableau
+    // ============================================
+    // TABLEAU - CORRIGÉ : stretch factor + minimum height
+    // ============================================
     model = new QSqlTableModel(this);
     model->setTable("articles");
     model->setEditStrategy(QSqlTableModel::OnManualSubmit);
@@ -101,10 +110,22 @@ void ArticlesWidget::setupUI()
     tableView->setColumnWidth(5, 60);
     tableView->setColumnWidth(6, 70);
     tableView->setColumnHidden(0, true);
-    tableView->setMinimumHeight(300);
-    mainLayout->addWidget(tableView);
-    // Boutons action
+    
+    // ← CORRECTION : Hauteur minimale raisonnable (pas trop grande)
+    tableView->setMinimumHeight(200);
+    // ← CORRECTION : Hauteur maximale pour éviter qu'il pousse les boutons hors écran
+    tableView->setMaximumHeight(400);
+    // ← CORRECTION : Politique de redimensionnement verticale
+    tableView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    mainLayout->addWidget(tableView, 1);  // ← CORRECTION : stretch factor = 1
+
+    // ============================================
+    // BOUTONS ACTION - CORRIGÉ : toujours visibles
+    // ============================================
     QHBoxLayout *btnLayout = new QHBoxLayout;
+    btnLayout->setSpacing(8);  // Espacement entre boutons
+    
     addBtn = new QPushButton("➕ Ajouter");
     editBtn = new QPushButton("✏️ Modifier");
     deleteBtn = new QPushButton("🗑️ Supprimer");
@@ -122,15 +143,25 @@ void ArticlesWidget::setupUI()
     refreshBtn->setStyleSheet(
         "background:#718096;color:white;");
 
+    // ← CORRECTION : Hauteur fixe pour tous les boutons
+    addBtn->setFixedHeight(32);
+    editBtn->setFixedHeight(32);
+    deleteBtn->setFixedHeight(32);
+    refreshBtn->setFixedHeight(32);
+
     btnLayout->addWidget(addBtn);
     btnLayout->addWidget(editBtn);
     btnLayout->addWidget(deleteBtn);
     btnLayout->addWidget(refreshBtn);
     btnLayout->addStretch();
     btnLayout->addWidget(totalLabel);
+    
+    // ← CORRECTION : Pas de stretch avant les boutons, ils doivent rester en bas
     mainLayout->addLayout(btnLayout);
 
-    // Connexions
+    // ============================================
+    // CONNEXIONS
+    // ============================================
     connect(addBtn,    &QPushButton::clicked,
             this, &ArticlesWidget::onAddArticle);
     connect(editBtn,   &QPushButton::clicked,
@@ -148,7 +179,6 @@ void ArticlesWidget::setupUI()
         model->setFilter("");
         refreshModel();
     });
-    
 }
 
 void ArticlesWidget::refreshModel()

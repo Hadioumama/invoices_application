@@ -94,17 +94,30 @@ PaymentDialog::PaymentDialog(int invoiceId, QWidget *parent)
 
 void PaymentDialog::setupUI()
 {
+    // ============================================
+    // CONFIGURATION DU DIALOG
+    // ============================================
+    this->setWindowTitle("Gestion des Paiements");
+    this->setMinimumSize(600, 500);  // ← Taille minimale pour éviter l'écrasement
+    this->resize(650, 600);          // ← Taille par défaut raisonnable
+
     QScrollArea *scroll = new QScrollArea(this);
     scroll->setWidgetResizable(true);
     scroll->setFrameShape(QFrame::NoFrame);
+    // ← IMPORTANT: Politique de redimensionnement pour que le scrollArea prenne tout l'espace
+    scroll->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     QWidget *container = new QWidget;
+    // ← IMPORTANT: Définir une hauteur minimale pour le container pour forcer le scroll
+    // si le contenu dépasse, mais pas avant
+    container->setMinimumWidth(560);
+    
     QVBoxLayout *mainLayout = new QVBoxLayout(container);
     mainLayout->setSpacing(10);
     mainLayout->setContentsMargins(16, 16, 16, 16);
 
     // ============================================
-    // TITRE
+    // TITRE (inchangé)
     // ============================================
     QLabel *titleLabel = new QLabel("💳 Gestion des Paiements");
     titleLabel->setStyleSheet(
@@ -115,7 +128,7 @@ void PaymentDialog::setupUI()
     mainLayout->addWidget(titleLabel);
 
     // ============================================
-    // INFOS FACTURE — Style Form cohérent
+    // INFOS FACTURE (inchangé)
     // ============================================
     QGroupBox *infoGroup = new QGroupBox("📋 Informations Facture");
     QFormLayout *infoForm = new QFormLayout(infoGroup);
@@ -144,7 +157,7 @@ void PaymentDialog::setupUI()
     mainLayout->addWidget(infoGroup);
 
     // ============================================
-    // NOUVEAU PAIEMENT — Structure professionnelle
+    // NOUVEAU PAIEMENT (inchangé)
     // ============================================
     QGroupBox *newPaymentGroup = new QGroupBox("💵 Nouveau Paiement");
     QVBoxLayout *paymentMainLayout = new QVBoxLayout(newPaymentGroup);
@@ -195,11 +208,8 @@ void PaymentDialog::setupUI()
     methodeLayout->addWidget(methodeCombo);
     fieldsRow1->addLayout(methodeLayout, 1);
     paymentMainLayout->addLayout(fieldsRow1);
-    
 
-    
-
-    // --- Notes (pleine largeur, sous les 3 champs) ---
+    // --- Notes ---
     QVBoxLayout *notesLayout = new QVBoxLayout;
     notesLayout->setSpacing(4);
     QLabel *notesLabel = new QLabel("Notes");
@@ -258,7 +268,7 @@ void PaymentDialog::setupUI()
     mainLayout->addWidget(newPaymentGroup);
 
     // ============================================
-    // HISTORIQUE — Style cohérent avec InvoiceEditDialog
+    // HISTORIQUE (inchangé)
     // ============================================
     QGroupBox *historyGroup = new QGroupBox("📜 Historique des Paiements");
     QVBoxLayout *historyLayout = new QVBoxLayout(historyGroup);
@@ -314,7 +324,7 @@ void PaymentDialog::setupUI()
     mainLayout->addWidget(historyGroup);
 
     // ============================================
-    // BOUTON FERMER
+    // BOUTON FERMER - CORRIGÉ
     // ============================================
     QHBoxLayout *closeLayout = new QHBoxLayout;
     closeLayout->addStretch();
@@ -333,18 +343,32 @@ void PaymentDialog::setupUI()
         "QPushButton:hover { background: #4A5568; }"
     );
     closeBtn->setCursor(Qt::PointingHandCursor);
+    // ← IMPORTANT: Forcer une hauteur minimale pour le widget bouton lui-même
+    closeBtn->setMinimumHeight(34);
 
     closeLayout->addWidget(closeBtn);
     mainLayout->addLayout(closeLayout);
 
+    // ============================================
+    // AJOUT D'UN ESPACE EXTENSIBLE AVANT LE BOUTON FERMER
+    // ← CECI EST LA CLÉ : ça pousse le bouton vers le bas mais visible
+    // ============================================
+    // Déjà fait implicitement par le VBoxLayout, mais on peut forcer:
+    // mainLayout->addStretch(1);  // ← Décommentez si le bouton remonte trop
+
     // Scroll
     scroll->setWidget(container);
+    
+    // ============================================
+    // LAYOUT DU DIALOG - CORRIGÉ
+    // ============================================
     QVBoxLayout *dialogLayout = new QVBoxLayout(this);
     dialogLayout->setContentsMargins(0, 0, 0, 0);
+    dialogLayout->setSpacing(0);  // ← Pas d'espace entre scrollArea et bords
     dialogLayout->addWidget(scroll);
 
     // ============================================
-    // CONNEXIONS
+    // CONNEXIONS (inchangées)
     // ============================================
     connect(addBtn, &QPushButton::clicked, this, &PaymentDialog::onAddPayment);
     connect(cancelPaymentBtn, &QPushButton::clicked, this, &PaymentDialog::onCancelPayment);
@@ -352,7 +376,6 @@ void PaymentDialog::setupUI()
     connect(montantSpinBox, QOverload<double>::of(&QDoubleSpinBox::valueChanged),
             this, &PaymentDialog::updateResteDisplay);
 }
-
 void PaymentDialog::loadInvoiceInfo()
 {
     QSqlQuery q;
