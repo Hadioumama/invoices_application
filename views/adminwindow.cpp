@@ -242,9 +242,10 @@ void AdminWindow::onSearchInvoice()
 void AdminWindow::onCreateInvoice()
 {
     InvoiceCreateDialog dlg(-1, this);
-    if (dlg.exec() == QDialog::Accepted) {
-        onRefreshInvoices();
-    }
+dlg.showMaximized(); // ← ouvre en plein écran
+if (dlg.exec() == QDialog::Accepted) {
+    onRefreshInvoices();
+}
 }
 
 void AdminWindow::onEditInvoice()
