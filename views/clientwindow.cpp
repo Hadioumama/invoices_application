@@ -122,7 +122,7 @@ void ClientWindow::setupUI()
     QPushButton *logoutBtn = new QPushButton(
         "🚪 Déconnexion");
     logoutBtn->setStyleSheet(
-        "background:#E53E3E;color:white;padding:6px 14px;");
+        "background:#3182CE;color:white;padding:6px 14px;");
     headerLayout->addWidget(appTitle);
     headerLayout->addStretch();
     headerLayout->addWidget(logoutBtn);

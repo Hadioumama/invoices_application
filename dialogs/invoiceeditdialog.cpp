@@ -18,66 +18,71 @@ InvoiceEditDialog::InvoiceEditDialog(int invoiceId, QWidget *parent)
     loadData();
     loadLines(); 
 }
-
 void InvoiceEditDialog::setupUI()
 {
     setWindowTitle("Modifier la Facture");
-    setMinimumSize(750, 700);
-    resize(800, 750);
+    
+    // ← CORRECTION DÉFINITIVE : Taille réduite pour tenir sur tous les écrans
+    setFixedSize(800, 650);  // ← 650px de haut max
 
-    QScrollArea *scroll = new QScrollArea(this);
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-
-    QWidget *container = new QWidget;
-    QVBoxLayout *mainLayout = new QVBoxLayout(container);
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(16, 16, 16, 16);
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setSpacing(6);        // ← Espacement réduit
+    mainLayout->setContentsMargins(10, 10, 10, 10);  // ← Marges réduites
 
     // Style global
     setStyleSheet(
+        "QDialog { background: #F7FAFC; }"
         "QGroupBox {"
         "  font-weight: bold;"
-        "  font-size: 12px;"
+        "  font-size: 11px;"           // ← Police réduite
         "  border: 1px solid #CBD5E0;"
-        "  border-radius: 6px;"
-        "  margin-top: 8px;"
-        "  padding-top: 8px;"
+        "  border-radius: 4px;"         // ← Rayon réduit
+        "  margin-top: 4px;"            // ← Marge réduite
+        "  padding-top: 4px;"           // ← Padding réduit
+        "  background: white;"
         "}"
         "QGroupBox::title {"
         "  subcontrol-origin: margin;"
-        "  left: 10px;"
+        "  left: 6px;"
         "  color: #2B6CB0;"
         "}"
         "QLineEdit, QDateEdit, QComboBox {"
         "  border: 1px solid #CBD5E0;"
-        "  border-radius: 4px;"
-        "  padding: 5px 8px;"
+        "  border-radius: 3px;"
+        "  padding: 3px 6px;"           // ← Padding réduit
         "  background: white;"
-        "  min-height: 28px;"
+        "  min-height: 22px;"           // ← Hauteur min réduite
+        "  font-size: 11px;"             // ← Police réduite
         "}"
         "QLineEdit:focus, QDateEdit:focus {"
         "  border: 1px solid #3182CE;"
         "}"
     );
 
-    // ── GROUPE FACTURE ──────────────────────────────────────
+    // ── GROUPE FACTURE — COMPACT ────────────────────────────
     QGroupBox *factureGroup = new QGroupBox("📄 Informations Facture");
     QFormLayout *factureForm = new QFormLayout(factureGroup);
-    factureForm->setSpacing(8);
+    factureForm->setSpacing(4);        // ← Espacement réduit
     factureForm->setLabelAlignment(Qt::AlignRight);
+    factureForm->setRowWrapPolicy(QFormLayout::DontWrapRows);
+    factureForm->setFieldGrowthPolicy(QFormLayout::ExpandingFieldsGrow);
 
     numeroEdit = new QLineEdit;
+    numeroEdit->setFixedHeight(24);    // ← Hauteur fixe réduite
     typeCombo = new QComboBox;
     typeCombo->addItems({"Facture", "Devis"});
+    typeCombo->setFixedHeight(24);
     statusCombo = new QComboBox;
     statusCombo->addItems({"Brouillon", "Envoyée", "Payée", "Annulée"});
+    statusCombo->setFixedHeight(24);
     dateCreationEdit = new QDateEdit;
     dateCreationEdit->setCalendarPopup(true);
     dateCreationEdit->setDisplayFormat("dd/MM/yyyy");
+    dateCreationEdit->setFixedHeight(24);
     dateEcheanceEdit = new QDateEdit;
     dateEcheanceEdit->setCalendarPopup(true);
     dateEcheanceEdit->setDisplayFormat("dd/MM/yyyy");
+    dateEcheanceEdit->setFixedHeight(24);
 
     factureForm->addRow("Numéro:", numeroEdit);
     factureForm->addRow("Type:", typeCombo);
@@ -86,66 +91,69 @@ void InvoiceEditDialog::setupUI()
     factureForm->addRow("Date échéance:", dateEcheanceEdit);
     mainLayout->addWidget(factureGroup);
 
-    // ── GROUPE CLIENT ───────────────────────────────────────
+    // ── GROUPE CLIENT — COMPACT ─────────────────────────────
     QGroupBox *clientGroup = new QGroupBox("👤 Informations Client");
     QFormLayout *clientForm = new QFormLayout(clientGroup);
-    clientForm->setSpacing(8);
+    clientForm->setSpacing(4);
     clientForm->setLabelAlignment(Qt::AlignRight);
+    clientForm->setRowWrapPolicy(QFormLayout::DontWrapRows);
 
     clientNomEdit = new QLineEdit;
+    clientNomEdit->setFixedHeight(24);
     clientAdresseEdit = new QLineEdit;
+    clientAdresseEdit->setFixedHeight(24);
     clientTelEdit = new QLineEdit;
+    clientTelEdit->setFixedHeight(24);
     clientEmailEdit = new QLineEdit;
+    clientEmailEdit->setFixedHeight(24);
 
-    clientForm->addRow("Nom / Entreprise:", clientNomEdit);
+    clientForm->addRow("Nom:", clientNomEdit);           // ← "Nom:" au lieu de "Nom / Entreprise:"
     clientForm->addRow("Adresse:", clientAdresseEdit);
-    clientForm->addRow("Téléphone:", clientTelEdit);
+    clientForm->addRow("Tél:", clientTelEdit);           // ← "Tél:" au lieu de "Téléphone:"
     clientForm->addRow("Email:", clientEmailEdit);
     mainLayout->addWidget(clientGroup);
 
-    // ── GROUPE ARTICLES ─────────────────────────────────────
-    QGroupBox *lignesGroup = new QGroupBox("🛒 Articles de la facture");
+    // ── GROUPE ARTICLES — ULTRA COMPACT ─────────────────────
+    QGroupBox *lignesGroup = new QGroupBox("🛒 Articles");
     QVBoxLayout *lignesLayout = new QVBoxLayout(lignesGroup);
-    lignesLayout->setSpacing(8);
+    lignesLayout->setSpacing(4);       // ← Espacement réduit
 
-    // Tableau
+    // Tableau — HAUTEUR MINIMALE
     linesTable = new QTableWidget(0, 5);
     linesTable->setHorizontalHeaderLabels(
         {"Désignation", "Qté", "Prix HT", "TVA%", "Total HT"});
-    linesTable->horizontalHeader()->setSectionResizeMode(
-        0, QHeaderView::Stretch);
-    linesTable->horizontalHeader()->setSectionResizeMode(
-        1, QHeaderView::Fixed);
-    linesTable->horizontalHeader()->setSectionResizeMode(
-        2, QHeaderView::Fixed);
-    linesTable->horizontalHeader()->setSectionResizeMode(
-        3, QHeaderView::Fixed);
-    linesTable->horizontalHeader()->setSectionResizeMode(
-        4, QHeaderView::Fixed);
-    linesTable->setColumnWidth(1, 55);
-    linesTable->setColumnWidth(2, 95);
-    linesTable->setColumnWidth(3, 65);
-    linesTable->setColumnWidth(4, 95);
+    linesTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::Stretch);
+    linesTable->horizontalHeader()->setSectionResizeMode(1, QHeaderView::Fixed);
+    linesTable->horizontalHeader()->setSectionResizeMode(2, QHeaderView::Fixed);
+    linesTable->horizontalHeader()->setSectionResizeMode(3, QHeaderView::Fixed);
+    linesTable->horizontalHeader()->setSectionResizeMode(4, QHeaderView::Fixed);
+    linesTable->setColumnWidth(1, 50);
+    linesTable->setColumnWidth(2, 85);
+    linesTable->setColumnWidth(3, 55);
+    linesTable->setColumnWidth(4, 85);
     linesTable->verticalHeader()->setVisible(false);
     linesTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     linesTable->setSelectionBehavior(QAbstractItemView::SelectRows);
     linesTable->setSelectionMode(QAbstractItemView::SingleSelection);
     linesTable->setAlternatingRowColors(true);
-    linesTable->setMinimumHeight(160);
-    linesTable->setMaximumHeight(220);
+    
+    // ← CORRECTION CRITIQUE : Hauteur fixe très réduite
+    linesTable->setFixedHeight(90);     // ← 90px seulement (3 lignes visibles)
+    
     linesTable->setStyleSheet(
         "QTableWidget {"
         "  border: 1px solid #CBD5E0;"
         "  gridline-color: #EDF2F7;"
         "  background: white;"
+        "  font-size: 11px;"             // ← Police réduite
         "}"
-        "QTableWidget::item { padding: 5px 6px; }"
+        "QTableWidget::item { padding: 2px 4px; }"  // ← Padding réduit
         "QHeaderView::section {"
         "  background: #2B6CB0;"
         "  color: white;"
         "  font-weight: bold;"
-        "  font-size: 11px;"
-        "  padding: 7px 4px;"
+        "  font-size: 10px;"             // ← Police réduite
+        "  padding: 4px 2px;"            // ← Padding réduit
         "  border: none;"
         "}"
         "QTableWidget::item:selected {"
@@ -158,72 +166,75 @@ void InvoiceEditDialog::setupUI()
     );
     lignesLayout->addWidget(linesTable);
 
-    // ── SAISIE NOUVELLE LIGNE ───────────────────────────────
+    // ── SAISIE NOUVELLE LIGNE — ULTRA COMPACT ───────────────
     QFrame *addFrame = new QFrame;
     addFrame->setStyleSheet(
         "QFrame {"
         "  background: #EBF8FF;"
         "  border: 1px solid #BEE3F8;"
-        "  border-radius: 6px;"
-        "  padding: 4px;"
+        "  border-radius: 4px;"
         "}"
     );
-    QGridLayout *addGrid = new QGridLayout(addFrame);
-    addGrid->setSpacing(6);
-    addGrid->setContentsMargins(10, 8, 10, 8);
+    QHBoxLayout *addRowLayout = new QHBoxLayout(addFrame);  // ← QHBoxLayout au lieu de QGridLayout
+    addRowLayout->setSpacing(4);
+    addRowLayout->setContentsMargins(6, 4, 6, 4);
 
-    QLabel *addTitle = new QLabel("➕ Nouvelle ligne:");
-    addTitle->setStyleSheet(
-        "font-weight:bold;color:#2B6CB0;font-size:11px;"
-        "background:transparent;border:none;");
-    addGrid->addWidget(addTitle, 0, 0, 1, 4);
-
-    addGrid->addWidget(new QLabel("Désignation:"), 1, 0);
     desigEdit = new QLineEdit;
-    desigEdit->setPlaceholderText("Nom de l'article ou service...");
-    addGrid->addWidget(desigEdit, 1, 1, 1, 3);
+    desigEdit->setPlaceholderText("Article...");
+    desigEdit->setFixedHeight(22);
+    desigEdit->setMinimumWidth(150);
 
-    addGrid->addWidget(new QLabel("Quantité:"), 2, 0);
     qtyEdit = new QSpinBox;
     qtyEdit->setMinimum(1);
     qtyEdit->setMaximum(9999);
     qtyEdit->setValue(1);
-    qtyEdit->setFixedWidth(80);
-    addGrid->addWidget(qtyEdit, 2, 1);
+    qtyEdit->setFixedWidth(50);
+    qtyEdit->setFixedHeight(22);
 
-    addGrid->addWidget(new QLabel("Prix HT:"), 2, 2);
     prixEdit = new QDoubleSpinBox;
     prixEdit->setMaximum(999999);
     prixEdit->setDecimals(2);
-    prixEdit->setFixedWidth(110);
+    prixEdit->setFixedWidth(80);
+    prixEdit->setFixedHeight(22);
     prixEdit->setSuffix(" MAD");
-    addGrid->addWidget(prixEdit, 2, 3);
 
-    addGrid->addWidget(new QLabel("TVA %:"), 3, 0);
     tvaEdit = new QDoubleSpinBox;
     tvaEdit->setValue(20.0);
     tvaEdit->setMaximum(100);
-    tvaEdit->setFixedWidth(80);
+    tvaEdit->setFixedWidth(55);
+    tvaEdit->setFixedHeight(22);
     tvaEdit->setSuffix("%");
-    addGrid->addWidget(tvaEdit, 3, 1);
+
+    addRowLayout->addWidget(new QLabel("➕"));
+    addRowLayout->addWidget(desigEdit, 1);
+    addRowLayout->addWidget(new QLabel("Qté:"));
+    addRowLayout->addWidget(qtyEdit);
+    addRowLayout->addWidget(new QLabel("Prix:"));
+    addRowLayout->addWidget(prixEdit);
+    addRowLayout->addWidget(new QLabel("TVA:"));
+    addRowLayout->addWidget(tvaEdit);
 
     lignesLayout->addWidget(addFrame);
 
-    // Boutons + Total
+    // Boutons ligne + Total — SUR UNE SEULE LIGNE
     QHBoxLayout *btnLine = new QHBoxLayout;
-    addLineBtn = new QPushButton("➕ Ajouter");
-    removeLineBtn = new QPushButton("🗑️ Supprimer");
-    addLineBtn->setFixedHeight(32);
-    removeLineBtn->setFixedHeight(32);
+    addLineBtn = new QPushButton("➕");
+    addLineBtn->setFixedSize(28, 28);   // ← Bouton carré compact
     addLineBtn->setStyleSheet(
         "background:#2B6CB0;color:white;font-weight:bold;"
-        "padding:0 16px;border-radius:4px;border:none;");
+        "border-radius:4px;border:none;font-size:14px;");
+    addLineBtn->setToolTip("Ajouter ligne");
+    
+    removeLineBtn = new QPushButton("🗑️");
+    removeLineBtn->setFixedSize(28, 28);
     removeLineBtn->setStyleSheet(
         "background:#E53E3E;color:white;font-weight:bold;"
-        "padding:0 16px;border-radius:4px;border:none;");
-    totalLabel = new QLabel("Total TTC: 0.00 MAD");
+        "border-radius:4px;border:none;font-size:14px;");
+    removeLineBtn->setToolTip("Supprimer ligne");
+    
+    totalLabel = new QLabel("Total: 0.00 MAD");
     totalLabel->setStyleSheet(
-        "font-weight:bold;font-size:13px;color:#2B6CB0;");
+        "font-weight:bold;font-size:12px;color:#2B6CB0;");
 
     btnLine->addWidget(addLineBtn);
     btnLine->addWidget(removeLineBtn);
@@ -233,29 +244,34 @@ void InvoiceEditDialog::setupUI()
 
     mainLayout->addWidget(lignesGroup);
 
-    // ── BOUTONS SAVE/CANCEL ─────────────────────────────────
+    // ← CORRECTION : Stretch pour pousser les boutons vers le bas visible
+    mainLayout->addStretch(0);
+
+    // ── BOUTONS SAVE/CANCEL — TOUJOURS VISIBLES EN BAS ──────
     QHBoxLayout *saveBtns = new QHBoxLayout;
-    cancelBtn = new QPushButton("Annuler");
+    cancelBtn = new QPushButton("❌ Annuler");
     saveBtn = new QPushButton("💾 Enregistrer");
-    cancelBtn->setFixedHeight(36);
-    saveBtn->setFixedHeight(36);
+    cancelBtn->setFixedHeight(32);
+    saveBtn->setFixedHeight(32);
+    cancelBtn->setMinimumWidth(100);
+    saveBtn->setMinimumWidth(120);
     cancelBtn->setStyleSheet(
-        "padding:0 20px;border-radius:4px;"
-        "border:1px solid #CBD5E0;background:white;");
+        "padding:0 16px;border-radius:4px;"
+        "border:1px solid #CBD5E0;background:white;"
+        "font-weight:bold;font-size:12px;");
     saveBtn->setStyleSheet(
         "background:#27AE60;color:white;font-weight:bold;"
-        "padding:0 20px;border-radius:4px;border:none;");
+        "padding:0 16px;border-radius:4px;border:none;"
+        "font-size:12px;");
     saveBtns->addStretch();
     saveBtns->addWidget(cancelBtn);
+    saveBtns->addSpacing(8);
     saveBtns->addWidget(saveBtn);
     mainLayout->addLayout(saveBtns);
 
-    // Scroll
-    scroll->setWidget(container);
-    QVBoxLayout *dialogLayout = new QVBoxLayout(this);
-    dialogLayout->setContentsMargins(0, 0, 0, 0);
-    dialogLayout->addWidget(scroll);
-
+    // ============================================
+    // CONNEXIONS
+    // ============================================
     connect(addLineBtn, &QPushButton::clicked,
             this, &InvoiceEditDialog::onAddLine);
     connect(removeLineBtn, &QPushButton::clicked,
@@ -264,18 +280,19 @@ void InvoiceEditDialog::setupUI()
             this, &InvoiceEditDialog::onSave);
     connect(cancelBtn, &QPushButton::clicked,
             this, &InvoiceEditDialog::onCancel);
-            connect(linesTable, &QTableWidget::itemClicked,
+    connect(linesTable, &QTableWidget::itemClicked,
         this, [this](QTableWidgetItem *item) {
-    int row = item->row();
-    if (row >= 0 && row < m_lines.size()) {
-        const EditLineItem &line = m_lines[row];
-        desigEdit->setText(line.designation);
-        qtyEdit->setValue(line.quantity);
-        prixEdit->setValue(line.priceHT);
-        tvaEdit->setValue(line.taxRate);
-        addLineBtn->setText("✏️ Modifier ligne");
-    }
-});
+            int row = item->row();
+            if (row >= 0 && row < m_lines.size()) {
+                const EditLineItem &line = m_lines[row];
+                desigEdit->setText(line.designation);
+                qtyEdit->setValue(line.quantity);
+                prixEdit->setValue(line.priceHT);
+                tvaEdit->setValue(line.taxRate);
+                addLineBtn->setText("✏️");
+                addLineBtn->setToolTip("Modifier ligne");
+            }
+        });
 }
 void InvoiceEditDialog::loadData()
 {

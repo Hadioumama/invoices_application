@@ -18,68 +18,53 @@ ArticlesWidget::ArticlesWidget(QWidget *parent)
 void ArticlesWidget::setupUI()
 {
     setStyleSheet(
-        "QWidget { background: white; }"
-        "QTableView {"
-        "  border: 1px solid #E2E8F0;"
-        "  gridline-color: #EDF2F7;"
-        "  selection-background-color: #BEE3F8;"
-        "  selection-color: #2D3748;"
-        "}"
-        "QHeaderView::section {"
-        "  background: #2B6CB0;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  padding: 7px;"
-        "  border: none;"
-        "}"
-        "QPushButton {"
-        "  padding: 6px 14px;"
-        "  border-radius: 4px;"
-        "  border: none;"
-        "  font-weight: bold;"
-        "}"
-    );
+        "QWidget{background:white;}"
+        "QTableView{border:1px solid #E2E8F0;"
+        "gridline-color:#EDF2F7;"
+        "selection-background-color:#BEE3F8;"
+        "selection-color:#2D3748;}"
+        "QHeaderView::section{background:#2B6CB0;"
+        "color:white;font-weight:bold;"
+        "padding:7px;border:none;}"
+        "QPushButton{padding:6px 14px;"
+        "border-radius:4px;border:none;"
+        "font-weight:bold;}");
 
-    // ============================================
-    // LAYOUT PRINCIPAL - CORRIGÉ
-    // ============================================
+   
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setSpacing(10);
-    mainLayout->setContentsMargins(12, 12, 12, 12);
+    mainLayout->setSpacing(8);
+    mainLayout->setContentsMargins(10, 10, 10, 10);
 
-    // ============================================
-    // TITRE
-    // ============================================
-    QLabel *title = new QLabel("📦 Catalogue Articles");
-    title->setStyleSheet(
-        "font-size:16px;font-weight:bold;color:#1B2A3B;");
+    // Titre
+     QLabel *title = new QLabel("📦 Catalogue Articles");
+    title->setStyleSheet("font-size:16px;font-weight:bold;color:#1B2A3B;");
+    title->setFixedHeight(24);
     mainLayout->addWidget(title);
 
-    // ============================================
-    // BARRE DE RECHERCHE
-    // ============================================
-    QHBoxLayout *searchLayout = new QHBoxLayout;
+      QHBoxLayout *searchLayout = new QHBoxLayout;
+    searchLayout->setSpacing(6);
+    
     searchEdit = new QLineEdit;
-    searchEdit->setPlaceholderText(
-        "🔍 Rechercher par désignation ou référence...");
-    searchEdit->setStyleSheet(
-        "padding:7px;border:1px solid #CBD5E0;"
-        "border-radius:4px;font-size:11px;");
+    searchEdit->setPlaceholderText("🔍 Rechercher par désignation ou référence...");
+    searchEdit->setStyleSheet("padding:6px;border:1px solid #CBD5E0;border-radius:4px;font-size:11px;");
+    searchEdit->setFixedHeight(32);
+    
     QPushButton *searchBtn = new QPushButton("Rechercher");
-    searchBtn->setStyleSheet(
-        "background:#3182CE;color:white;");
+    searchBtn->setStyleSheet("background:#3182CE;color:white;");
+    searchBtn->setFixedHeight(32);
+    searchBtn->setCursor(Qt::PointingHandCursor);
+    
     QPushButton *resetBtn = new QPushButton("✕ Réinitialiser");
-    resetBtn->setStyleSheet(
-        "background:#718096;color:white;");
-    searchLayout->addWidget(searchEdit);
+    resetBtn->setStyleSheet("background:#718096;color:white;");
+    resetBtn->setFixedHeight(32);
+    resetBtn->setCursor(Qt::PointingHandCursor);
+    
+    searchLayout->addWidget(searchEdit, 1);
     searchLayout->addWidget(searchBtn);
     searchLayout->addWidget(resetBtn);
     mainLayout->addLayout(searchLayout);
-
-    // ============================================
-    // TABLEAU - CORRIGÉ : stretch factor + minimum height
-    // ============================================
-    model = new QSqlTableModel(this);
+    // Tableau — stretch=1 prend tout l'espace restant
+      model = new QSqlTableModel(this);
     model->setTable("articles");
     model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     model->setHeaderData(0, Qt::Horizontal, "ID");
@@ -93,12 +78,9 @@ void ArticlesWidget::setupUI()
 
     tableView = new QTableView;
     tableView->setModel(model);
-    tableView->setSelectionBehavior(
-        QAbstractItemView::SelectRows);
-    tableView->setSelectionMode(
-        QAbstractItemView::SingleSelection);
-    tableView->setEditTriggers(
-        QAbstractItemView::NoEditTriggers);
+    tableView->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableView->setSelectionMode(QAbstractItemView::SingleSelection);
+    tableView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tableView->horizontalHeader()->setStretchLastSection(true);
     tableView->verticalHeader()->setVisible(false);
     tableView->setAlternatingRowColors(true);
@@ -110,44 +92,39 @@ void ArticlesWidget::setupUI()
     tableView->setColumnWidth(5, 60);
     tableView->setColumnWidth(6, 70);
     tableView->setColumnHidden(0, true);
-    
-    // ← CORRECTION : Hauteur minimale raisonnable (pas trop grande)
-    tableView->setMinimumHeight(200);
-    // ← CORRECTION : Hauteur maximale pour éviter qu'il pousse les boutons hors écran
-    tableView->setMaximumHeight(400);
-    // ← CORRECTION : Politique de redimensionnement verticale
-    tableView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+ tableView->setFixedHeight(280);
 
-    mainLayout->addWidget(tableView, 1);  // ← CORRECTION : stretch factor = 1
-
-    // ============================================
-    // BOUTONS ACTION - CORRIGÉ : toujours visibles
-    // ============================================
+    mainLayout->addWidget(tableView); 
+    // Boutons — stretch=0 : hauteur fixe toujours visible
     QHBoxLayout *btnLayout = new QHBoxLayout;
-    btnLayout->setSpacing(8);  // Espacement entre boutons
-    
+    btnLayout->setSpacing(8);
+
     addBtn = new QPushButton("➕ Ajouter");
     editBtn = new QPushButton("✏️ Modifier");
     deleteBtn = new QPushButton("🗑️ Supprimer");
     refreshBtn = new QPushButton("🔄 Actualiser");
     totalLabel = new QLabel;
-    totalLabel->setStyleSheet(
-        "font-weight:bold;color:#2B6CB0;font-size:11px;");
+    totalLabel->setStyleSheet("font-weight:bold;color:#2B6CB0;font-size:11px;");
 
-    addBtn->setStyleSheet(
-        "background:#27AE60;color:white;");
-    editBtn->setStyleSheet(
-        "background:#3182CE;color:white;");
-    deleteBtn->setStyleSheet(
-        "background:#E53E3E;color:white;");
-    refreshBtn->setStyleSheet(
-        "background:#718096;color:white;");
+    addBtn->setStyleSheet("background:#27AE60;color:white;");
+    editBtn->setStyleSheet("background:#3182CE;color:white;");
+    deleteBtn->setStyleSheet("background:#E53E3E;color:white;");
+    refreshBtn->setStyleSheet("background:#718096;color:white;");
 
-    // ← CORRECTION : Hauteur fixe pour tous les boutons
-    addBtn->setFixedHeight(32);
-    editBtn->setFixedHeight(32);
-    deleteBtn->setFixedHeight(32);
-    refreshBtn->setFixedHeight(32);
+    addBtn->setFixedHeight(34);
+    editBtn->setFixedHeight(34);
+    deleteBtn->setFixedHeight(34);
+    refreshBtn->setFixedHeight(34);
+    
+    addBtn->setMinimumWidth(90);
+    editBtn->setMinimumWidth(90);
+    deleteBtn->setMinimumWidth(90);
+    refreshBtn->setMinimumWidth(90);
+    
+    addBtn->setCursor(Qt::PointingHandCursor);
+    editBtn->setCursor(Qt::PointingHandCursor);
+    deleteBtn->setCursor(Qt::PointingHandCursor);
+    refreshBtn->setCursor(Qt::PointingHandCursor);
 
     btnLayout->addWidget(addBtn);
     btnLayout->addWidget(editBtn);
@@ -156,12 +133,10 @@ void ArticlesWidget::setupUI()
     btnLayout->addStretch();
     btnLayout->addWidget(totalLabel);
     
-    // ← CORRECTION : Pas de stretch avant les boutons, ils doivent rester en bas
     mainLayout->addLayout(btnLayout);
+   mainLayout->addStretch(0);
 
-    // ============================================
-    // CONNEXIONS
-    // ============================================
+    // Connexions
     connect(addBtn,    &QPushButton::clicked,
             this, &ArticlesWidget::onAddArticle);
     connect(editBtn,   &QPushButton::clicked,

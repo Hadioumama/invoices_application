@@ -21,7 +21,7 @@ class AdminWindow : public QWidget
 public:
     explicit AdminWindow(int adminId, QWidget *parent = nullptr);
     ~AdminWindow();
-
+     
 signals:
     void logoutRequested();
 
