@@ -155,63 +155,46 @@ void AdminWindow::setupUI()
     invoiceTabLayout->addWidget(invoiceView, 1);  // ← Stretch factor
 
     tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
-
-          // ===== TAB GESTION CLIENTS — DESIGN ARTICLES APPLIQUÉ =====
+    // ===== TAB GESTION CLIENTS — COMPACT VERS LE HAUT =====
     QWidget *clientTab = new QWidget();
     QVBoxLayout *clientTabLayout = new QVBoxLayout(clientTab);
-    clientTabLayout->setContentsMargins(12, 12, 12, 12);
-    clientTabLayout->setSpacing(10);
+    clientTabLayout->setContentsMargins(8, 4, 8, 4);   // ← Marges réduites (4px haut/bas)
+    clientTabLayout->setSpacing(4);                     // ← Espacement réduit (4px)
 
-    // Style global comme Articles
-    clientTab->setStyleSheet(
-        "QWidget { background: white; }"
-        "QTableView {"
-        "  border: 1px solid #E2E8F0;"
-        "  gridline-color: #EDF2F7;"
-        "  selection-background-color: #BEE3F8;"
-        "  selection-color: #2D3748;"
-        "}"
-        "QHeaderView::section {"
-        "  background: #2B6CB0;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  padding: 7px;"
-        "  border: none;"
-        "}"
-        "QPushButton {"
-        "  padding: 6px 14px;"
-        "  border-radius: 4px;"
-        "  border: none;"
-        "  font-weight: bold;"
-        "}"
-    );
-
-    // -- Titre style Articles --
+    // -- Titre compact --
     QLabel *clientTitle = new QLabel("📋 Gestion Clients");
     clientTitle->setStyleSheet(
-        "font-size:16px;font-weight:bold;color:#1B2A3B;");
+        "font-size:14px;font-weight:bold;color:#1B2A3B;"  // ← 14px au lieu de 16px
+        "margin:0px;padding:0px;");                       // ← Pas de marge
+    clientTitle->setFixedHeight(20);                      // ← Hauteur fixe compacte
     clientTabLayout->addWidget(clientTitle);
 
-    // -- Recherche clients — STYLE ARTICLES --
+    // -- Recherche clients — ULTRA COMPACT --
     QHBoxLayout *searchLayout = new QHBoxLayout;
-    searchLayout->setSpacing(8);
+    searchLayout->setSpacing(6);                          // ← Espacement réduit
+    searchLayout->setContentsMargins(0, 0, 0, 0);          // ← Pas de marge interne
     
     searchEdit = new QLineEdit;
     searchEdit->setPlaceholderText("🔍 Rechercher par prénom...");
     searchEdit->setStyleSheet(
-        "padding:7px;border:1px solid #CBD5E0;"
+        "padding:5px;border:1px solid #CBD5E0;"           // ← 5px au lieu de 7px
         "border-radius:4px;font-size:11px;");
+    searchEdit->setFixedHeight(28);                         // ← 28px au lieu de 32px
     
     searchButton = new QPushButton("Rechercher");
     searchButton->setStyleSheet(
-        "background:#3182CE;color:white;");
-    searchButton->setFixedHeight(32);
+        "background:#3182CE;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"  // ← Padding réduit
+        "font-size:11px;");
+    searchButton->setFixedHeight(28);
     searchButton->setCursor(Qt::PointingHandCursor);
     
     QPushButton *resetButton = new QPushButton("✕ Réinitialiser");
     resetButton->setStyleSheet(
-        "background:#718096;color:white;");
-    resetButton->setFixedHeight(32);
+        "background:#718096;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"
+        "font-size:11px;");
+    resetButton->setFixedHeight(28);
     resetButton->setCursor(Qt::PointingHandCursor);
 
     searchLayout->addWidget(searchEdit, 1);
@@ -219,7 +202,7 @@ void AdminWindow::setupUI()
     searchLayout->addWidget(resetButton);
     clientTabLayout->addLayout(searchLayout);
 
-    // -- Table clients — MÊME CONFIGURATION (inchangée) --
+    // -- Table clients — HAUTEUR RÉDUITE --
     clientModel = new QSqlTableModel(this);
     clientModel->setTable("clients");
     clientModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
@@ -236,40 +219,69 @@ void AdminWindow::setupUI()
     clientView->setAlternatingRowColors(true);
     clientView->setEditTriggers(QAbstractItemView::NoEditTriggers);
     
-    // ← MÊME HAUTEUR FIXE (inchangée)
-    clientView->setFixedHeight(280);
+    // ← HAUTEUR FIXE RÉDUITE pour faire remonter les boutons
+    clientView->setFixedHeight(200);                        // ← 200px au lieu de 280px
     clientView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
+    
+    // Style du tableau
+    clientView->setStyleSheet(
+        "QTableView {"
+        "  border: 1px solid #E2E8F0;"
+        "  gridline-color: #EDF2F7;"
+        "  selection-background-color: #BEE3F8;"
+        "  selection-color: #2D3748;"
+        "}"
+        "QHeaderView::section {"
+        "  background: #2B6CB0;"
+        "  color: white;"
+        "  font-weight: bold;"
+        "  padding: 5px;"                                    // ← 5px au lieu de 7px
+        "  border: none;"
+        "  font-size: 11px;"                                 // ← Police réduite
+        "}"
+    );
 
-    clientTabLayout->addWidget(clientView);  // ← PAS de stretch factor (inchangé)
+    clientTabLayout->addWidget(clientView);
 
-    // -- Boutons clients — DESIGN ARTICLES APPLIQUÉ --
+    // -- Boutons clients — COMPACTS ET COLORÉS --
     QHBoxLayout *buttonLayout = new QHBoxLayout;
-    buttonLayout->setSpacing(8);
+    buttonLayout->setSpacing(6);                             // ← Espacement réduit
+    buttonLayout->setContentsMargins(0, 0, 0, 0);          // ← Pas de marge
 
     addButton = new QPushButton("➕ Ajouter");
     editButton = new QPushButton("✏️ Modifier");
     deleteButton = new QPushButton("🗑️ Supprimer");
     refreshButton = new QPushButton("🔄 Actualiser");
     
-    // ← COULEURS ARTICLES
-    addButton->setStyleSheet("background:#27AE60;color:white;");
-    editButton->setStyleSheet("background:#3182CE;color:white;");
-    deleteButton->setStyleSheet("background:#E53E3E;color:white;");
-    refreshButton->setStyleSheet("background:#718096;color:white;");
+    // Styles colorés
+    addButton->setStyleSheet(
+        "background:#27AE60;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"
+        "font-size:11px;");
+    editButton->setStyleSheet(
+        "background:#3182CE;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"
+        "font-size:11px;");
+    deleteButton->setStyleSheet(
+        "background:#E53E3E;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"
+        "font-size:11px;");
+    refreshButton->setStyleSheet(
+        "background:#718096;color:white;font-weight:bold;"
+        "padding:4px 12px;border-radius:4px;border:none;"
+        "font-size:11px;");
 
-    // ← MÊME HAUTEUR FIXE (inchangée)
-    addButton->setFixedHeight(34);
-    editButton->setFixedHeight(34);
-    deleteButton->setFixedHeight(34);
-    refreshButton->setFixedHeight(34);
+    // Hauteur réduite
+    addButton->setFixedHeight(30);                          // ← 30px au lieu de 34px
+    editButton->setFixedHeight(30);
+    deleteButton->setFixedHeight(30);
+    refreshButton->setFixedHeight(30);
     
-    // ← MÊME MINIMUM WIDTH (inchangé)
-    addButton->setMinimumWidth(100);
-    editButton->setMinimumWidth(100);
-    deleteButton->setMinimumWidth(100);
-    refreshButton->setMinimumWidth(100);
+    addButton->setMinimumWidth(90);                         // ← 90px au lieu de 100px
+    editButton->setMinimumWidth(90);
+    deleteButton->setMinimumWidth(90);
+    refreshButton->setMinimumWidth(90);
     
-    // ← CURSEUR (inchangé)
     addButton->setCursor(Qt::PointingHandCursor);
     editButton->setCursor(Qt::PointingHandCursor);
     deleteButton->setCursor(Qt::PointingHandCursor);
