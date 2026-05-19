@@ -351,8 +351,10 @@ invoiceTabLayout->addWidget(invoiceTitle);            // ← Supprime , 0, Qt::A
     clientView->setSelectionBehavior(QAbstractItemView::SelectRows);
     clientView->setSelectionMode(QAbstractItemView::SingleSelection);
     clientView->horizontalHeader()->setStretchLastSection(true);
-    clientView->setColumnHidden(4, true);
-    clientView->setColumnHidden(5, true);
+   clientView->setColumnHidden(4,  true); // mot_de_passe
+clientView->setColumnHidden(10, true); // role
+clientView->setColumnHidden(12, true); // signature_path
+clientView->setColumnHidden(13, true); // logo_path
     clientView->verticalHeader()->setVisible(false);
     clientView->setAlternatingRowColors(true);
     clientView->setEditTriggers(QAbstractItemView::NoEditTriggers);
