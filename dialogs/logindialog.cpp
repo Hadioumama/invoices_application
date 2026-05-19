@@ -129,6 +129,7 @@ void LoginDialog::setupUI()
     forgotButton->setCursor(Qt::PointingHandCursor);
     forgotButton->setFlat(true);
     forgotLayout->addWidget(forgotButton);
+    cardLayout->addSpacing(8); 
     cardLayout->addLayout(forgotLayout);
     cardLayout->addSpacing(20);
 

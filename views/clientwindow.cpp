@@ -113,16 +113,16 @@ void ClientWindow::setupUI()
     QFrame *header = new QFrame;
     header->setFixedHeight(60);
     header->setStyleSheet(
-        "QFrame { background:#1B2A3B; }");
+        "QFrame { background:#F7FAFC; }");
     QHBoxLayout *headerLayout = new QHBoxLayout(header);
     QLabel *appTitle = new QLabel(
         "🏢 FacturationApp — Espace Client");
     appTitle->setStyleSheet(
-        "color:white;font-size:16px;font-weight:bold;");
+        "color:#3182CE;font-size:16px;font-weight:bold;");
     QPushButton *logoutBtn = new QPushButton(
         "🚪 Déconnexion");
     logoutBtn->setStyleSheet(
-        "background:#3182CE;color:white;padding:6px 14px;");
+        "background:#E53E3E;color:white;padding:6px 14px;");
     headerLayout->addWidget(appTitle);
     headerLayout->addStretch();
     headerLayout->addWidget(logoutBtn);
