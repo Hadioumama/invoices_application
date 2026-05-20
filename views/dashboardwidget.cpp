@@ -1,155 +1,430 @@
 #include "dashboardwidget.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
-#include <QGridLayout>
-#include <QGroupBox>
 #include <QSqlQuery>
 #include <QDate>
-#include <QFrame>
+#include <QPainter>
+#include <QGraphicsDropShadowEffect>
 #include <QtCharts/QChart>
-#include <QtCharts/QBarSeries>
-#include <QtCharts/QBarSet>
-#include <QtCharts/QPieSeries>
+#include <QtCharts/QSplineSeries>
+#include <QtCharts/QAreaSeries>
 #include <QtCharts/QPieSlice>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
-#include <QtCharts/QSplineSeries>
-#include <QtCharts/QAreaSeries>
 #include <QLinearGradient>
-DashboardWidget::DashboardWidget(QWidget *parent)
-    : QWidget(parent)
+
+// ─────────────────────────────────────────────────────────────────────────────
+namespace T {
+    constexpr auto SB_BG        = "#111827";
+    constexpr auto SB_HOVER     = "#1F2937";
+    constexpr auto SB_ACTIVE_BG = "#1D3461";
+    constexpr auto SB_BORDER    = "#1F2937";
+    constexpr auto SB_LOGO      = "#60A5FA";
+    constexpr auto SB_SECTION   = "#4B5563";
+    constexpr auto SB_TEXT      = "#9CA3AF";
+    constexpr auto SB_TEXT_ACT  = "#F9FAFB";
+    constexpr auto SB_ACCENT    = "#3B82F6";
+    constexpr auto SB_LOGOUT    = "#EF4444";
+    constexpr auto BG           = "#F1F5F9";
+    constexpr auto CARD_BG      = "#FFFFFF";
+    constexpr auto CARD_BORDER  = "#E2E8F0";
+    constexpr auto C_BLUE       = "#2563EB";
+    constexpr auto C_GREEN      = "#16A34A";
+    constexpr auto C_RED        = "#DC2626";
+    constexpr auto C_VIOLET     = "#7C3AED";
+    constexpr auto C_AMBER      = "#D97706";
+    constexpr auto C_ORANGE     = "#C2410C";
+    constexpr auto CHART_LINE   = "#3B82F6";
+}
+
+static QGraphicsDropShadowEffect* softShadow(int blur = 18, int alpha = 25)
 {
-    setupUI();
+    auto *e = new QGraphicsDropShadowEffect;
+    e->setBlurRadius(blur);
+    e->setOffset(0, 3);
+    e->setColor(QColor(0, 0, 0, alpha));
+    return e;
+}
 
-    // Timer rafraîchissement toutes les 30 secondes
+// ─────────────────────────────────────────────────────────────────────────────
+DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
+{
+    // Build sidebar and content separately; do NOT add them to `this` layout
+    // because AdminWindow will pull them apart via sidebarOnly()/contentArea().
+    setupSidebar();   // creates sidebarWidget
+    setupStatCards(); // creates cardsWidget
+    setupCharts();    // creates chartsWidget
+
+    // ── Build the right-side content area ────────────────────────────────────
+    m_contentArea = new QWidget;
+    m_contentArea->setStyleSheet(QString("background:%1;").arg(T::BG));
+    QVBoxLayout *cv = new QVBoxLayout(m_contentArea);
+    cv->setContentsMargins(28, 20, 28, 16);
+    cv->setSpacing(16);
+
+    // Header bar
+    QWidget *header = new QWidget;
+    header->setStyleSheet("background:transparent;");
+    QHBoxLayout *hl = new QHBoxLayout(header);
+    hl->setContentsMargins(0,0,0,0);
+
+    QLabel *pageTitle = new QLabel("Vue d'ensemble");
+    pageTitle->setStyleSheet(
+        "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
+        "font-size:20px;font-weight:700;color:#0F172A;");
+
+    QLabel *dateLbl = new QLabel(
+        QDate::currentDate().toString("dddd d MMMM yyyy"));
+    dateLbl->setStyleSheet("font-size:11px;color:#94A3B8;");
+
+    QLabel *livePill = new QLabel("● Live");
+    livePill->setStyleSheet(
+        "font-size:10px;font-weight:700;color:#16A34A;"
+        "background:#DCFCE7;border-radius:9px;padding:3px 10px;");
+
+    hl->addWidget(pageTitle);
+    hl->addStretch();
+    hl->addWidget(dateLbl);
+    hl->addSpacing(10);
+    hl->addWidget(livePill);
+
+    cv->addWidget(header);
+    cv->addWidget(cardsWidget);
+    cv->addWidget(chartsWidget, 1);
+
+    // Timer
     refreshTimer = new QTimer(this);
-    connect(refreshTimer, &QTimer::timeout,
-            this, &DashboardWidget::refreshData);
+    connect(refreshTimer, &QTimer::timeout, this, &DashboardWidget::refreshData);
     refreshTimer->start(30000);
-
-    // Chargement initial
     refreshData();
 }
 
-void DashboardWidget::setupUI()
+// DashboardWidget itself has NO layout — AdminWindow composes the two parts.
+void DashboardWidget::setupUI() {}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Sidebar
+// ─────────────────────────────────────────────────────────────────────────────
+void DashboardWidget::setupSidebar()
 {
-    QVBoxLayout *outerLayout = new QVBoxLayout(this);
-    outerLayout->setContentsMargins(0, 0, 0, 0);
+    sidebarWidget = new QWidget;
+    sidebarWidget->setFixedWidth(230);
+    sidebarWidget->setStyleSheet(
+        QString("background:%1;").arg(T::SB_BG));
 
-    QScrollArea *scroll = new QScrollArea;
-    scroll->setWidgetResizable(true);
-    scroll->setFrameShape(QFrame::NoFrame);
-    scroll->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    QVBoxLayout *sl = new QVBoxLayout(sidebarWidget);
+    sl->setContentsMargins(0, 0, 0, 0);
+    sl->setSpacing(0);
 
-    QWidget *container = new QWidget;
-    QVBoxLayout *mainLayout = new QVBoxLayout(container);
-    mainLayout->setSpacing(16);
-    mainLayout->setContentsMargins(16, 16, 16, 16);
+    // Logo
+    QWidget *logoArea = new QWidget;
+    logoArea->setFixedHeight(64);
+    logoArea->setStyleSheet(
+        QString("background:%1;border-bottom:1px solid %2;")
+            .arg(T::SB_BG, T::SB_BORDER));
+    QHBoxLayout *ll = new QHBoxLayout(logoArea);
+    ll->setContentsMargins(20, 0, 16, 0);
 
-    // Titre
-    QLabel *title = new QLabel("📊 Tableau de Bord");
-    title->setStyleSheet(
-        "font-size:20px;font-weight:bold;color:#1B2A3B;"
-        "padding-bottom:8px;");
-    mainLayout->addWidget(title);
+    QLabel *logoIcon = new QLabel("F");
+    logoIcon->setFixedSize(32, 32);
+    logoIcon->setAlignment(Qt::AlignCenter);
+    logoIcon->setStyleSheet(
+        QString("background:%1;border-radius:8px;"
+                "font-size:16px;font-weight:800;color:#0F172A;")
+            .arg(T::SB_LOGO));
 
-    setupStatCards();
-    mainLayout->addWidget(cardsWidget);
+    QLabel *logoText = new QLabel("FacturaPro");
+    logoText->setStyleSheet(
+        QString("font-size:14px;font-weight:700;color:%1;letter-spacing:0.3px;")
+            .arg(T::SB_LOGO));
 
-    setupCharts();
-    mainLayout->addWidget(chartsWidget);
+    ll->addWidget(logoIcon);
+    ll->addSpacing(8);
+    ll->addWidget(logoText);
+    ll->addStretch();
+    sl->addWidget(logoArea);
 
-    scroll->setWidget(container);
-    outerLayout->addWidget(scroll);
+    // Section label helper
+    auto addSection = [&](const QString &label) {
+        QLabel *sec = new QLabel(label.toUpper());
+        sec->setFixedHeight(32);
+        sec->setStyleSheet(
+            QString("font-size:9px;font-weight:700;color:%1;"
+                    "letter-spacing:1.8px;padding:0 20px;")
+                .arg(T::SB_SECTION));
+        sl->addWidget(sec);
+    };
+
+    // Nav item helper
+    auto addNavItem = [&](const QString &icon,
+                          const QString &label,
+                          const QString &page,
+                          bool isActive = false) -> QPushButton*
+    {
+        QPushButton *btn = new QPushButton;
+        btn->setFixedHeight(46);
+        btn->setCursor(Qt::PointingHandCursor);
+        btn->setFlat(true);
+
+        QHBoxLayout *bl = new QHBoxLayout(btn);
+        bl->setContentsMargins(0, 0, 0, 0);
+        bl->setSpacing(0);
+
+        QFrame *bar = new QFrame;
+        bar->setFixedWidth(3);
+        bar->setStyleSheet(
+            QString("background:%1;border-radius:0;")
+                .arg(isActive ? T::SB_ACCENT : "transparent"));
+
+        QLabel *ico = new QLabel(icon);
+        ico->setFixedWidth(36);
+        ico->setAlignment(Qt::AlignCenter);
+        ico->setStyleSheet("font-size:15px;background:transparent;");
+
+        QLabel *txt = new QLabel(label);
+        txt->setStyleSheet(
+            QString("font-size:13px;font-weight:%1;color:%2;background:transparent;")
+                .arg(isActive ? "600" : "400")
+                .arg(isActive ? T::SB_TEXT_ACT : T::SB_TEXT));
+
+        bl->addWidget(bar);
+        bl->addSpacing(10);
+        bl->addWidget(ico);
+        bl->addWidget(txt);
+        bl->addStretch();
+
+        btn->setStyleSheet(
+            QString("QPushButton{background:%1;border:none;}"
+                    "QPushButton:hover{background:%2;}")
+                .arg(isActive ? T::SB_ACTIVE_BG : "transparent", T::SB_HOVER));
+
+        sl->addWidget(btn);
+
+        connect(btn, &QPushButton::clicked, this,
+                [this, btn, bar, txt, page]()
+        {
+            if (activeNavBtn && activeNavBtn != btn) {
+                // Reset previous (find its bar/text children)
+                QHBoxLayout *prevL =
+                    qobject_cast<QHBoxLayout*>(activeNavBtn->layout());
+                if (prevL) {
+                    QFrame *prevBar = qobject_cast<QFrame*>(prevL->itemAt(0)->widget());
+                    QLabel *prevTxt = nullptr;
+                    for (int i = 0; i < prevL->count(); i++) {
+                        QLabel *l = qobject_cast<QLabel*>(prevL->itemAt(i)->widget());
+                        if (l && l->text().length() > 2) { prevTxt = l; break; }
+                    }
+                    if (prevBar)
+                        prevBar->setStyleSheet("background:transparent;border-radius:0;");
+                    if (prevTxt)
+                        prevTxt->setStyleSheet(
+                            QString("font-size:13px;font-weight:400;color:%1;"
+                                    "background:transparent;").arg(T::SB_TEXT));
+                    activeNavBtn->setStyleSheet(
+                        QString("QPushButton{background:transparent;border:none;}"
+                                "QPushButton:hover{background:%1;}").arg(T::SB_HOVER));
+                }
+            }
+            activeNavBtn = btn;
+            bar->setStyleSheet(
+                QString("background:%1;border-radius:0;").arg(T::SB_ACCENT));
+            txt->setStyleSheet(
+                QString("font-size:13px;font-weight:600;color:%1;"
+                        "background:transparent;").arg(T::SB_TEXT_ACT));
+            btn->setStyleSheet(
+                QString("QPushButton{background:%1;border:none;}"
+                        "QPushButton:hover{background:%1;}").arg(T::SB_ACTIVE_BG));
+            emit navigateTo(page);
+        });
+
+        if (isActive) activeNavBtn = btn;
+        return btn;
+    };
+
+    sl->addSpacing(8);
+
+    addSection("Principal");
+    addNavItem("▦",  "Tableau de bord",  "dashboard",  true);
+    addNavItem("🧾", "Gestion Factures", "factures");
+    addNavItem("👥", "Gestion Clients",  "clients");
+    addNavItem("📦", "Gestion Articles", "articles");
+
+    sl->addSpacing(8);
+    addSection("Outils");
+    addNavItem("📊", "Rapports",         "rapports");
+    addNavItem("⚙️", "Paramètres",       "parametres");
+
+    sl->addStretch();
+
+    // Divider
+    QFrame *div = new QFrame;
+    div->setFixedHeight(1);
+    div->setStyleSheet(
+        QString("background:%1;margin:0 16px;").arg(T::SB_BORDER));
+    sl->addWidget(div);
+    sl->addSpacing(10);
+
+    // User chip
+    QWidget *chip = new QWidget;
+    chip->setFixedHeight(50);
+    chip->setStyleSheet(
+        QString("background:%1;border-radius:10px;margin:0 12px;")
+            .arg(T::SB_HOVER));
+    QHBoxLayout *ul = new QHBoxLayout(chip);
+    ul->setContentsMargins(10, 0, 10, 0);
+    ul->setSpacing(10);
+
+    QLabel *avatar = new QLabel("A");
+    avatar->setFixedSize(30, 30);
+    avatar->setAlignment(Qt::AlignCenter);
+    avatar->setStyleSheet(
+        QString("background:%1;border-radius:15px;"
+                "font-size:13px;font-weight:700;color:#0F172A;")
+            .arg(T::SB_LOGO));
+
+    QVBoxLayout *uinfo = new QVBoxLayout;
+    uinfo->setSpacing(1);
+    QLabel *uname = new QLabel("Administrateur");
+    uname->setStyleSheet(
+        QString("font-size:11px;font-weight:600;color:%1;background:transparent;")
+            .arg(T::SB_TEXT_ACT));
+    QLabel *urole = new QLabel("Super Admin");
+    urole->setStyleSheet(
+        QString("font-size:9px;color:%1;background:transparent;")
+            .arg(T::SB_SECTION));
+    uinfo->addWidget(uname);
+    uinfo->addWidget(urole);
+
+    ul->addWidget(avatar);
+    ul->addLayout(uinfo);
+    ul->addStretch();
+    sl->addWidget(chip);
+    sl->addSpacing(10);
+
+    // Logout button
+    QPushButton *logoutBtn = new QPushButton("  🔓  Déconnexion");
+    logoutBtn->setFixedHeight(42);
+    logoutBtn->setCursor(Qt::PointingHandCursor);
+    logoutBtn->setFlat(true);
+    logoutBtn->setStyleSheet(
+        QString("QPushButton{"
+                "  background:rgba(239,68,68,0.08);"
+                "  border:1px solid rgba(239,68,68,0.25);"
+                "  border-radius:8px;"
+                "  margin:0 12px;"
+                "  font-size:12px;font-weight:600;color:%1;"
+                "}"
+                "QPushButton:hover{background:rgba(239,68,68,0.18);}")
+            .arg(T::SB_LOGOUT));
+    connect(logoutBtn, &QPushButton::clicked,
+            this, &DashboardWidget::logoutRequested);
+    sl->addWidget(logoutBtn);
+    sl->addSpacing(14);
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Stat cards
+// ─────────────────────────────────────────────────────────────────────────────
 void DashboardWidget::setupStatCards()
 {
     cardsWidget = new QWidget;
-    QGridLayout *grid = new QGridLayout(cardsWidget);
-    grid->setSpacing(12);
+    cardsWidget->setStyleSheet("background:transparent;");
+    QHBoxLayout *row = new QHBoxLayout(cardsWidget);
+    row->setSpacing(12);
+    row->setContentsMargins(0,0,0,0);
 
-    auto makeCard = [](const QString &title,
-                       const QString &color,
-                       const QString &icon,
-                       QLabel *&valueLabel) -> QFrame* {
-        QFrame *card = new QFrame;
-        card->setMinimumHeight(110);
-        card->setStyleSheet(QString(
-            "QFrame {"
-            "  background: white;"
-            "  border-radius: 10px;"
-            "  border: 1px solid #E2E8F0;"
-            "  border-left: 5px solid %1;"
-            "}"
-        ).arg(color));
-
-        QVBoxLayout *layout = new QVBoxLayout(card);
-        layout->setContentsMargins(16, 12, 16, 12);
-
-        QLabel *iconLabel = new QLabel(icon + "  " + title);
-        iconLabel->setStyleSheet(
-            "font-size:11px;color:#718096;"
-            "font-weight:bold;text-transform:uppercase;"
-            "letter-spacing:1px;border:none;");
-
-        valueLabel = new QLabel("--");
-        valueLabel->setStyleSheet(QString(
-            "font-size:26px;font-weight:900;color:%1;border:none;"
-        ).arg(color));
-
-        layout->addWidget(iconLabel);
-        layout->addWidget(valueLabel);
-        return card;
+    struct CardDef { QString title, icon, accent; QLabel **ptr; };
+    QVector<CardDef> defs = {
+        {"Chiffre d'Affaires", "💰", T::C_BLUE,   &totalCALabel},
+        {"Factures Payées",    "✅", T::C_GREEN,  &facturesPayeesLabel},
+        {"Factures Impayées",  "⚠",  T::C_RED,    &facturesImpayeesLabel},
+        {"Total Clients",      "👥", T::C_VIOLET, &clientsTotalLabel},
+        {"Factures / Mois",    "📅", T::C_AMBER,  &facturesMoisLabel},
+        {"Montant en Attente", "⏳", T::C_ORANGE, &montantEnAttenteLabel},
     };
 
-    // 6 cartes
-    grid->addWidget(
-        makeCard("Chiffre d'Affaires", "#2B6CB0",
-                 "💰", totalCALabel), 0, 0);
-    grid->addWidget(
-        makeCard("Factures Payées", "#27AE60",
-                 "✅", facturesPayeesLabel), 0, 1);
-    grid->addWidget(
-        makeCard("Factures Impayées", "#E53E3E",
-                 "⚠️", facturesImpayeesLabel), 0, 2);
-    grid->addWidget(
-        makeCard("Total Clients", "#805AD5",
-                 "👥", clientsTotalLabel), 1, 0);
-    grid->addWidget(
-        makeCard("Factures ce Mois", "#DD6B20",
-                 "📅", facturesMoisLabel), 1, 1);
-    grid->addWidget(
-        makeCard("Montant en Attente", "#C05621",
-                 "⏳", montantEnAttenteLabel), 1, 2);
+    for (auto &d : defs) {
+        QFrame *card = new QFrame;
+        card->setStyleSheet(
+            QString("QFrame{"
+                    "  background:%1;"
+                    "  border-radius:12px;"
+                    "  border:1px solid %2;"
+                    "  border-top:3px solid %3;"
+                    "}").arg(T::CARD_BG, T::CARD_BORDER, d.accent));
+        card->setMinimumHeight(96);
+        card->setGraphicsEffect(softShadow());
+
+        QVBoxLayout *cl = new QVBoxLayout(card);
+        cl->setContentsMargins(14, 12, 14, 12);
+        cl->setSpacing(5);
+
+        QLabel *lbl = new QLabel(d.icon + "  " + d.title);
+        lbl->setStyleSheet(
+            "font-size:9px;font-weight:700;color:#64748B;"
+            "letter-spacing:0.7px;background:transparent;border:none;");
+
+        QLabel *val = new QLabel("—");
+        val->setStyleSheet(
+            QString("font-size:20px;font-weight:800;color:%1;"
+                    "background:transparent;border:none;"
+                    "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;")
+                .arg(d.accent));
+
+        *d.ptr = val;
+        cl->addWidget(lbl);
+        cl->addWidget(val);
+        row->addWidget(card, 1);
+    }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Charts
+// ─────────────────────────────────────────────────────────────────────────────
 void DashboardWidget::setupCharts()
 {
     chartsWidget = new QWidget;
+    chartsWidget->setStyleSheet("background:transparent;");
     QHBoxLayout *layout = new QHBoxLayout(chartsWidget);
-    layout->setSpacing(12);
+    layout->setSpacing(14);
+    layout->setContentsMargins(0,0,0,0);
 
-    // Graphique barres — CA par mois
-    QGroupBox *barGroup = new QGroupBox(
-        "📈 Chiffre d'Affaires par Mois");
-    QVBoxLayout *barLayout = new QVBoxLayout(barGroup);
-    barChartView = new QChartView;
-    barChartView->setMinimumHeight(280);
-    barChartView->setRenderHint(QPainter::Antialiasing);
-    barLayout->addWidget(barChartView);
-    layout->addWidget(barGroup, 6);
+    auto makeCard = [](const QString &hdr, QChartView *&view) -> QFrame* {
+        QFrame *f = new QFrame;
+        f->setStyleSheet(
+            QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
+                .arg(T::CARD_BG, T::CARD_BORDER));
+        auto *fx = new QGraphicsDropShadowEffect;
+        fx->setBlurRadius(20); fx->setOffset(0,3); fx->setColor(QColor(0,0,0,22));
+        f->setGraphicsEffect(fx);
 
-    // Graphique camembert — répartition statuts
-    QGroupBox *pieGroup = new QGroupBox(
-        "🥧 Répartition des Factures");
-    QVBoxLayout *pieLayout = new QVBoxLayout(pieGroup);
-    pieChartView = new QChartView;
-    pieChartView->setMinimumHeight(280);
-    pieChartView->setRenderHint(QPainter::Antialiasing);
-    pieLayout->addWidget(pieChartView);
-    layout->addWidget(pieGroup, 4);
+        QVBoxLayout *vl = new QVBoxLayout(f);
+        vl->setContentsMargins(18,14,18,14);
+        vl->setSpacing(10);
+
+        QLabel *title = new QLabel(hdr);
+        title->setStyleSheet(
+            "font-size:12px;font-weight:700;color:#0F172A;"
+            "background:transparent;border:none;");
+
+        view = new QChartView;
+        view->setRenderHint(QPainter::Antialiasing);
+        view->setFrameStyle(QFrame::NoFrame);
+        view->setBackgroundBrush(Qt::transparent);
+        view->setStyleSheet("background:transparent;border:none;");
+
+        vl->addWidget(title);
+        vl->addWidget(view, 1);
+        return f;
+    };
+
+    layout->addWidget(makeCard("📈  Chiffre d'Affaires — 6 derniers mois", barChartView), 6);
+    layout->addWidget(makeCard("🥧  Répartition des Factures", pieChartView), 4);
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Runtime — logique inchangée
+// ─────────────────────────────────────────────────────────────────────────────
 void DashboardWidget::refreshData()
 {
     updateStats();
@@ -160,183 +435,125 @@ void DashboardWidget::refreshData()
 void DashboardWidget::updateStats()
 {
     QSqlQuery q;
-
-    // Total CA (factures payées)
-    q.exec("SELECT COALESCE(SUM(total_ttc),0) FROM factures "
-           "WHERE statut='Payée'");
-    if (q.next())
-        totalCALabel->setText(
-            QString::number(q.value(0).toDouble(), 'f', 2) + " MAD");
-
-    // Factures payées
+    q.exec("SELECT COALESCE(SUM(total_ttc),0) FROM factures WHERE statut='Payée'");
+    if (q.next()) totalCALabel->setText(QString::number(q.value(0).toDouble(),'f',2)+" MAD");
     q.exec("SELECT COUNT(*) FROM factures WHERE statut='Payée'");
-    if (q.next())
-        facturesPayeesLabel->setText(
-            QString::number(q.value(0).toInt()));
-
-    // Factures impayées
-    q.exec("SELECT COUNT(*) FROM factures "
-           "WHERE statut IN ('Brouillon','Envoyée')");
-    if (q.next())
-        facturesImpayeesLabel->setText(
-            QString::number(q.value(0).toInt()));
-
-    // Total clients
+    if (q.next()) facturesPayeesLabel->setText(QString::number(q.value(0).toInt()));
+    q.exec("SELECT COUNT(*) FROM factures WHERE statut IN ('Brouillon','Envoyée')");
+    if (q.next()) facturesImpayeesLabel->setText(QString::number(q.value(0).toInt()));
     q.exec("SELECT COUNT(*) FROM clients WHERE role='client'");
-    if (q.next())
-        clientsTotalLabel->setText(
-            QString::number(q.value(0).toInt()));
-
-    // Factures ce mois
+    if (q.next()) clientsTotalLabel->setText(QString::number(q.value(0).toInt()));
     QString mois = QDate::currentDate().toString("yyyy-MM");
-    q.prepare("SELECT COUNT(*) FROM factures "
-              "WHERE strftime('%Y-%m', date_creation) = ?");
-    q.addBindValue(mois);
-    q.exec();
-    if (q.next())
-        facturesMoisLabel->setText(
-            QString::number(q.value(0).toInt()));
-
-    // Montant en attente
-    q.exec("SELECT COALESCE(SUM(total_ttc),0) FROM factures "
-           "WHERE statut IN ('Brouillon','Envoyée')");
-    if (q.next())
-        montantEnAttenteLabel->setText(
-            QString::number(q.value(0).toDouble(), 'f', 2) + " MAD");
+    q.prepare("SELECT COUNT(*) FROM factures WHERE strftime('%Y-%m', date_creation) = ?");
+    q.addBindValue(mois); q.exec();
+    if (q.next()) facturesMoisLabel->setText(QString::number(q.value(0).toInt()));
+    q.exec("SELECT COALESCE(SUM(total_ttc),0) FROM factures WHERE statut IN ('Brouillon','Envoyée')");
+    if (q.next()) montantEnAttenteLabel->setText(QString::number(q.value(0).toDouble(),'f',2)+" MAD");
 }
 
 void DashboardWidget::updateBarChart()
 {
-    // Collecte des données (6 derniers mois)
     QStringList moisLabels;
     QVector<double> values;
     double maxVal = 0;
 
     for (int i = 5; i >= 0; i--) {
         QDate date = QDate::currentDate().addMonths(-i);
-        QString moisStr = date.toString("yyyy-MM");
         moisLabels << date.toString("MMM yyyy");
-
         QSqlQuery q;
-        q.prepare("SELECT COALESCE(SUM(total_ttc),0) "
-                  "FROM factures "
+        q.prepare("SELECT COALESCE(SUM(total_ttc),0) FROM factures "
                   "WHERE strftime('%Y-%m', date_creation) = ?");
-        q.addBindValue(moisStr);
-        q.exec();
+        q.addBindValue(date.toString("yyyy-MM")); q.exec();
         double val = q.next() ? q.value(0).toDouble() : 0;
         values << val;
         if (val > maxVal) maxVal = val;
     }
 
-    // --- Spline series (courbe lissée) ---
-    QSplineSeries *series = new QSplineSeries;
-    series->setName("CA (DH)");
-    series->setPen(QPen(QColor("#4285F4"), 2.5));  // ligne bleue Google-like
+    QSplineSeries *line = new QSplineSeries;
+    line->setPen(QPen(QColor(T::CHART_LINE), 2.5));
+    for (int i = 0; i < values.size(); i++) line->append(i, values[i]);
 
-    for (int i = 0; i < values.size(); i++)
-        series->append(i, values[i]);
+    QAreaSeries *area = new QAreaSeries(line);
+    QPen pen(QColor(T::CHART_LINE)); pen.setWidth(2);
+    area->setPen(pen);
+    QLinearGradient g(0,0,0,1);
+    g.setCoordinateMode(QGradient::ObjectBoundingMode);
+    g.setColorAt(0.0, QColor(59,130,246,80));
+    g.setColorAt(1.0, QColor(59,130,246,4));
+    area->setBrush(g);
 
-    // --- Area series (dégradé sous la courbe) ---
-    QAreaSeries *areaSeries = new QAreaSeries(series);
-    areaSeries->setName("CA (DH)");
-
-    QPen pen(QColor("#4285F4"));
-    pen.setWidth(2);
-    areaSeries->setPen(pen);
-
-    QLinearGradient gradient(0, 0, 0, 1);
-    gradient.setCoordinateMode(QGradient::ObjectBoundingMode);
-    gradient.setColorAt(0.0, QColor(66, 133, 244, 100));   // bleu semi-transparent
-    gradient.setColorAt(1.0, QColor(66, 133, 244, 5));     // fondu vers transparent
-    areaSeries->setBrush(gradient);
-
-    // --- Chart ---
     QChart *chart = new QChart;
-    chart->addSeries(areaSeries);
+    chart->addSeries(area);
     chart->setAnimationOptions(QChart::SeriesAnimations);
     chart->legend()->hide();
-    chart->setBackgroundBrush(Qt::white);
-    chart->setContentsMargins(0, 0, 0, 0);
-    chart->setMargins(QMargins(10, 10, 10, 20));
+    chart->setBackgroundBrush(Qt::transparent);
+    chart->setContentsMargins(0,0,0,0);
+    chart->setMargins(QMargins(4,4,4,4));
 
-    // --- Axe X (catégories mois) ---
-    QBarCategoryAxis *axisX = new QBarCategoryAxis;
-    axisX->append(moisLabels);
-    axisX->setLabelsAngle(-30);
-    axisX->setLabelsColor(QColor("#9AA0A6"));
-    axisX->setGridLineVisible(false);
-    axisX->setLinePenColor(QColor("#E8EAED"));
-    chart->addAxis(axisX, Qt::AlignBottom);
-    areaSeries->attachAxis(axisX);
+    QBarCategoryAxis *axX = new QBarCategoryAxis;
+    axX->append(moisLabels);
+    axX->setLabelsAngle(-25);
+    axX->setLabelsColor(QColor("#94A3B8"));
+    axX->setGridLineVisible(false);
+    axX->setLinePenColor(QColor("#E2E8F0"));
+    axX->setLabelsFont(QFont("Segoe UI",8));
+    chart->addAxis(axX, Qt::AlignBottom);
+    area->attachAxis(axX);
 
-    // --- Axe Y ---
-    QValueAxis *axisY = new QValueAxis;
-    // Format DH avec séparateur de milliers
-    axisY->setLabelFormat("%.0f DH");
-    axisY->setRange(0, maxVal > 0 ? maxVal * 1.25 : 1000);
-    axisY->setTickCount(6);
-    axisY->setGridLineColor(QColor("#F1F3F4"));
-    axisY->setLabelsColor(QColor("#9AA0A6"));
-    axisY->setLinePenColor(Qt::transparent);
-    chart->addAxis(axisY, Qt::AlignLeft);
-    areaSeries->attachAxis(axisY);
+    QValueAxis *axY = new QValueAxis;
+    axY->setLabelFormat("%.0f");
+    axY->setRange(0, maxVal > 0 ? maxVal*1.25 : 1000);
+    axY->setTickCount(5);
+    axY->setGridLineColor(QColor("#F1F5F9"));
+    axY->setLabelsColor(QColor("#94A3B8"));
+    axY->setLabelsFont(QFont("Segoe UI",8));
+    axY->setLinePenColor(Qt::transparent);
+    chart->addAxis(axY, Qt::AlignLeft);
+    area->attachAxis(axY);
 
     barChartView->setChart(chart);
-    barChartView->setMinimumHeight(300);
-    barChartView->setRenderHint(QPainter::Antialiasing);
-    barChartView->setBackgroundBrush(Qt::white);
+    barChartView->setBackgroundBrush(Qt::transparent);
     barChartView->setFrameStyle(QFrame::NoFrame);
 }
+
 void DashboardWidget::updatePieChart()
 {
     QPieSeries *series = new QPieSeries;
-
-    struct StatutInfo {
-        QString label;
-        QString color;
-        QString query;
+    struct SI { QString label, color, query; };
+    QVector<SI> statuts = {
+        {"Payées",    "#16A34A", "SELECT COUNT(*) FROM factures WHERE statut='Payée'"},
+        {"Envoyées",  "#2563EB", "SELECT COUNT(*) FROM factures WHERE statut='Envoyée'"},
+        {"Brouillon", "#94A3B8", "SELECT COUNT(*) FROM factures WHERE statut='Brouillon'"},
+        {"Annulées",  "#DC2626", "SELECT COUNT(*) FROM factures WHERE statut='Annulée'"},
     };
-
-    QVector<StatutInfo> statuts = {
-        {"Payées",    "#27AE60",
-         "SELECT COUNT(*) FROM factures WHERE statut='Payée'"},
-        {"Envoyées",  "#3182CE",
-         "SELECT COUNT(*) FROM factures WHERE statut='Envoyée'"},
-        {"Brouillon", "#A0AEC0",
-         "SELECT COUNT(*) FROM factures WHERE statut='Brouillon'"},
-        {"Annulées",  "#E53E3E",
-         "SELECT COUNT(*) FROM factures WHERE statut='Annulée'"},
-    };
-
     bool hasData = false;
     for (const auto &s : statuts) {
-        QSqlQuery q;
-        q.exec(s.query);
+        QSqlQuery q; q.exec(s.query);
         if (q.next()) {
-            int count = q.value(0).toInt();
-            if (count > 0) {
-                QPieSlice *slice = series->append(
-                    s.label + " (" +
-                    QString::number(count) + ")", count);
-                slice->setColor(QColor(s.color));
-                slice->setLabelVisible(true);
-                slice->setLabelColor(QColor(s.color));
+            int n = q.value(0).toInt();
+            if (n > 0) {
+                QPieSlice *sl = series->append(s.label+" ("+QString::number(n)+")", n);
+                sl->setColor(QColor(s.color));
+                sl->setLabelVisible(true);
+                sl->setLabelColor(QColor(s.color));
                 hasData = true;
             }
         }
     }
-
-    if (!hasData)
-        series->append("Aucune facture", 1);
-
-    series->setHoleSize(0.35); // donut style
+    if (!hasData) series->append("Aucune facture", 1);
+    series->setHoleSize(0.42);
 
     QChart *chart = new QChart;
     chart->addSeries(series);
-    chart->setTitle("");
     chart->setAnimationOptions(QChart::SeriesAnimations);
     chart->legend()->setAlignment(Qt::AlignBottom);
-    chart->setBackgroundBrush(Qt::white);
+    chart->legend()->setFont(QFont("Segoe UI",9));
+    chart->legend()->setColor(QColor("#475569"));
+    chart->setBackgroundBrush(Qt::transparent);
+    chart->setContentsMargins(0,0,0,0);
+    chart->setMargins(QMargins(4,4,4,4));
 
     pieChartView->setChart(chart);
+    pieChartView->setBackgroundBrush(Qt::transparent);
+    pieChartView->setFrameStyle(QFrame::NoFrame);
 }

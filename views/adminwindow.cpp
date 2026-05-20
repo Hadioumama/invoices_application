@@ -1,196 +1,236 @@
 #include "views/adminwindow.h"
-#include "invoicemanagementwidget.h"
+#include "views/dashboardwidget.h"
+#include "views/articleswidget.h"
 #include "dialogs/invoiceeditdialog.h"
 #include "dialogs/client_edit_dialog.h"
-#include "views/articleswidget.h"
+#include "dialogs/invoicecreatedialog.h"
+#include "dialogs/invoiceactiondialog.h"
+#include "dialogs/paymentdialog.h"
+
+#include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QTableView>
 #include <QHeaderView>
 #include <QPushButton>
-#include <QVBoxLayout>
-#include <QHBoxLayout>
 #include <QMessageBox>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
 #include <QSqlError>
 #include <QLineEdit>
 #include <QLabel>
-#include <QFileDialog>
-#include <QTabWidget>
-#include "utils/invoicegenerator.h"
-#include "views/dashboardwidget.h"
-#include "dialogs/invoicecreatedialog.h"
-#include "dialogs/invoiceactiondialog.h"
-#include "dialogs/paymentdialog.h"
+#include <QFrame>
+#include <QGraphicsDropShadowEffect>
 
+// ─────────────────────────────────────────────────────────────────────────────
+//  Shared design tokens (same palette as DashboardWidget)
+// ─────────────────────────────────────────────────────────────────────────────
+namespace A {
+    constexpr auto BG        = "#F1F5F9";
+    constexpr auto CARD      = "#FFFFFF";
+    constexpr auto BORDER    = "#E2E8F0";
+    constexpr auto TXT_HEAD  = "#0F172A";
+    constexpr auto TXT_SUB   = "#64748B";
+    constexpr auto BLUE      = "#2563EB";
+    constexpr auto GREEN     = "#16A34A";
+    constexpr auto RED       = "#DC2626";
+    constexpr auto GRAY      = "#64748B";
+    constexpr auto AMBER     = "#D97706";
+    constexpr auto VIOLET    = "#7C3AED";
+    constexpr auto ORANGE    = "#C2410C";
+    // Table header
+    constexpr auto TH_BG     = "#1E3A5F";
+    constexpr auto TH_TXT    = "#FFFFFF";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+static QGraphicsDropShadowEffect* mkShadow()
+{
+    auto *e = new QGraphicsDropShadowEffect;
+    e->setBlurRadius(16);
+    e->setOffset(0, 3);
+    e->setColor(QColor(0, 0, 0, 22));
+    return e;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 AdminWindow::AdminWindow(int adminId, QWidget *parent)
-    : QWidget(parent),  // ✅ QWidget, pas QMainWindow
+    : QWidget(parent),
       m_adminId(adminId),
       m_invoiceDialog(nullptr)
 {
-    
     setupUI();
 }
 
-AdminWindow::~AdminWindow()
-{
-}
+AdminWindow::~AdminWindow() {}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  setupUI  –  sidebar (via DashboardWidget) | QStackedWidget
+// ─────────────────────────────────────────────────────────────────────────────
 void AdminWindow::setupUI()
 {
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setContentsMargins(10, 2, 10, 2);
-    mainLayout->setSpacing(4);
+    setStyleSheet(QString("background:%1;").arg(A::BG));
 
-    // ===== TITRE =====
-    QLabel *titleLabel = new QLabel(QString("Espace Administrateur ").arg(m_adminId));
-    titleLabel->setStyleSheet("font-size: 18px; font-weight: bold; color: #2B6CB0; margin: 0px; padding: 0px;");
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setFixedHeight(24);
-    mainLayout->addWidget(titleLabel);
+    QHBoxLayout *root = new QHBoxLayout(this);
+    root->setContentsMargins(0, 0, 0, 0);
+    root->setSpacing(0);
 
-    // ===== BOUTON DÉCONNEXION =====
-    QPushButton *logoutBtn = new QPushButton("🔒 Déconnexion");
-    logoutBtn->setStyleSheet(
-        "background:#E53E3E; color:white; font-weight:bold; padding:4px 8px; border-radius:6px; font-size:11px;");
-    logoutBtn->setFixedHeight(28);
-    
-    QHBoxLayout *topLayout = new QHBoxLayout;
-    topLayout->setContentsMargins(0, 0, 0, 0);
-    topLayout->setSpacing(0);
-    topLayout->addStretch();
-    topLayout->addWidget(logoutBtn);
-    mainLayout->addLayout(topLayout);
+    // ── Sidebar lives inside DashboardWidget ─────────────────────────────────
+    m_dashboard = new DashboardWidget(this);
 
-    // ===== TAB WIDGET =====
-    QTabWidget *tabWidget = new QTabWidget(this);
-    tabWidget->setMinimumSize(800, 500);
-    tabWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    tabWidget->setDocumentMode(false);
-    tabWidget->setStyleSheet("QTabWidget::pane { border: none; padding: 0px; margin: 0px; }");
-    
-    mainLayout->addWidget(tabWidget);
+    // ── Right stack ──────────────────────────────────────────────────────────
+    m_pageStack = new QStackedWidget;
+    m_pageStack->setStyleSheet(QString("background:%1;").arg(A::BG));
 
-    // ===== TAB DASHBOARD =====
-    DashboardWidget *dashboard = new DashboardWidget(this);
-    tabWidget->addTab(dashboard, "📊 Dashboard");
+    // Pages
+    m_pageStack->addWidget(m_dashboard->contentArea()); // index 0 – dashboard content
 
-    // ===== TAB ARTICLES =====
-    ArticlesWidget *articlesWidget = new ArticlesWidget(this);
-    tabWidget->addTab(articlesWidget, "📦 Articles");
-    // ===== TAB GESTION FACTURES — DESIGN IDENTIQUE À GESTION CLIENTS =====
-    QWidget *invoiceTab = new QWidget();
-    QVBoxLayout *invoiceTabLayout = new QVBoxLayout(invoiceTab);
-    invoiceTabLayout->setContentsMargins(12, 8, 12, 8);   // ← Marge haut 0
-    invoiceTabLayout->setSpacing(8);                     // ← Aucun espacement
+    m_articles = new ArticlesWidget(this);
+    m_pageStack->addWidget(m_articles);                 // index 1 – articles
 
-    // -- Titre compact — collé en haut --
-    QLabel *invoiceTitle = new QLabel("📄 Gestion des Factures");
-    invoiceTitle->setStyleSheet(
-        "font-size:14px;font-weight:bold;color:#1B2A3B;"
-        "margin:0px;padding:0px;");
-    invoiceTitle->setFixedHeight(22);                    // ← CHANGEMENT : 18 → 22
-invoiceTitle->setContentsMargins(0, 0, 0, 4);        // ← CHANGEMENT : marge bas 4px
-invoiceTabLayout->addWidget(invoiceTitle);            // ← Supprime , 0, Qt::AlignTop
+    m_invoicePage = buildInvoicePage();
+    m_pageStack->addWidget(m_invoicePage);              // index 2 – factures
 
-    // -- Recherche factures —
-    QHBoxLayout *invoiceSearchLayout = new QHBoxLayout;
-    invoiceSearchLayout->setSpacing(6);
-    invoiceSearchLayout->setContentsMargins(0, 0, 0, 0);
+    m_clientPage  = buildClientPage();
+    m_pageStack->addWidget(m_clientPage);               // index 3 – clients
+
+    m_rapportsPage = buildPlaceholderPage(
+        "📊", "Rapports", "Module en cours de développement");
+    m_pageStack->addWidget(m_rapportsPage);             // index 4
+
+    m_parametresPage = buildPlaceholderPage(
+        "⚙️", "Paramètres", "Module en cours de développement");
+    m_pageStack->addWidget(m_parametresPage);           // index 5
+
+    m_pageStack->setCurrentIndex(0);
+
+    // ── Wire sidebar into stack ───────────────────────────────────────────────
+    root->addWidget(m_dashboard->sidebarOnly()); // expose only the 230px sidebar
+    root->addWidget(m_pageStack, 1);
+
+    // Signals
+    connect(m_dashboard, &DashboardWidget::navigateTo,
+            this, &AdminWindow::onNavigateTo);
+    connect(m_dashboard, &DashboardWidget::logoutRequested,
+            this, &AdminWindow::onLogout);
+
+    // Articles → InvoiceCreateDialog
+    if (!m_invoiceDialog)
+        m_invoiceDialog = new InvoiceCreateDialog(-1, this);
+    connect(m_articles, &ArticlesWidget::articleSelected,
+            m_invoiceDialog, &InvoiceCreateDialog::onArticleFromCatalog);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+void AdminWindow::onNavigateTo(const QString &page)
+{
+    if      (page == "dashboard")  m_pageStack->setCurrentIndex(0);
+    else if (page == "articles")   m_pageStack->setCurrentIndex(1);
+    else if (page == "factures")   m_pageStack->setCurrentIndex(2);
+    else if (page == "clients")    m_pageStack->setCurrentIndex(3);
+    else if (page == "rapports")   m_pageStack->setCurrentIndex(4);
+    else if (page == "parametres") m_pageStack->setCurrentIndex(5);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  Factures page
+// ─────────────────────────────────────────────────────────────────────────────
+QWidget* AdminWindow::buildInvoicePage()
+{
+    QWidget *page = new QWidget;
+    page->setStyleSheet(QString("background:%1;").arg(A::BG));
+
+    QVBoxLayout *vl = new QVBoxLayout(page);
+    vl->setContentsMargins(28, 22, 28, 20);
+    vl->setSpacing(16);
+
+    // ── Page header ──────────────────────────────────────────────────────────
+    QLabel *ttl = new QLabel("🧾  Gestion des Factures");
+    ttl->setStyleSheet(
+        QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
+                "font-size:20px;font-weight:700;color:%1;").arg(A::TXT_HEAD));
+
+    QLabel *sub = new QLabel("Créez, modifiez et suivez vos factures");
+    sub->setStyleSheet(
+        QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
+
+    vl->addWidget(ttl);
+    vl->addWidget(sub);
+
+    // ── Card wrapper ─────────────────────────────────────────────────────────
+    QFrame *card = new QFrame;
+    card->setStyleSheet(
+        QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
+            .arg(A::CARD, A::BORDER));
+    card->setGraphicsEffect(mkShadow());
+
+    QVBoxLayout *cl = new QVBoxLayout(card);
+    cl->setContentsMargins(20, 16, 20, 16);
+    cl->setSpacing(12);
+
+    // ── Toolbar ──────────────────────────────────────────────────────────────
+    QHBoxLayout *toolbar = new QHBoxLayout;
+    toolbar->setSpacing(8);
 
     invoiceSearchEdit = new QLineEdit;
-    invoiceSearchEdit->setPlaceholderText("🔍 Rechercher par N° facture, client...");
+    invoiceSearchEdit->setPlaceholderText("🔍  Rechercher par N° facture, client…");
     invoiceSearchEdit->setStyleSheet(
-        "padding:5px;border:1px solid #CBD5E0;"
-        "border-radius:4px;font-size:11px;");
-    invoiceSearchEdit->setFixedHeight(28);
+        "padding:6px 10px;border:1px solid #CBD5E0;border-radius:7px;"
+        "font-size:12px;background:white;");
+    invoiceSearchEdit->setFixedHeight(34);
 
     invoiceSearchBtn = new QPushButton("Rechercher");
-    invoiceSearchBtn->setStyleSheet(
-        "background:#3182CE;color:white;font-weight:bold;"
-        "padding:4px 12px;border-radius:4px;border:none;"
-        "font-size:11px;");
-    invoiceSearchBtn->setFixedHeight(28);
-    invoiceSearchBtn->setCursor(Qt::PointingHandCursor);
+    QPushButton *clearBtn = new QPushButton("✕");
 
-    QPushButton *clearSearchBtn = new QPushButton("✕");
-    clearSearchBtn->setStyleSheet(
-        "background:#718096;color:white;font-weight:bold;"
-        "padding:4px 12px;border-radius:4px;border:none;"
-        "font-size:11px;");
-    clearSearchBtn->setFixedHeight(28);
-    clearSearchBtn->setCursor(Qt::PointingHandCursor);
+    auto makeBtn = [](const QString &label, const QString &color,
+                      int minW = 80) -> QPushButton* {
+        QPushButton *b = new QPushButton(label);
+        b->setFixedHeight(34);
+        b->setMinimumWidth(minW);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setStyleSheet(
+            QString("QPushButton{background:%1;color:white;font-weight:600;"
+                    "border:none;border-radius:7px;padding:0 12px;font-size:12px;}"
+                    "QPushButton:hover{opacity:0.9;}").arg(color));
+        return b;
+    };
 
-    invoiceSearchLayout->addWidget(invoiceSearchEdit, 1);
-    invoiceSearchLayout->addWidget(invoiceSearchBtn);
-    invoiceSearchLayout->addWidget(clearSearchBtn);
-    invoiceTabLayout->addLayout(invoiceSearchLayout);
+    invoiceSearchBtn  = makeBtn("Rechercher",    A::BLUE,   100);
+    clearBtn          = makeBtn("✕ Effacer",     A::GRAY,    80);
 
-    // -- Boutons actions — MÊME STYLE EXACT QUE CLIENTS --
-    QHBoxLayout *invoiceButtonLayout = new QHBoxLayout;
-    invoiceButtonLayout->setSpacing(6);
-    invoiceButtonLayout->setContentsMargins(0, 0, 0, 0);
+    toolbar->addWidget(invoiceSearchEdit, 1);
+    toolbar->addWidget(invoiceSearchBtn);
+    toolbar->addWidget(clearBtn);
 
-    createInvoiceBtn = new QPushButton("➕ Créer");
-    editInvoiceBtn = new QPushButton("✏️ Modifier");
-    deleteInvoiceBtn = new QPushButton("🗑️ Supprimer");
-    actionsBtn = new QPushButton("⚙️ Actions");
-    paymentBtn = new QPushButton("💳 Paiements");
-    refreshInvoicesBtn = new QPushButton("🔄");
+    // Action buttons row
+    QHBoxLayout *actions = new QHBoxLayout;
+    actions->setSpacing(8);
 
-    // Styles IDENTIQUES à Clients (même QString partagé)
-    QString btnBaseStyle =
-        "font-weight:bold;border-radius:4px;border:none;"
-        "padding:4px 12px;font-size:11px;color:white;";
-    createInvoiceBtn->setStyleSheet(btnBaseStyle + "background:#27AE60;");
-    editInvoiceBtn->setStyleSheet(btnBaseStyle + "background:#3182CE;");
-    deleteInvoiceBtn->setStyleSheet(btnBaseStyle + "background:#E53E3E;");
-    actionsBtn->setStyleSheet(btnBaseStyle + "background:#DD6B20;");
-    paymentBtn->setStyleSheet(btnBaseStyle + "background:#805AD5;");
-    refreshInvoicesBtn->setStyleSheet(btnBaseStyle + "background:#718096;");
+    createInvoiceBtn  = makeBtn("➕ Créer",     A::GREEN,  100);
+    editInvoiceBtn    = makeBtn("✏️ Modifier",   A::BLUE,   100);
+    deleteInvoiceBtn  = makeBtn("🗑️ Supprimer", A::RED,    100);
+    actionsBtn        = makeBtn("⚙️ Actions",   A::AMBER,  100);
+    paymentBtn        = makeBtn("💳 Paiements", A::VIOLET, 110);
+    refreshInvoicesBtn= makeBtn("🔄",           A::GRAY,    42);
 
-    // Hauteur IDENTIQUE à Clients
-    createInvoiceBtn->setFixedHeight(30);
-    editInvoiceBtn->setFixedHeight(30);
-    deleteInvoiceBtn->setFixedHeight(30);
-    actionsBtn->setFixedHeight(30);
-    paymentBtn->setFixedHeight(30);
-    refreshInvoicesBtn->setFixedHeight(30);
+    actions->addWidget(createInvoiceBtn);
+    actions->addWidget(editInvoiceBtn);
+    actions->addWidget(deleteInvoiceBtn);
+    actions->addWidget(actionsBtn);
+    actions->addWidget(paymentBtn);
+    actions->addStretch();
+    actions->addWidget(refreshInvoicesBtn);
 
-    // Largeur IDENTIQUE à Clients
-    createInvoiceBtn->setMinimumWidth(90);
-    editInvoiceBtn->setMinimumWidth(90);
-    deleteInvoiceBtn->setMinimumWidth(90);
-    actionsBtn->setMinimumWidth(90);
-    paymentBtn->setMinimumWidth(90);
-    refreshInvoicesBtn->setMinimumWidth(90);
+    cl->addLayout(toolbar);
+    cl->addLayout(actions);
 
-    // Curseurs
-    createInvoiceBtn->setCursor(Qt::PointingHandCursor);
-    editInvoiceBtn->setCursor(Qt::PointingHandCursor);
-    deleteInvoiceBtn->setCursor(Qt::PointingHandCursor);
-    actionsBtn->setCursor(Qt::PointingHandCursor);
-    paymentBtn->setCursor(Qt::PointingHandCursor);
-    refreshInvoicesBtn->setCursor(Qt::PointingHandCursor);
-
-    invoiceButtonLayout->addWidget(createInvoiceBtn);
-    invoiceButtonLayout->addWidget(editInvoiceBtn);
-    invoiceButtonLayout->addWidget(deleteInvoiceBtn);
-    invoiceButtonLayout->addWidget(actionsBtn);
-    invoiceButtonLayout->addWidget(paymentBtn);
-    invoiceButtonLayout->addStretch();
-    invoiceButtonLayout->addWidget(refreshInvoicesBtn);
-    invoiceTabLayout->addLayout(invoiceButtonLayout);
-
-    // -- Tableau factures — STYLE IDENTIQUE À CLIENTS --
+    // ── Table ─────────────────────────────────────────────────────────────────
     invoiceModel = new QSqlQueryModel(this);
     invoiceModel->setQuery(
         "SELECT f.id, f.numero, f.type, "
-        "COALESCE(f.client_nom, c.nom || ' ' || "
-        "c.prenom, 'N/A') as Client, "
+        "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
         "f.date_creation, f.date_echeance, "
-        "f.total_ht, f.total_tva, "
-        "f.total_ttc, f.statut "
-        "FROM factures f "
-        "LEFT JOIN clients c ON f.client_id = c.id "
+        "f.total_ht, f.total_tva, f.total_ttc, f.statut "
+        "FROM factures f LEFT JOIN clients c ON f.client_id = c.id "
         "ORDER BY f.id DESC");
     invoiceModel->setHeaderData(0,Qt::Horizontal,"ID");
     invoiceModel->setHeaderData(1,Qt::Horizontal,"Numéro");
@@ -212,135 +252,122 @@ invoiceTabLayout->addWidget(invoiceTitle);            // ← Supprime , 0, Qt::A
     invoiceView->verticalHeader()->setVisible(false);
     invoiceView->setAlternatingRowColors(true);
     invoiceView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    
-    // Hauteur IDENTIQUE à Clients
-    invoiceView->setFixedHeight(200);
-    invoiceView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    // Style IDENTIQUE à Clients
-    invoiceView->setStyleSheet(
-        "QTableView {"
-        "  border: 1px solid #E2E8F0;"
-        "  gridline-color: #EDF2F7;"
-        "  selection-background-color: #BEE3F8;"
-        "  selection-color: #2D3748;"
-        "}"
-        "QHeaderView::section {"
-        "  background: #2B6CB0;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  padding: 5px;"
-        "  border: none;"
-        "  font-size: 11px;"
-        "}"
-    );
     invoiceView->setColumnHidden(0, true);
+    invoiceView->setStyleSheet(
+        QString("QTableView{"
+                "  border:none;gridline-color:#F1F5F9;"
+                "  selection-background-color:#DBEAFE;"
+                "  selection-color:#1E3A5F;"
+                "  font-size:12px;"
+                "}"
+                "QHeaderView::section{"
+                "  background:%1;color:%2;"
+                "  font-weight:700;padding:8px 6px;"
+                "  border:none;font-size:11px;"
+                "}"
+                "QTableView::item{padding:6px;border-bottom:1px solid #F1F5F9;}"
+               ).arg(A::TH_BG, A::TH_TXT));
 
-    invoiceTabLayout->addWidget(invoiceView);
+    cl->addWidget(invoiceView, 1);
+    vl->addWidget(card, 1);
 
-    // ← AJOUT CLÉ : empêcher l'expansion verticale inutile
-    invoiceTabLayout->addStretch(1);
-
-    tabWidget->addTab(invoiceTab, "📄 Gestion Factures");
-
-    // Connexion bouton clear recherche
-    connect(clearSearchBtn, &QPushButton::clicked,
-            [this](){
-        invoiceSearchEdit->clear();
-        onRefreshInvoices();
+    // ── Connections ───────────────────────────────────────────────────────────
+    connect(invoiceSearchBtn, &QPushButton::clicked,
+            this, &AdminWindow::onSearchInvoice);
+    connect(invoiceSearchEdit, &QLineEdit::returnPressed,
+            this, &AdminWindow::onSearchInvoice);
+    connect(clearBtn, &QPushButton::clicked, this, [this]{
+        invoiceSearchEdit->clear(); onRefreshInvoices();
     });
-        // ===== TAB GESTION CLIENTS — DESIGN IDENTIQUE À GESTION FACTURES =====
-    QWidget *clientTab = new QWidget();
-    QVBoxLayout *clientTabLayout = new QVBoxLayout(clientTab);
-    clientTabLayout->setContentsMargins(12, 8, 12, 8);   // ← IDENTIQUE à Factures
-    clientTabLayout->setSpacing(8);                       // ← IDENTIQUE à Factures
+    connect(createInvoiceBtn,  &QPushButton::clicked, this, &AdminWindow::onCreateInvoice);
+    connect(editInvoiceBtn,    &QPushButton::clicked, this, &AdminWindow::onEditInvoice);
+    connect(deleteInvoiceBtn,  &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
+    connect(actionsBtn,        &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
+    connect(paymentBtn,        &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);
+    connect(refreshInvoicesBtn,&QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
 
-    // -- Titre compact —
-    QLabel *clientTitle = new QLabel("📋 Gestion Clients");
-    clientTitle->setStyleSheet(
-        "font-size:14px;font-weight:bold;color:#1B2A3B;"
-        "margin:0px;padding:0px;");
-    clientTitle->setFixedHeight(22);                       // ← IDENTIQUE à Factures
-    clientTitle->setContentsMargins(0, 0, 0, 4);           // ← IDENTIQUE à Factures
-    clientTabLayout->addWidget(clientTitle);             // ← IDENTIQUE (pas de AlignTop)
+    return page;
+}
 
-    // -- Recherche clients —
-    QHBoxLayout *searchLayout = new QHBoxLayout;
-    searchLayout->setSpacing(6);
-    searchLayout->setContentsMargins(0, 0, 0, 0);
+// ─────────────────────────────────────────────────────────────────────────────
+//  Clients page
+// ─────────────────────────────────────────────────────────────────────────────
+QWidget* AdminWindow::buildClientPage()
+{
+    QWidget *page = new QWidget;
+    page->setStyleSheet(QString("background:%1;").arg(A::BG));
 
+    QVBoxLayout *vl = new QVBoxLayout(page);
+    vl->setContentsMargins(28, 22, 28, 20);
+    vl->setSpacing(16);
+
+    // ── Page header ──────────────────────────────────────────────────────────
+    QLabel *ttl = new QLabel("👥  Gestion des Clients");
+    ttl->setStyleSheet(
+        QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
+                "font-size:20px;font-weight:700;color:%1;").arg(A::TXT_HEAD));
+    QLabel *sub = new QLabel("Gérez votre portefeuille clients");
+    sub->setStyleSheet(QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
+
+    vl->addWidget(ttl);
+    vl->addWidget(sub);
+
+    // ── Card ─────────────────────────────────────────────────────────────────
+    QFrame *card = new QFrame;
+    card->setStyleSheet(
+        QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
+            .arg(A::CARD, A::BORDER));
+    card->setGraphicsEffect(mkShadow());
+
+    QVBoxLayout *cl = new QVBoxLayout(card);
+    cl->setContentsMargins(20, 16, 20, 16);
+    cl->setSpacing(12);
+
+    auto makeBtn = [](const QString &label, const QString &color,
+                      int minW = 80) -> QPushButton* {
+        QPushButton *b = new QPushButton(label);
+        b->setFixedHeight(34);
+        b->setMinimumWidth(minW);
+        b->setCursor(Qt::PointingHandCursor);
+        b->setStyleSheet(
+            QString("QPushButton{background:%1;color:white;font-weight:600;"
+                    "border:none;border-radius:7px;padding:0 12px;font-size:12px;}"
+                    "QPushButton:hover{opacity:0.9;}").arg(color));
+        return b;
+    };
+
+    // Search bar
+    QHBoxLayout *searchRow = new QHBoxLayout;
+    searchRow->setSpacing(8);
     searchEdit = new QLineEdit;
-    searchEdit->setPlaceholderText("🔍 Rechercher par prénom...");
+    searchEdit->setPlaceholderText("🔍  Rechercher par prénom…");
     searchEdit->setStyleSheet(
-        "padding:5px;border:1px solid #CBD5E0;"
-        "border-radius:4px;font-size:11px;");
-    searchEdit->setFixedHeight(28);
+        "padding:6px 10px;border:1px solid #CBD5E0;border-radius:7px;"
+        "font-size:12px;background:white;");
+    searchEdit->setFixedHeight(34);
+    searchButton = makeBtn("Rechercher", A::BLUE, 100);
+    QPushButton *resetBtn = makeBtn("✕ Réinitialiser", A::GRAY, 110);
+    searchRow->addWidget(searchEdit, 1);
+    searchRow->addWidget(searchButton);
+    searchRow->addWidget(resetBtn);
 
-    searchButton = new QPushButton("Rechercher");
-    searchButton->setStyleSheet(
-        "background:#3182CE;color:white;font-weight:bold;"
-        "padding:4px 12px;border-radius:4px;border:none;"
-        "font-size:11px;");
-    searchButton->setFixedHeight(28);
-    searchButton->setCursor(Qt::PointingHandCursor);
+    // Actions
+    QHBoxLayout *actRow = new QHBoxLayout;
+    actRow->setSpacing(8);
+    addButton     = makeBtn("➕ Ajouter",   A::GREEN,  100);
+    editButton    = makeBtn("✏️ Modifier",   A::BLUE,   100);
+    deleteButton  = makeBtn("🗑️ Supprimer", A::RED,    100);
+    refreshButton = makeBtn("🔄",           A::GRAY,    42);
+    actRow->addWidget(addButton);
+    actRow->addWidget(editButton);
+    actRow->addWidget(deleteButton);
+    actRow->addStretch();
+    actRow->addWidget(refreshButton);
 
-    QPushButton *resetButton = new QPushButton("✕ Réinitialiser");
-    resetButton->setStyleSheet(
-        "background:#718096;color:white;font-weight:bold;"
-        "padding:4px 12px;border-radius:4px;border:none;"
-        "font-size:11px;");
-    resetButton->setFixedHeight(28);
-    resetButton->setCursor(Qt::PointingHandCursor);
+    cl->addLayout(searchRow);
+    cl->addLayout(actRow);
 
-    searchLayout->addWidget(searchEdit, 1);
-    searchLayout->addWidget(searchButton);
-    searchLayout->addWidget(resetButton);
-    clientTabLayout->addLayout(searchLayout);
-
-    // -- Boutons clients — AU-DESSUS DU TABLEAU —
-    QHBoxLayout *buttonLayout = new QHBoxLayout;
-    buttonLayout->setSpacing(6);
-    buttonLayout->setContentsMargins(0, 0, 0, 0);
-
-    addButton = new QPushButton("➕ Ajouter");
-    editButton = new QPushButton("✏️ Modifier");
-    deleteButton = new QPushButton("🗑️ Supprimer");
-    refreshButton = new QPushButton("🔄 Actualiser");
-
-    // Styles IDENTIQUES à Factures
-    QString clientStyleBtn =
-        "font-weight:bold;border-radius:4px;border:none;"
-        "padding:4px 12px;font-size:11px;color:white;";
-    addButton->setStyleSheet(clientStyleBtn + "background:#27AE60;");
-    editButton->setStyleSheet(clientStyleBtn + "background:#3182CE;");
-    deleteButton->setStyleSheet(clientStyleBtn + "background:#E53E3E;");
-    refreshButton->setStyleSheet(clientStyleBtn + "background:#718096;");
-
-    // Hauteur IDENTIQUE à Factures
-    addButton->setFixedHeight(30);
-    editButton->setFixedHeight(30);
-    deleteButton->setFixedHeight(30);
-    refreshButton->setFixedHeight(30);
-
-    // Largeur IDENTIQUE à Factures
-    addButton->setMinimumWidth(90);
-    editButton->setMinimumWidth(90);
-    deleteButton->setMinimumWidth(90);
-    refreshButton->setMinimumWidth(90);
-
-    addButton->setCursor(Qt::PointingHandCursor);
-    editButton->setCursor(Qt::PointingHandCursor);
-    deleteButton->setCursor(Qt::PointingHandCursor);
-    refreshButton->setCursor(Qt::PointingHandCursor);
-
-    buttonLayout->addWidget(addButton);
-    buttonLayout->addWidget(editButton);
-    buttonLayout->addWidget(deleteButton);
-    buttonLayout->addWidget(refreshButton);
-    buttonLayout->addStretch();
-    clientTabLayout->addLayout(buttonLayout);
-
-    // -- Table clients — EN DESSOUS DES BOUTONS —
+    // Table
     clientModel = new QSqlTableModel(this);
     clientModel->setTable("clients");
     clientModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
@@ -351,162 +378,148 @@ invoiceTabLayout->addWidget(invoiceTitle);            // ← Supprime , 0, Qt::A
     clientView->setSelectionBehavior(QAbstractItemView::SelectRows);
     clientView->setSelectionMode(QAbstractItemView::SingleSelection);
     clientView->horizontalHeader()->setStretchLastSection(true);
-   clientView->setColumnHidden(4,  true); // mot_de_passe
-clientView->setColumnHidden(10, true); // role
-clientView->setColumnHidden(12, true); // signature_path
-clientView->setColumnHidden(13, true); // logo_path
+    clientView->setColumnHidden(4,  true);
+    clientView->setColumnHidden(10, true);
+    clientView->setColumnHidden(12, true);
+    clientView->setColumnHidden(13, true);
     clientView->verticalHeader()->setVisible(false);
     clientView->setAlternatingRowColors(true);
     clientView->setEditTriggers(QAbstractItemView::NoEditTriggers);
-    
-    // Hauteur IDENTIQUE à Factures
-    clientView->setFixedHeight(200);
-    clientView->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Fixed);
-
-    // Style IDENTIQUE à Factures
     clientView->setStyleSheet(
-        "QTableView {"
-        "  border: 1px solid #E2E8F0;"
-        "  gridline-color: #EDF2F7;"
-        "  selection-background-color: #BEE3F8;"
-        "  selection-color: #2D3748;"
-        "}"
-        "QHeaderView::section {"
-        "  background: #2B6CB0;"
-        "  color: white;"
-        "  font-weight: bold;"
-        "  padding: 5px;"
-        "  border: none;"
-        "  font-size: 11px;"
-        "}"
-    );
+        QString("QTableView{"
+                "  border:none;gridline-color:#F1F5F9;"
+                "  selection-background-color:#DBEAFE;"
+                "  selection-color:#1E3A5F;"
+                "  font-size:12px;"
+                "}"
+                "QHeaderView::section{"
+                "  background:%1;color:%2;"
+                "  font-weight:700;padding:8px 6px;"
+                "  border:none;font-size:11px;"
+                "}"
+                "QTableView::item{padding:6px;border-bottom:1px solid #F1F5F9;}"
+               ).arg(A::TH_BG, A::TH_TXT));
 
-    clientTabLayout->addWidget(clientView);
+    cl->addWidget(clientView, 1);
+    vl->addWidget(card, 1);
 
-    // ← AJOUT : empêcher l'expansion verticale (IDENTIQUE à Factures)
-    clientTabLayout->addStretch(1);
-
-    tabWidget->addTab(clientTab, "📋 Gestion Clients");
-    // ===== CONNEXIONS =====
-    connect(createInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onCreateInvoice);
-    connect(editInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onEditInvoice);
-    connect(deleteInvoiceBtn, &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
-    connect(actionsBtn, &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
-    connect(paymentBtn, &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);
-    connect(refreshInvoicesBtn, &QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
-    connect(invoiceSearchBtn, &QPushButton::clicked, this, &AdminWindow::onSearchInvoice);
-    connect(invoiceSearchEdit, &QLineEdit::returnPressed, this, &AdminWindow::onSearchInvoice);
-
-    connect(addButton, &QPushButton::clicked, this, &AdminWindow::onAddClient);
-    connect(editButton, &QPushButton::clicked, this, &AdminWindow::onEditClient);
-    connect(deleteButton, &QPushButton::clicked, this, &AdminWindow::onDeleteClient);
-    connect(refreshButton, &QPushButton::clicked, this, &AdminWindow::refreshModel);
+    // Connections
     connect(searchButton, &QPushButton::clicked, this, &AdminWindow::onSearch);
-   
+    connect(searchEdit,   &QLineEdit::returnPressed, this, &AdminWindow::onSearch);
+    connect(resetBtn, &QPushButton::clicked, this, [this]{
+        searchEdit->clear(); refreshModel();
+    });
+    connect(addButton,    &QPushButton::clicked, this, &AdminWindow::onAddClient);
+    connect(editButton,   &QPushButton::clicked, this, &AdminWindow::onEditClient);
+    connect(deleteButton, &QPushButton::clicked, this, &AdminWindow::onDeleteClient);
+    connect(refreshButton,&QPushButton::clicked, this, &AdminWindow::refreshModel);
 
-    connect(logoutBtn, &QPushButton::clicked, this, &AdminWindow::onLogout);
-
-    // Articles → InvoiceCreateDialog
-    if (!m_invoiceDialog) {
-        m_invoiceDialog = new InvoiceCreateDialog(-1, this);
-    }
-    connect(articlesWidget, &ArticlesWidget::articleSelected, 
-            m_invoiceDialog, &InvoiceCreateDialog::onArticleFromCatalog);
+    return page;
 }
 
-// ============================================
-// MÉTHODES FACTURES (inchangées)
-// ============================================
+// ─────────────────────────────────────────────────────────────────────────────
+//  Placeholder pages (Rapports / Paramètres)
+// ─────────────────────────────────────────────────────────────────────────────
+QWidget* AdminWindow::buildPlaceholderPage(const QString &icon,
+                                           const QString &title,
+                                           const QString &subtitle)
+{
+    QWidget *p = new QWidget;
+    p->setStyleSheet(QString("background:%1;").arg(A::BG));
+
+    QVBoxLayout *vl = new QVBoxLayout(p);
+    vl->setContentsMargins(28, 22, 28, 20);
+    vl->setSpacing(16);
+
+    QLabel *ttl = new QLabel(icon + "  " + title);
+    ttl->setStyleSheet(
+        QString("font-size:20px;font-weight:700;color:%1;"
+                "font-family:'Segoe UI Semibold',sans-serif;").arg(A::TXT_HEAD));
+    QLabel *sub = new QLabel(subtitle);
+    sub->setStyleSheet(QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
+
+    QFrame *card = new QFrame;
+    card->setStyleSheet(
+        QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
+            .arg(A::CARD, A::BORDER));
+    card->setGraphicsEffect(mkShadow());
+    card->setMinimumHeight(300);
+
+    QVBoxLayout *cl = new QVBoxLayout(card);
+    cl->setAlignment(Qt::AlignCenter);
+    QLabel *ph = new QLabel(icon);
+    ph->setStyleSheet("font-size:56px;background:transparent;");
+    ph->setAlignment(Qt::AlignCenter);
+    QLabel *msg = new QLabel("Bientôt disponible");
+    msg->setStyleSheet(QString("font-size:15px;color:%1;font-weight:600;").arg(A::TXT_SUB));
+    msg->setAlignment(Qt::AlignCenter);
+    cl->addWidget(ph);
+    cl->addWidget(msg);
+
+    vl->addWidget(ttl);
+    vl->addWidget(sub);
+    vl->addWidget(card, 1);
+
+    return p;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+//  All slot implementations below are IDENTICAL to the original
+// ─────────────────────────────────────────────────────────────────────────────
 
 void AdminWindow::onSearchInvoice()
 {
-    QString search = invoiceSearchEdit->text().trimmed();
-    if (search.isEmpty()) {
-        onRefreshInvoices();
-        return;
-    }
-    
+    QString s = invoiceSearchEdit->text().trimmed();
+    if (s.isEmpty()) { onRefreshInvoices(); return; }
     invoiceModel->setQuery(QString(
         "SELECT f.id, f.numero, f.type, "
         "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
         "f.date_creation, f.date_echeance, "
         "f.total_ht, f.total_tva, f.total_ttc, f.statut "
-        "FROM factures f "
-        "LEFT JOIN clients c ON f.client_id = c.id "
+        "FROM factures f LEFT JOIN clients c ON f.client_id = c.id "
         "WHERE f.numero LIKE '%%1%' OR f.client_nom LIKE '%%1%' "
-        "OR c.nom LIKE '%%1%' "
-        "ORDER BY f.id DESC"
-    ).arg(search));
+        "OR c.nom LIKE '%%1%' ORDER BY f.id DESC").arg(s));
 }
 
 void AdminWindow::onCreateInvoice()
 {
     InvoiceCreateDialog dlg(-1, this);
-dlg.showMaximized(); // ← ouvre en plein écran
-if (dlg.exec() == QDialog::Accepted) {
-    onRefreshInvoices();
-}
+    dlg.showMaximized();
+    if (dlg.exec() == QDialog::Accepted) onRefreshInvoices();
 }
 
 void AdminWindow::onEditInvoice()
 {
     int row = invoiceView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", 
-                             "Veuillez sélectionner une facture à modifier.");
-        return;
-    }
-
-    int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
-    
-    InvoiceEditDialog *dlg = new InvoiceEditDialog(invoiceId, this);
-    if (dlg->exec() == QDialog::Accepted) {
-        onRefreshInvoices();
-    }
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez une facture."); return; }
+    int id = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
+    InvoiceEditDialog *dlg = new InvoiceEditDialog(id, this);
+    if (dlg->exec() == QDialog::Accepted) onRefreshInvoices();
     delete dlg;
 }
 
 void AdminWindow::onDeleteInvoice()
 {
     int row = invoiceView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", "Veuillez sélectionner une facture");
-        return;
-    }
-
-    int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
-
-    QMessageBox::StandardButton reply = QMessageBox::question(this, "Confirmation",
-        "Supprimer cette facture ?", QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::Yes) {
-        QSqlQuery query;
-        query.prepare("DELETE FROM lignes_facture WHERE facture_id = ?");
-        query.addBindValue(invoiceId);
-        query.exec();
-
-        query.prepare("DELETE FROM factures WHERE id = ?");
-        query.addBindValue(invoiceId);
-
-        if (query.exec()) {
-            onRefreshInvoices();
-            QMessageBox::information(this, "Succès", "Facture supprimée");
-        }
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez une facture."); return; }
+    int id = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
+    if (QMessageBox::question(this,"Confirmation","Supprimer cette facture ?",
+            QMessageBox::Yes|QMessageBox::No) == QMessageBox::Yes) {
+        QSqlQuery q;
+        q.prepare("DELETE FROM lignes_facture WHERE facture_id = ?");
+        q.addBindValue(id); q.exec();
+        q.prepare("DELETE FROM factures WHERE id = ?");
+        q.addBindValue(id);
+        if (q.exec()) { onRefreshInvoices(); QMessageBox::information(this,"Succès","Facture supprimée."); }
     }
 }
 
 void AdminWindow::onInvoiceActions()
 {
     int row = invoiceView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", 
-                             "Veuillez sélectionner une facture");
-        return;
-    }
-
-    int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
-    
-    InvoiceActionDialog dlg(invoiceId, this);
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez une facture."); return; }
+    int id = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
+    InvoiceActionDialog dlg(id, this);
     dlg.exec();
     onRefreshInvoices();
 }
@@ -514,16 +527,10 @@ void AdminWindow::onInvoiceActions()
 void AdminWindow::onPaymentClicked()
 {
     int row = invoiceView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", "Veuillez sélectionner une facture");
-        return;
-    }
-    
-    int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
-    
-    PaymentDialog *dlg = new PaymentDialog(invoiceId, this);
-    dlg->exec();
-    delete dlg;
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez une facture."); return; }
+    int id = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
+    PaymentDialog *dlg = new PaymentDialog(id, this);
+    dlg->exec(); delete dlg;
     onRefreshInvoices();
 }
 
@@ -531,54 +538,39 @@ void AdminWindow::onRefreshInvoices()
 {
     delete invoiceModel;
     invoiceModel = new QSqlQueryModel(this);
-    
-    invoiceModel->setQuery(QString(
+    invoiceModel->setQuery(
         "SELECT f.id, f.numero, f.type, "
         "COALESCE(f.client_nom, c.nom || ' ' || c.prenom, 'N/A') as Client, "
         "f.date_creation, f.date_echeance, "
         "f.total_ht, f.total_tva, f.total_ttc, f.statut "
-        "FROM factures f "
-        "LEFT JOIN clients c ON f.client_id = c.id "
-        "ORDER BY f.id DESC"
-    ));
-    
-    invoiceModel->setHeaderData(0, Qt::Horizontal, "ID");
-    invoiceModel->setHeaderData(1, Qt::Horizontal, "Numéro");
-    invoiceModel->setHeaderData(2, Qt::Horizontal, "Type");
-    invoiceModel->setHeaderData(3, Qt::Horizontal, "Client");
-    invoiceModel->setHeaderData(4, Qt::Horizontal, "Date création");
-    invoiceModel->setHeaderData(5, Qt::Horizontal, "Date échéance");
-    invoiceModel->setHeaderData(6, Qt::Horizontal, "Total HT");
-    invoiceModel->setHeaderData(7, Qt::Horizontal, "TVA");
-    invoiceModel->setHeaderData(8, Qt::Horizontal, "Total TTC");
-    invoiceModel->setHeaderData(9, Qt::Horizontal, "Statut");
-    
+        "FROM factures f LEFT JOIN clients c ON f.client_id = c.id "
+        "ORDER BY f.id DESC");
+    invoiceModel->setHeaderData(0,Qt::Horizontal,"ID");
+    invoiceModel->setHeaderData(1,Qt::Horizontal,"Numéro");
+    invoiceModel->setHeaderData(2,Qt::Horizontal,"Type");
+    invoiceModel->setHeaderData(3,Qt::Horizontal,"Client");
+    invoiceModel->setHeaderData(4,Qt::Horizontal,"Date créa.");
+    invoiceModel->setHeaderData(5,Qt::Horizontal,"Échéance");
+    invoiceModel->setHeaderData(6,Qt::Horizontal,"HT");
+    invoiceModel->setHeaderData(7,Qt::Horizontal,"TVA");
+    invoiceModel->setHeaderData(8,Qt::Horizontal,"TTC");
+    invoiceModel->setHeaderData(9,Qt::Horizontal,"Statut");
     invoiceView->setModel(invoiceModel);
     invoiceView->setSelectionBehavior(QAbstractItemView::SelectRows);
-    invoiceView->setSelectionMode(QAbstractItemView::SingleSelection);
     invoiceView->horizontalHeader()->setStretchLastSection(true);
 }
 
-// ============================================
-// MÉTHODES CLIENTS (inchangées)
-// ============================================
-
 void AdminWindow::refreshModel()
 {
-    clientModel->setFilter("");
-    clientModel->select();
+    clientModel->setFilter(""); clientModel->select();
 }
 
 void AdminWindow::onSearch()
 {
-    QString prenom = searchEdit->text().trimmed();
-    if (prenom.isEmpty()) {
-        clientModel->setFilter("role = 'client'");
-    } else {
-        clientModel->setFilter(
-            QString("role = 'client' AND prenom LIKE '%%1%'")
-            .arg(prenom));
-    }
+    QString p = searchEdit->text().trimmed();
+    clientModel->setFilter(p.isEmpty()
+        ? "role = 'client'"
+        : QString("role = 'client' AND prenom LIKE '%%1%'").arg(p));
     clientModel->select();
 }
 
@@ -587,55 +579,39 @@ void AdminWindow::onAddClient()
     ClientEditDialog dlg(this);
     if (dlg.exec() == QDialog::Accepted) {
         refreshModel();
-        QMessageBox::information(this, "Succès", 
-                                 "Client ajouté avec succès !");
+        QMessageBox::information(this,"Succès","Client ajouté !");
     }
 }
 
 void AdminWindow::onEditClient()
 {
     int row = clientView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", "Veuillez sélectionner un client à modifier.");
-        return;
-    }
-    int clientId = clientModel->data(clientModel->index(row, 0)).toInt();
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez un client."); return; }
+    int id = clientModel->data(clientModel->index(row, 0)).toInt();
     ClientEditDialog dlg(this);
-    dlg.setClientId(clientId);
-    if (dlg.exec() == QDialog::Accepted) {
-        refreshModel();
-    }
+    dlg.setClientId(id);
+    if (dlg.exec() == QDialog::Accepted) refreshModel();
 }
 
 void AdminWindow::onDeleteClient()
 {
     int row = clientView->currentIndex().row();
-    if (row < 0) {
-        QMessageBox::warning(this, "Sélection", "Veuillez sélectionner un client à supprimer.");
-        return;
-    }
-    int clientId = clientModel->data(clientModel->index(row, 0)).toInt();
-    QMessageBox::StandardButton reply = QMessageBox::question(this, "Confirmation",
-                                                              "Supprimer définitivement ce client ?", QMessageBox::Yes | QMessageBox::No);
-    if (reply == QMessageBox::Yes) {
-        QSqlQuery query;
-        query.prepare("DELETE FROM clients WHERE id = ?");
-        query.addBindValue(clientId);
-        if (query.exec()) {
-            refreshModel();
-        } else {
-            QMessageBox::critical(this, "Erreur", "Échec suppression : " + query.lastError().text());
-        }
+    if (row < 0) { QMessageBox::warning(this,"Sélection","Sélectionnez un client."); return; }
+    int id = clientModel->data(clientModel->index(row, 0)).toInt();
+    if (QMessageBox::question(this,"Confirmation","Supprimer ce client ?",
+            QMessageBox::Yes|QMessageBox::No) == QMessageBox::Yes) {
+        QSqlQuery q;
+        q.prepare("DELETE FROM clients WHERE id = ?");
+        q.addBindValue(id);
+        if (!q.exec())
+            QMessageBox::critical(this,"Erreur","Échec : "+q.lastError().text());
+        else refreshModel();
     }
 }
 
 void AdminWindow::onLogout()
 {
-    auto reply = QMessageBox::question(this, "Déconnexion",
-        "Voulez-vous vous déconnecter ?",
-        QMessageBox::Yes | QMessageBox::No);
-
-    if (reply == QMessageBox::Yes) {
+    if (QMessageBox::question(this,"Déconnexion","Se déconnecter ?",
+            QMessageBox::Yes|QMessageBox::No) == QMessageBox::Yes)
         emit logoutRequested();
-    }
 }
