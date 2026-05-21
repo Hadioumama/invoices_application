@@ -250,9 +250,7 @@ void DashboardWidget::setupSidebar()
     addNavItem("📦", "Gestion Articles", "articles");
 
     sl->addSpacing(8);
-    addSection("Outils");
-    addNavItem("📊", "Rapports",         "rapports");
-    addNavItem("⚙️", "Paramètres",       "parametres");
+    
 
     sl->addStretch();
 

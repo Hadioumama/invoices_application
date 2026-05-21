@@ -28,7 +28,7 @@ namespace A {
     constexpr auto BG        = "#F1F5F9";
     constexpr auto CARD      = "#FFFFFF";
     constexpr auto BORDER    = "#E2E8F0";
-    constexpr auto TXT_HEAD  = "#0F172A";
+    constexpr auto TXT_HEAD  = "rgb(208, 215, 230)";
     constexpr auto TXT_SUB   = "#64748B";
     constexpr auto BLUE      = "#2563EB";
     constexpr auto GREEN     = "#16A34A";
@@ -93,13 +93,8 @@ void AdminWindow::setupUI()
     m_clientPage  = buildClientPage();
     m_pageStack->addWidget(m_clientPage);               // index 3 – clients
 
-    m_rapportsPage = buildPlaceholderPage(
-        "📊", "Rapports", "Module en cours de développement");
-    m_pageStack->addWidget(m_rapportsPage);             // index 4
 
-    m_parametresPage = buildPlaceholderPage(
-        "⚙️", "Paramètres", "Module en cours de développement");
-    m_pageStack->addWidget(m_parametresPage);           // index 5
+    
 
     m_pageStack->setCurrentIndex(0);
 
@@ -127,8 +122,6 @@ void AdminWindow::onNavigateTo(const QString &page)
     else if (page == "articles")   m_pageStack->setCurrentIndex(1);
     else if (page == "factures")   m_pageStack->setCurrentIndex(2);
     else if (page == "clients")    m_pageStack->setCurrentIndex(3);
-    else if (page == "rapports")   m_pageStack->setCurrentIndex(4);
-    else if (page == "parametres") m_pageStack->setCurrentIndex(5);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -417,51 +410,6 @@ QWidget* AdminWindow::buildClientPage()
     return page;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Placeholder pages (Rapports / Paramètres)
-// ─────────────────────────────────────────────────────────────────────────────
-QWidget* AdminWindow::buildPlaceholderPage(const QString &icon,
-                                           const QString &title,
-                                           const QString &subtitle)
-{
-    QWidget *p = new QWidget;
-    p->setStyleSheet(QString("background:%1;").arg(A::BG));
-
-    QVBoxLayout *vl = new QVBoxLayout(p);
-    vl->setContentsMargins(28, 22, 28, 20);
-    vl->setSpacing(16);
-
-    QLabel *ttl = new QLabel(icon + "  " + title);
-    ttl->setStyleSheet(
-        QString("font-size:20px;font-weight:700;color:%1;"
-                "font-family:'Segoe UI Semibold',sans-serif;").arg(A::TXT_HEAD));
-    QLabel *sub = new QLabel(subtitle);
-    sub->setStyleSheet(QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
-
-    QFrame *card = new QFrame;
-    card->setStyleSheet(
-        QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
-            .arg(A::CARD, A::BORDER));
-    card->setGraphicsEffect(mkShadow());
-    card->setMinimumHeight(300);
-
-    QVBoxLayout *cl = new QVBoxLayout(card);
-    cl->setAlignment(Qt::AlignCenter);
-    QLabel *ph = new QLabel(icon);
-    ph->setStyleSheet("font-size:56px;background:transparent;");
-    ph->setAlignment(Qt::AlignCenter);
-    QLabel *msg = new QLabel("Bientôt disponible");
-    msg->setStyleSheet(QString("font-size:15px;color:%1;font-weight:600;").arg(A::TXT_SUB));
-    msg->setAlignment(Qt::AlignCenter);
-    cl->addWidget(ph);
-    cl->addWidget(msg);
-
-    vl->addWidget(ttl);
-    vl->addWidget(sub);
-    vl->addWidget(card, 1);
-
-    return p;
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  All slot implementations below are IDENTICAL to the original
