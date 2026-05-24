@@ -1,8 +1,8 @@
 #ifndef CLIENTWINDOW_H
 #define CLIENTWINDOW_H
 
-#include <QMainWindow>
-#include <QTabWidget>
+#include <QWidget>
+#include <QStackedWidget>
 #include <QTableView>
 #include <QSqlQueryModel>
 #include <QLabel>
@@ -11,73 +11,72 @@
 #include <QTextEdit>
 #include <QComboBox>
 #include <QDateEdit>
+#include <QFrame>
 
-class ClientWindow : public QMainWindow
+class ClientWindow : public QWidget
 {
     Q_OBJECT
 public:
-    explicit ClientWindow(int clientId, QWidget *parent = nullptr);
+    explicit ClientWindow(int clientId,
+                          QWidget *parent = nullptr);
 signals:
     void logoutRequested();
+
 private slots:
-    // Dashboard
     void refreshDashboard();
-    // Factures
     void onDownloadPDF();
     void onViewDetails();
     void onFilterFactures();
     void onResetFilter();
-    // Paiements
     void refreshPaiements();
-    // Profil
     void onSaveProfil();
     void onChangePassword();
-    // Contact
     void onSendMessage();
-    // Déconnexion
     void onLogout();
+    void onNavigateTo(const QString &page);
 
 private:
     void setupUI();
-    void setupDashboard();
-    void setupFactures();
-    void setupPaiements();
-    void setupProfil();
-    void setupContact();
+    QWidget* buildSidebar();
+    QWidget* buildDashboardPage();
+    QWidget* buildFacturesPage();
+    QWidget* buildPaiementsPage();
+    QWidget* buildProfilPage();
+    QWidget* buildContactPage();
     void loadClientInfo();
 
-    int m_clientId;
+    int     m_clientId;
     QString m_clientNom;
     QString m_clientEmail;
 
-    QTabWidget *tabWidget;
+    QStackedWidget *m_pageStack;
 
-    // ── Dashboard
+    // Dashboard
     QLabel *statTotalFactures;
     QLabel *statMontantDu;
     QLabel *statDerniereFacture;
     QLabel *statStatutCompte;
     QLabel *statTotalPaye;
     QLabel *statFacturesMois;
-    QTableView *recentTable;
+    QTableView    *recentTable;
     QSqlQueryModel *recentModel;
 
-    // ── Factures
-    QTableView *facturesTable;
+    // Factures
+    QTableView    *facturesTable;
     QSqlQueryModel *facturesModel;
     QComboBox *filterStatut;
     QDateEdit *filterDateDebut;
     QDateEdit *filterDateFin;
     QLineEdit *searchFacture;
 
-    // ── Paiements
-    QTableView *paiementsTable;
+    // Paiements
+    QTableView    *paiementsTable;
     QSqlQueryModel *paiementsModel;
     QLabel *totalPayeLabel;
     QLabel *totalDuLabel;
     QLabel *resteLabel;
 
-    // ── Profil
+    // Profil
     QLineEdit *nomEdit;
     QLineEdit *prenomEdit;
     QLineEdit *emailEdit;
@@ -87,7 +86,7 @@ private:
     QLineEdit *newPasswordEdit;
     QLineEdit *confirmPasswordEdit;
 
-    // ── Contact
+    // Contact
     QLineEdit *sujetEdit;
     QTextEdit *messageEdit;
 };

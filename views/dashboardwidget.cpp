@@ -15,16 +15,16 @@
 
 // ─────────────────────────────────────────────────────────────────────────────
 namespace T {
-    constexpr auto SB_BG        = "#111827";
-    constexpr auto SB_HOVER     = "#1F2937";
+    constexpr auto SB_BG        = "#ffffff";
+    constexpr auto SB_HOVER     = "#ebf0f7";
     constexpr auto SB_ACTIVE_BG = "#1D3461";
-    constexpr auto SB_BORDER    = "#1F2937";
+    constexpr auto SB_BORDER    = "#000006";
     constexpr auto SB_LOGO      = "#60A5FA";
-    constexpr auto SB_SECTION   = "#4B5563";
-    constexpr auto SB_TEXT      = "#9CA3AF";
-    constexpr auto SB_TEXT_ACT  = "#F9FAFB";
+    constexpr auto SB_SECTION   = "#13458b";
+    constexpr auto SB_TEXT      = "#030000";
+    constexpr auto SB_TEXT_ACT  = "#010d1a";
     constexpr auto SB_ACCENT    = "#3B82F6";
-    constexpr auto SB_LOGOUT    = "#EF4444";
+    constexpr auto SB_LOGOUT    = "#ffffff";
     constexpr auto BG           = "#F1F5F9";
     constexpr auto CARD_BG      = "#FFFFFF";
     constexpr auto CARD_BORDER  = "#E2E8F0";
@@ -71,7 +71,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     QLabel *pageTitle = new QLabel("Vue d'ensemble");
     pageTitle->setStyleSheet(
         "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
-        "font-size:20px;font-weight:700;color:#0F172A;");
+        "font-size:30px;font-weight:900;color:SB_BORDER;");
 
     QLabel *dateLbl = new QLabel(
         QDate::currentDate().toString("dddd d MMMM yyyy"));
@@ -135,7 +135,7 @@ void DashboardWidget::setupSidebar()
 
     QLabel *logoText = new QLabel("FacturaPro");
     logoText->setStyleSheet(
-        QString("font-size:14px;font-weight:700;color:%1;letter-spacing:0.3px;")
+        QString("font-size:16px;font-weight:800;color:%1;letter-spacing:0.3px;")
             .arg(T::SB_LOGO));
 
     ll->addWidget(logoIcon);
@@ -183,7 +183,7 @@ void DashboardWidget::setupSidebar()
 
         QLabel *txt = new QLabel(label);
         txt->setStyleSheet(
-            QString("font-size:13px;font-weight:%1;color:%2;background:transparent;")
+            QString("font-size:15px;font-weight:%2;color:%2;background:transparent;")
                 .arg(isActive ? "600" : "400")
                 .arg(isActive ? T::SB_TEXT_ACT : T::SB_TEXT));
 
@@ -306,13 +306,13 @@ void DashboardWidget::setupSidebar()
     logoutBtn->setFlat(true);
     logoutBtn->setStyleSheet(
         QString("QPushButton{"
-                "  background:rgba(239,68,68,0.08);"
+                "  background:rgba(226, 8, 8, 0.89);"
                 "  border:1px solid rgba(239,68,68,0.25);"
                 "  border-radius:8px;"
                 "  margin:0 12px;"
-                "  font-size:12px;font-weight:600;color:%1;"
+                "  font-size:14px;font-weight:700;color:%1;"
                 "}"
-                "QPushButton:hover{background:rgba(239,68,68,0.18);}")
+                "QPushButton:hover{background:rgba(194, 20, 20, 0.18);}")
             .arg(T::SB_LOGOUT));
     connect(logoutBtn, &QPushButton::clicked,
             this, &DashboardWidget::logoutRequested);
@@ -359,7 +359,7 @@ void DashboardWidget::setupStatCards()
 
         QLabel *lbl = new QLabel(d.icon + "  " + d.title);
         lbl->setStyleSheet(
-            "font-size:9px;font-weight:700;color:#64748B;"
+            "font-size:12px;font-weight:800;color:#64748B;"
             "letter-spacing:0.7px;background:transparent;border:none;");
 
         QLabel *val = new QLabel("—");
@@ -417,7 +417,7 @@ void DashboardWidget::setupCharts()
     };
 
     layout->addWidget(makeCard("📈  Chiffre d'Affaires — 6 derniers mois", barChartView), 6);
-    layout->addWidget(makeCard("🥧  Répartition des Factures", pieChartView), 4);
+    layout->addWidget(makeCard("Répartition des Factures", pieChartView), 4);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
