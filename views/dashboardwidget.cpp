@@ -22,7 +22,7 @@ namespace T {
     constexpr auto SB_LOGO      = "#60A5FA";
     constexpr auto SB_SECTION   = "#13458b";
     constexpr auto SB_TEXT      = "#030000";
-    constexpr auto SB_TEXT_ACT  = "#010d1a";
+    constexpr auto SB_TEXT_ACT  = "#ffffff";
     constexpr auto SB_ACCENT    = "#3B82F6";
     constexpr auto SB_LOGOUT    = "#ffffff";
     constexpr auto BG           = "#F1F5F9";
@@ -77,10 +77,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
         QDate::currentDate().toString("dddd d MMMM yyyy"));
     dateLbl->setStyleSheet("font-size:11px;color:#94A3B8;");
 
-    QLabel *livePill = new QLabel("● Live");
-    livePill->setStyleSheet(
-        "font-size:10px;font-weight:700;color:#16A34A;"
-        "background:#DCFCE7;border-radius:9px;padding:3px 10px;");
+    
 
     hl->addWidget(pageTitle);
     hl->addStretch();
