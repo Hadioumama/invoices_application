@@ -293,7 +293,7 @@ void InvoiceEditDialog::setupUI()
                 addLineBtn->setToolTip("Modifier ligne");
             }
         });
-}
+}   
 void InvoiceEditDialog::loadData()
 {
     QSqlQuery q;

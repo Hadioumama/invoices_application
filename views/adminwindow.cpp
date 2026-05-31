@@ -28,7 +28,7 @@ namespace A {
     constexpr auto BG        = "#F1F5F9";
     constexpr auto CARD      = "#FFFFFF";
     constexpr auto BORDER    = "#E2E8F0";
-    constexpr auto TXT_HEAD  = "rgb(208, 215, 230)";
+    constexpr auto TXT_HEAD  = "rgb(4, 19, 50)";
     constexpr auto TXT_SUB   = "#64748B";
     constexpr auto BLUE      = "#2563EB";
     constexpr auto GREEN     = "#16A34A";

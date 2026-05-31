@@ -75,7 +75,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
 
     QLabel *dateLbl = new QLabel(
         QDate::currentDate().toString("dddd d MMMM yyyy"));
-    dateLbl->setStyleSheet("font-size:11px;color:#94A3B8;");
+    dateLbl->setStyleSheet("font-size:11px;color:SB_BORDER;");
 
     
 
@@ -83,7 +83,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     hl->addStretch();
     hl->addWidget(dateLbl);
     hl->addSpacing(10);
-    hl->addWidget(livePill);
+  
 
     cv->addWidget(header);
     cv->addWidget(cardsWidget);
@@ -130,7 +130,7 @@ void DashboardWidget::setupSidebar()
                 "font-size:16px;font-weight:800;color:#0F172A;")
             .arg(T::SB_LOGO));
 
-    QLabel *logoText = new QLabel("FacturaPro");
+    QLabel *logoText = new QLabel("FacturPro");
     logoText->setStyleSheet(
         QString("font-size:16px;font-weight:800;color:%1;letter-spacing:0.3px;")
             .arg(T::SB_LOGO));
@@ -180,8 +180,8 @@ void DashboardWidget::setupSidebar()
 
         QLabel *txt = new QLabel(label);
         txt->setStyleSheet(
-            QString("font-size:15px;font-weight:%2;color:%2;background:transparent;")
-                .arg(isActive ? "600" : "400")
+            QString("font-size:15px;font-weight:%1;color:%2;background:transparent;")
+                .arg(isActive ? "800" : "700")
                 .arg(isActive ? T::SB_TEXT_ACT : T::SB_TEXT));
 
         bl->addWidget(bar);

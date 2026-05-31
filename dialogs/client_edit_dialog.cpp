@@ -35,7 +35,7 @@ ClientEditDialog::ClientEditDialog(QWidget *parent)
         "  border: 1px solid #CBD5E0;"
         "  border-radius: 6px;"
         "  margin-top: 8px; padding-top: 8px;"
-        "  color: #2B6CB0;"
+        "  color: #123f6f;"
         "}"
         "QGroupBox::title {"
         "  subcontrol-origin: margin; left: 10px;"

@@ -18,14 +18,14 @@ ArticlesWidget::ArticlesWidget(QWidget *parent)
 void ArticlesWidget::setupUI()
 {
     setStyleSheet(
-        "QWidget{background:white;}"
+        "QWidget{background:transparent;}"
         "QTableView{border:1px solid #E2E8F0;"
         "gridline-color:#EDF2F7;"
         "selection-background-color:#BEE3F8;"
         "selection-color:#2D3748;}"
         "QHeaderView::section{background:#2B6CB0;"
         "color:white;font-weight:bold;"
-        "padding:7px;border:none;}"
+        "padding:7px;border:1px;}"
         "QPushButton{padding:6px 14px;"
         "border-radius:4px;border:none;"
         "font-weight:bold;}");
@@ -37,7 +37,7 @@ void ArticlesWidget::setupUI()
 
     // Titre
      QLabel *title = new QLabel("📦 Catalogue Articles");
-    title->setStyleSheet("font-size:16px;font-weight:bold;color:#1B2A3B;");
+    title->setStyleSheet("font-size:16px;font-weight:bold;color:#1B2A3B;background:#eef4fa;");
     title->setFixedHeight(24);
     mainLayout->addWidget(title);
 
@@ -46,7 +46,7 @@ void ArticlesWidget::setupUI()
     
     searchEdit = new QLineEdit;
     searchEdit->setPlaceholderText("🔍 Rechercher par désignation ou référence...");
-    searchEdit->setStyleSheet("padding:6px;border:1px solid #CBD5E0;border-radius:4px;font-size:11px;");
+    searchEdit->setStyleSheet("padding:6px;border:1px solid #bedbf7;border-radius:4px;font-size:11px;");
     searchEdit->setFixedHeight(32);
     
     QPushButton *searchBtn = new QPushButton("Rechercher");
