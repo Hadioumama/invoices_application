@@ -281,8 +281,8 @@ void DashboardWidget::setupSidebar()
     uinfo->setSpacing(1);
     QLabel *uname = new QLabel("Administrateur");
     uname->setStyleSheet(
-        QString("font-size:11px;font-weight:600;color:%1;background:transparent;")
-            .arg(T::SB_TEXT_ACT));
+        QString("font-size:11px;font-weight:600;color:%1;background:#2563EB;")
+            .arg(T::SB_ACCENT ));
     QLabel *urole = new QLabel("Super Admin");
     urole->setStyleSheet(
         QString("font-size:9px;color:%1;background:transparent;")

@@ -28,18 +28,22 @@ void ArticleEditDialog::setupUI()
     setMinimumWidth(420);
 
     setStyleSheet(
+        "QDialog { background:#F7FAFC; }" 
         "QGroupBox {"
         "  font-weight:bold;border:1px solid #CBD5E0;"
         "  border-radius:6px;margin-top:8px;"
         "  padding-top:8px;color:#2B6CB0;"
+        "  background:#F7FAFC;"  
         "}"
         "QLineEdit, QDoubleSpinBox, QSpinBox, QTextEdit {"
         "  border:1px solid #CBD5E0;border-radius:4px;"
         "  padding:5px;min-height:28px;"
+          "  background:white;color:#1A202C;" 
         "}"
         "QLineEdit:focus, QDoubleSpinBox:focus {"
         "  border:1px solid #3182CE;"
         "}"
+           "QLabel { color:#2D3748; }"   
     );
 
     QVBoxLayout *mainLayout = new QVBoxLayout(this);
