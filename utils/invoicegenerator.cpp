@@ -109,11 +109,16 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         logoHtml = QString("<span style='font-size:16px;font-weight:900;color:white;letter-spacing:2px;'></span>");
 
     // Signature en base64 si fournie
-    QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);
+  QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);
     if (!signatureHtml.isEmpty()) {
-        signatureHtml = QString("<div style='text-align:right;margin-bottom:2px;'>%1</div>").arg(signatureHtml);
+        signatureHtml = QString(
+            "<div style='text-align:right;margin-bottom:2px;'>"
+            "<p style='color:%1; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Signature:</p>"
+            "%2"
+            "</div>"
+        ).arg(finalStyle.primaryColor.isEmpty() ? "#4db8e8" : finalStyle.primaryColor)
+         .arg(signatureHtml);
     }
-
     // Lignes articles
     QSqlQuery lq;
     lq.prepare("SELECT designation, quantite, prix_unitaire_ht, taux_tva "
@@ -182,7 +187,7 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<tr>"
         "<td style='width:50%;'>%21</td>"
         "<td style='width:50%; text-align:right;'>"
-        "<span style='font-size:20px; font-weight:bold; letter-spacing:2px; color:white;'>INVOICE</span>"
+        "<span style='font-size:25px; font-weight:bold; letter-spacing:2px; color:white;'>INVOICE</span>"
         "</td>"
         "</tr>"
         "</table>"
@@ -197,14 +202,14 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:60%;'>"
-        "<p style='color:%22; font-size:10px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Invoice to:</p>"
-        "<p style='color:#666; font-size:9px; line-height:1.4; margin:0;'>"
-        "<b>Name:</b> %1<br>%2<br>%3"
-        "</p>"
+       "<p style='color:#333; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Invoice to:</p>"
+"<p style='color:#333; font-size:9px; line-height:1.4; margin:0;'>"
+"<b>Name:</b> %1<br><b>Address:</b> %2<br><b>Email:</b> %3<br><b>Tel:</b> %24"
+"</p>"
         "</td>"
         "<td style='width:40%; text-align:right;'>"
-        "<p style='margin:0; color:#666; font-size:9px;'>Invoice No: <b style='color:#333;'>%4</b></p>"
-        "<p style='margin:0; color:#666; font-size:9px;'>Date: <b style='color:#333;'>%5</b></p>"
+      "<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Invoice No: %4</p>"
+"<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Date: %5</p>"
         "</td>"
         "</tr>"
         "</table>"
@@ -236,24 +241,16 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:50%; vertical-align:top;'>"
-        "<p style='color:%22; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Bank Info:</p>"
+    "<p style='color:%22; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Bank Info:</p>"
         "<p style='font-size:8px; color:#666; line-height:1.3; margin:0;'>"
-        "Bank Name: %7<br>"
-        "Bank Account: %8<br>"
-        "Code: %9"
-        "</p>"
-        "<p style='color:%22; font-size:9px; font-weight:bold; margin:6px 0 3px 0; text-transform:uppercase;'>Payment Info:</p>"
-        "<p style='font-size:8px; color:#666; line-height:1.3; margin:0;'>"
-        "Account: %10<br>"
-        "A/C Name: %11<br>"
-        "Bank Details: %12"
+        "Bank Name: <br>"
+        "Bank Account:"
         "</p>"
         "</td>"
         "<td style='width:50%; text-align:right; vertical-align:top;'>"
         "<table width='220' cellpadding='0' cellspacing='0' style='background:#e8f4fc;' align='right'>"
         "<tr>"
-        "<td style='padding:4px 10px; color:#666; font-size:9px; text-align:right;'>Sub Total:</td>"
-        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>$%13</td>"
+"<td style='padding:8px 10px; color:#666; font-size:10px; font-weight:bold; text-align:right;'>Sub Total:</td>"        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>$%13</td>"
         "</tr>"
         "<tr>"
         "<td style='padding:4px 10px; color:#666; font-size:9px; text-align:right;'>Tax:</td>"
@@ -282,11 +279,7 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<td style='padding:0 30px 18px 30px;'>"
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
-        "<td style='width:60%; vertical-align:bottom;'>"
-        "<p style='color:%22; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Terms & Conditions:</p>"
-        "<p style='font-size:7px; color:#999; line-height:1.3; margin:0;'>"
-        "%17"
-        "</p>"
+       "<td style='width:60%; vertical-align:bottom;'>"
         "</td>"
         "<td style='width:40%; text-align:right; vertical-align:bottom;'>"
         "%23"
@@ -302,15 +295,15 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:33%; font-size:8px; color:white; text-align:left;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9742;</span>"
+        "<span style='display:inline-block; width:14px; height:14px; background:background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9742;</span>"
         "%18"
         "</td>"
         "<td style='width:33%; font-size:8px; color:white; text-align:center;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9993;</span>"
+        "<span style='display:inline-block; width:14px; height:14px; background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9993;</span>"
         "%19"
         "</td>"
         "<td style='width:33%; font-size:8px; color:white; text-align:right;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:rgba(255,255,255,0.3); border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#127760;</span>"
+        "<span style='display:inline-block; width:14px; height:14px; background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#127760;</span>"
         "%20"
         "</td>"
         "</tr>"
@@ -344,7 +337,8 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         finalStyle.companyWebsite.isEmpty() ? "www.website.com" : finalStyle.companyWebsite, // ← style → finalStyle
         logoHtml,
         primaryColor,
-        signatureHtml
+        signatureHtml,
+        clientTel
     );
 
     // Génération PDF - UNE SEULE PAGE A4

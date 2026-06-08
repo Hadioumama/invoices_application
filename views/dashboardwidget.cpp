@@ -75,7 +75,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
 
     QLabel *dateLbl = new QLabel(
         QDate::currentDate().toString("dddd d MMMM yyyy"));
-    dateLbl->setStyleSheet("font-size:11px;color:SB_BORDER;");
+    dateLbl->setStyleSheet("font-size:13px;color:SB_BORDER;font-weight:300;");
 
     
 
@@ -264,7 +264,7 @@ void DashboardWidget::setupSidebar()
     chip->setFixedHeight(50);
     chip->setStyleSheet(
         QString("background:%1;border-radius:10px;margin:0 12px;")
-            .arg(T::SB_HOVER));
+            .arg(T::SB_ACCENT));
     QHBoxLayout *ul = new QHBoxLayout(chip);
     ul->setContentsMargins(10, 0, 10, 0);
     ul->setSpacing(10);
@@ -273,20 +273,18 @@ void DashboardWidget::setupSidebar()
     avatar->setFixedSize(30, 30);
     avatar->setAlignment(Qt::AlignCenter);
     avatar->setStyleSheet(
-        QString("background:%1;border-radius:15px;"
-                "font-size:13px;font-weight:700;color:#0F172A;")
+        QString("border-radius:11px;"
+                "font-size:15px;font-weight:700;color:#0F172A;")
             .arg(T::SB_LOGO));
 
     QVBoxLayout *uinfo = new QVBoxLayout;
     uinfo->setSpacing(1);
     QLabel *uname = new QLabel("Administrateur");
-    uname->setStyleSheet(
-        QString("font-size:11px;font-weight:600;color:%1;background:#2563EB;")
-            .arg(T::SB_ACCENT ));
+   uname->setStyleSheet(
+    "font-size:11px;font-weight:600;color:#FFFFFF;background:transparent;");
     QLabel *urole = new QLabel("Super Admin");
-    urole->setStyleSheet(
-        QString("font-size:9px;color:%1;background:transparent;")
-            .arg(T::SB_SECTION));
+  urole->setStyleSheet(
+    "font-size:10px;color:rgba(255,255,255,0.75);background:transparent;");
     uinfo->addWidget(uname);
     uinfo->addWidget(urole);
 
@@ -309,7 +307,7 @@ void DashboardWidget::setupSidebar()
                 "  margin:0 12px;"
                 "  font-size:14px;font-weight:700;color:%1;"
                 "}"
-                "QPushButton:hover{background:rgba(194, 20, 20, 0.18);}")
+                "QPushButton:hover{background:rgba(231, 14, 14, 0.73);}")
             .arg(T::SB_LOGOUT));
     connect(logoutBtn, &QPushButton::clicked,
             this, &DashboardWidget::logoutRequested);

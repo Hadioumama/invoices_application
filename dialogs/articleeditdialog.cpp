@@ -4,6 +4,7 @@
 #include <QHBoxLayout>
 #include <QGroupBox>
 #include <QMessageBox>
+
 #include <QSqlQuery>
 #include <QSqlError>
 
@@ -23,6 +24,8 @@ ArticleEditDialog::ArticleEditDialog(int articleId,
 
 void ArticleEditDialog::setupUI()
 {
+   
+
     setWindowTitle(m_articleId == -1 ?
         "Ajouter un Article" : "Modifier l'Article");
     setMinimumWidth(420);
