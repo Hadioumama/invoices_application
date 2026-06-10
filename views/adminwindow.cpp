@@ -6,13 +6,16 @@
 #include "dialogs/invoicecreatedialog.h"
 #include "dialogs/invoiceactiondialog.h"
 #include "dialogs/paymentdialog.h"
-
+#include "views/entreprise_config_widget.h"
+#include "utils/entreprise_config_manager.h"
+#include "utils/invoicegenerator.h"          // ⬅️ AJOUTÉ
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 #include <QTableView>
 #include <QHeaderView>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QDesktopServices>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
 #include <QSqlError>
@@ -20,10 +23,9 @@
 #include <QLabel>
 #include <QFrame>
 #include <QGraphicsDropShadowEffect>
+#include <QFileDialog>                       // ⬅️ AJOUTÉ
+#include <QStackedWidget>                    // ⬅️ AJOUTÉ (si manquant)
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Shared design tokens (same palette as DashboardWidget)
-// ─────────────────────────────────────────────────────────────────────────────
 namespace A {
     constexpr auto BG        = "#F1F5F9";
     constexpr auto CARD      = "#FFFFFF";
@@ -37,12 +39,10 @@ namespace A {
     constexpr auto AMBER     = "#D97706";
     constexpr auto VIOLET    = "#7C3AED";
     constexpr auto ORANGE    = "#C2410C";
-    // Table header
     constexpr auto TH_BG     = "#1E3A5F";
     constexpr auto TH_TXT    = "#FFFFFF";
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 static QGraphicsDropShadowEffect* mkShadow()
 {
     auto *e = new QGraphicsDropShadowEffect;
@@ -52,20 +52,41 @@ static QGraphicsDropShadowEffect* mkShadow()
     return e;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ── ORDRE D'INITIALISATION CORRECT (match l'ordre dans le header) ───────────
 AdminWindow::AdminWindow(int adminId, QWidget *parent)
     : QWidget(parent),
-      m_adminId(adminId),
-      m_invoiceDialog(nullptr)
+      m_adminId(adminId),           // 1
+      m_dashboard(nullptr),         // 2
+      m_pageStack(nullptr),         // 3
+      m_articles(nullptr),            // 4
+      m_invoicePage(nullptr),       // 5
+      m_clientPage(nullptr),          // 6
+      m_entrepriseConfig(nullptr),    // 7 ← AVANT m_invoiceDialog
+      m_invoiceDialog(nullptr),       // 8 ← APRÈS m_entrepriseConfig
+      invoiceView(nullptr),
+      invoiceModel(nullptr),
+      invoiceSearchEdit(nullptr),
+      invoiceSearchBtn(nullptr),
+      createInvoiceBtn(nullptr),
+      editInvoiceBtn(nullptr),
+      deleteInvoiceBtn(nullptr),
+      actionsBtn(nullptr),
+      paymentBtn(nullptr),
+      refreshInvoicesBtn(nullptr),
+      clientView(nullptr),
+      clientModel(nullptr),
+      searchEdit(nullptr),
+      searchButton(nullptr),
+      addButton(nullptr),
+      editButton(nullptr),
+      deleteButton(nullptr),
+      refreshButton(nullptr)
 {
     setupUI();
 }
 
 AdminWindow::~AdminWindow() {}
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  setupUI  –  sidebar (via DashboardWidget) | QStackedWidget
-// ─────────────────────────────────────────────────────────────────────────────
 void AdminWindow::setupUI()
 {
     setStyleSheet(QString("background:%1;").arg(A::BG));
@@ -74,32 +95,29 @@ void AdminWindow::setupUI()
     root->setContentsMargins(0, 0, 0, 0);
     root->setSpacing(0);
 
-    // ── Sidebar lives inside DashboardWidget ─────────────────────────────────
     m_dashboard = new DashboardWidget(this);
 
-    // ── Right stack ──────────────────────────────────────────────────────────
     m_pageStack = new QStackedWidget;
     m_pageStack->setStyleSheet(QString("background:%1;").arg(A::BG));
 
     // Pages
-    m_pageStack->addWidget(m_dashboard->contentArea()); // index 0 – dashboard content
+    m_pageStack->addWidget(m_dashboard->contentArea()); // index 0
 
     m_articles = new ArticlesWidget(this);
-    m_pageStack->addWidget(m_articles);                 // index 1 – articles
+    m_pageStack->addWidget(m_articles);                 // index 1
 
     m_invoicePage = buildInvoicePage();
-    m_pageStack->addWidget(m_invoicePage);              // index 2 – factures
+    m_pageStack->addWidget(m_invoicePage);              // index 2
 
     m_clientPage  = buildClientPage();
-    m_pageStack->addWidget(m_clientPage);               // index 3 – clients
+    m_pageStack->addWidget(m_clientPage);               // index 3
 
-
-    
+    m_entrepriseConfig = new EntrepriseConfigWidget(this);
+    m_pageStack->addWidget(m_entrepriseConfig);         // index 4
 
     m_pageStack->setCurrentIndex(0);
 
-    // ── Wire sidebar into stack ───────────────────────────────────────────────
-    root->addWidget(m_dashboard->sidebarOnly()); // expose only the 230px sidebar
+    root->addWidget(m_dashboard->sidebarOnly());
     root->addWidget(m_pageStack, 1);
 
     // Signals
@@ -108,25 +126,32 @@ void AdminWindow::setupUI()
     connect(m_dashboard, &DashboardWidget::logoutRequested,
             this, &AdminWindow::onLogout);
 
-    // Articles → InvoiceCreateDialog
+    connect(m_entrepriseConfig, &EntrepriseConfigWidget::configSaved,
+            this, &AdminWindow::onConfigSaved);
+    connect(m_entrepriseConfig, &EntrepriseConfigWidget::backToDashboard,
+            [this]() { m_pageStack->setCurrentIndex(0); });
+
     if (!m_invoiceDialog)
         m_invoiceDialog = new InvoiceCreateDialog(-1, this);
     connect(m_articles, &ArticlesWidget::articleSelected,
             m_invoiceDialog, &InvoiceCreateDialog::onArticleFromCatalog);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
 void AdminWindow::onNavigateTo(const QString &page)
 {
-    if      (page == "dashboard")  m_pageStack->setCurrentIndex(0);
-    else if (page == "articles")   m_pageStack->setCurrentIndex(1);
-    else if (page == "factures")   m_pageStack->setCurrentIndex(2);
-    else if (page == "clients")    m_pageStack->setCurrentIndex(3);
+    if      (page == "dashboard")         m_pageStack->setCurrentIndex(0);
+    else if (page == "articles")          m_pageStack->setCurrentIndex(1);
+    else if (page == "factures")          m_pageStack->setCurrentIndex(2);
+    else if (page == "clients")           m_pageStack->setCurrentIndex(3);
+    else if (page == "entreprise_config") m_pageStack->setCurrentIndex(4);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Factures page
-// ─────────────────────────────────────────────────────────────────────────────
+void AdminWindow::onConfigSaved(const EntrepriseConfig &cfg)
+{
+    Q_UNUSED(cfg)
+    m_pageStack->setCurrentIndex(0);
+}
+
 QWidget* AdminWindow::buildInvoicePage()
 {
     QWidget *page = new QWidget;
@@ -136,20 +161,17 @@ QWidget* AdminWindow::buildInvoicePage()
     vl->setContentsMargins(28, 22, 28, 20);
     vl->setSpacing(16);
 
-    // ── Page header ──────────────────────────────────────────────────────────
     QLabel *ttl = new QLabel("🧾  Gestion des Factures");
     ttl->setStyleSheet(
         QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
                 "font-size:20px;font-weight:700;color:%1;").arg(A::TXT_HEAD));
 
     QLabel *sub = new QLabel("Créez, modifiez et suivez vos factures");
-    sub->setStyleSheet(
-        QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
+    sub->setStyleSheet(QString("font-size:12px;color:%1;").arg(A::TXT_SUB));
 
     vl->addWidget(ttl);
     vl->addWidget(sub);
 
-    // ── Card wrapper ─────────────────────────────────────────────────────────
     QFrame *card = new QFrame;
     card->setStyleSheet(
         QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
@@ -160,7 +182,6 @@ QWidget* AdminWindow::buildInvoicePage()
     cl->setContentsMargins(20, 16, 20, 16);
     cl->setSpacing(12);
 
-    // ── Toolbar ──────────────────────────────────────────────────────────────
     QHBoxLayout *toolbar = new QHBoxLayout;
     toolbar->setSpacing(8);
 
@@ -194,7 +215,6 @@ QWidget* AdminWindow::buildInvoicePage()
     toolbar->addWidget(invoiceSearchBtn);
     toolbar->addWidget(clearBtn);
 
-    // Action buttons row
     QHBoxLayout *actions = new QHBoxLayout;
     actions->setSpacing(8);
 
@@ -205,18 +225,21 @@ QWidget* AdminWindow::buildInvoicePage()
     paymentBtn        = makeBtn("💳 Paiements", A::VIOLET, 110);
     refreshInvoicesBtn= makeBtn("🔄",           A::GRAY,    42);
 
+    // ⬇️ BOUTON EXPORT PDF AJOUTÉ
+    QPushButton *exportPdfBtn = makeBtn("📄 PDF", A::ORANGE, 90);
+
     actions->addWidget(createInvoiceBtn);
     actions->addWidget(editInvoiceBtn);
     actions->addWidget(deleteInvoiceBtn);
     actions->addWidget(actionsBtn);
     actions->addWidget(paymentBtn);
+    actions->addWidget(exportPdfBtn);        // ⬅️ AJOUTÉ
     actions->addStretch();
     actions->addWidget(refreshInvoicesBtn);
 
     cl->addLayout(toolbar);
     cl->addLayout(actions);
 
-    // ── Table ─────────────────────────────────────────────────────────────────
     invoiceModel = new QSqlQueryModel(this);
     invoiceModel->setQuery(
         "SELECT f.id, f.numero, f.type, "
@@ -264,7 +287,6 @@ QWidget* AdminWindow::buildInvoicePage()
     cl->addWidget(invoiceView, 1);
     vl->addWidget(card, 1);
 
-    // ── Connections ───────────────────────────────────────────────────────────
     connect(invoiceSearchBtn, &QPushButton::clicked,
             this, &AdminWindow::onSearchInvoice);
     connect(invoiceSearchEdit, &QLineEdit::returnPressed,
@@ -279,12 +301,12 @@ QWidget* AdminWindow::buildInvoicePage()
     connect(paymentBtn,        &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);
     connect(refreshInvoicesBtn,&QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
 
+    // ⬇️ CONNEXION DU BOUTON EXPORT PDF
+    connect(exportPdfBtn, &QPushButton::clicked, this, &AdminWindow::onExportInvoicePDF);
+
     return page;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-//  Clients page
-// ─────────────────────────────────────────────────────────────────────────────
 QWidget* AdminWindow::buildClientPage()
 {
     QWidget *page = new QWidget;
@@ -294,7 +316,6 @@ QWidget* AdminWindow::buildClientPage()
     vl->setContentsMargins(28, 22, 28, 20);
     vl->setSpacing(16);
 
-    // ── Page header ──────────────────────────────────────────────────────────
     QLabel *ttl = new QLabel("👥  Gestion des Clients");
     ttl->setStyleSheet(
         QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
@@ -305,7 +326,6 @@ QWidget* AdminWindow::buildClientPage()
     vl->addWidget(ttl);
     vl->addWidget(sub);
 
-    // ── Card ─────────────────────────────────────────────────────────────────
     QFrame *card = new QFrame;
     card->setStyleSheet(
         QString("QFrame{background:%1;border-radius:14px;border:1px solid %2;}")
@@ -329,7 +349,6 @@ QWidget* AdminWindow::buildClientPage()
         return b;
     };
 
-    // Search bar
     QHBoxLayout *searchRow = new QHBoxLayout;
     searchRow->setSpacing(8);
     searchEdit = new QLineEdit;
@@ -344,7 +363,6 @@ QWidget* AdminWindow::buildClientPage()
     searchRow->addWidget(searchButton);
     searchRow->addWidget(resetBtn);
 
-    // Actions
     QHBoxLayout *actRow = new QHBoxLayout;
     actRow->setSpacing(8);
     addButton     = makeBtn("➕ Ajouter",   A::GREEN,  100);
@@ -360,7 +378,6 @@ QWidget* AdminWindow::buildClientPage()
     cl->addLayout(searchRow);
     cl->addLayout(actRow);
 
-    // Table
     clientModel = new QSqlTableModel(this);
     clientModel->setTable("clients");
     clientModel->setEditStrategy(QSqlTableModel::OnManualSubmit);
@@ -396,7 +413,6 @@ QWidget* AdminWindow::buildClientPage()
     cl->addWidget(clientView, 1);
     vl->addWidget(card, 1);
 
-    // Connections
     connect(searchButton, &QPushButton::clicked, this, &AdminWindow::onSearch);
     connect(searchEdit,   &QLineEdit::returnPressed, this, &AdminWindow::onSearch);
     connect(resetBtn, &QPushButton::clicked, this, [this]{
@@ -409,11 +425,6 @@ QWidget* AdminWindow::buildClientPage()
 
     return page;
 }
-
-
-// ─────────────────────────────────────────────────────────────────────────────
-//  All slot implementations below are IDENTICAL to the original
-// ─────────────────────────────────────────────────────────────────────────────
 
 void AdminWindow::onSearchInvoice()
 {
@@ -562,4 +573,99 @@ void AdminWindow::onLogout()
     if (QMessageBox::question(this,"Déconnexion","Se déconnecter ?",
             QMessageBox::Yes|QMessageBox::No) == QMessageBox::Yes)
         emit logoutRequested();
+}
+void AdminWindow::onExportInvoicePDF()
+{
+    int row = invoiceView->currentIndex().row();
+    if (row < 0) {
+        QMessageBox::warning(this, "Sélection",
+                             "Sélectionnez une facture à exporter.");
+        return;
+    }
+    int invoiceId = invoiceModel->data(invoiceModel->index(row, 0)).toInt();
+    QString numeroFacture = invoiceModel->data(invoiceModel->index(row, 1)).toString();
+
+    qDebug() << "=== EXPORT PDF ===";
+    qDebug() << "Invoice ID:" << invoiceId;
+    qDebug() << "Numéro:" << numeroFacture;
+
+    // Avant d'appeler generatePDF, construisez le style :
+    InvoiceStyle style;
+    
+    // Valeurs par défaut
+    style.primaryColor  = "#4db8e8";
+    style.logoPath      = "";
+    style.signaturePath = "";
+    style.companyName   = "Votre Entreprise";
+    style.companyICE    = "-";
+    style.companyPhone  = "";
+    style.companyEmail  = "";
+    style.companyWebsite= "";
+
+    EntrepriseConfigManager *mgr = EntrepriseConfigManager::instance();
+    qDebug() << "Manager ptr:" << mgr;
+    qDebug() << "Is configured:" << mgr->isConfigured();
+
+    if (mgr->isConfigured()) {
+        EntrepriseConfig cfg = mgr->loadConfig();
+        qDebug() << "Config chargée:";
+        qDebug() << "  nom:" << cfg.nom;
+        qDebug() << "  rib:" << cfg.rib;
+        qDebug() << "  themeCouleur:" << cfg.themeCouleur.name();
+        qDebug() << "  logoPath:" << cfg.logoPath;
+        qDebug() << "  signaturePath:" << cfg.signaturePath;
+        qDebug() << "  configured:" << cfg.configured;
+
+        if (!cfg.nom.isEmpty())        style.companyName    = cfg.nom;
+        if (!cfg.rib.isEmpty())        style.companyICE     = cfg.rib;
+        if (!cfg.logoPath.isEmpty())   style.logoPath       = cfg.logoPath;
+        if (!cfg.signaturePath.isEmpty()) style.signaturePath = cfg.signaturePath;
+        if (cfg.themeCouleur.isValid()) style.primaryColor  = cfg.themeCouleur.name();
+    } else {
+        qDebug() << "WARNING: Aucune config entreprise trouvée!";
+        QMessageBox::warning(this, "Configuration manquante",
+            "Aucune configuration entreprise trouvée.\n"
+            "Le PDF sera généré avec les valeurs par défaut.\n\n"
+            "Veuillez configurer votre entreprise dans Paramètres > Entreprise.");
+    }
+
+    qDebug() << "Style final:";
+    qDebug() << "  primaryColor:" << style.primaryColor;
+    qDebug() << "  logoPath:" << style.logoPath;
+    qDebug() << "  signaturePath:" << style.signaturePath;
+    qDebug() << "  companyName:" << style.companyName;
+    qDebug() << "  companyICE:" << style.companyICE;
+
+    // Choix du chemin de sauvegarde
+    QString defaultPath = InvoiceGenerator::getPdfOutputPath() + "/" 
+                        + InvoiceGenerator::getInvoiceFileName(numeroFacture);
+    
+    QString filePath = QFileDialog::getSaveFileName(
+        this,
+        "Exporter la facture en PDF",
+        defaultPath,
+        "Fichiers PDF (*.pdf)");
+
+    qDebug() << "Chemin choisi:" << filePath;
+
+    if (filePath.isEmpty()) {
+        qDebug() << "Export annulé par l'utilisateur";
+        return;
+    }
+
+    if (!filePath.endsWith(".pdf", Qt::CaseInsensitive))
+        filePath += ".pdf";
+
+    InvoiceGenerator gen;
+    bool ok = gen.generatePDF(invoiceId, filePath, style);
+    qDebug() << "Résultat generatePDF:" << ok;
+
+    if (ok) {
+        QMessageBox::information(this, "Succès",
+            QString("PDF exporté avec succès !\n\n%1").arg(filePath));
+        QDesktopServices::openUrl(QUrl::fromLocalFile(filePath));
+    } else {
+        QMessageBox::critical(this, "Erreur",
+            "Échec de la génération du PDF.\nVérifiez la console pour plus de détails.");
+    }
 }

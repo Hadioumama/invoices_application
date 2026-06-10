@@ -12,6 +12,7 @@
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
 #include <QLinearGradient>
+#include <QScrollArea>  // ← AJOUTÉ pour le scroll
 
 // ─────────────────────────────────────────────────────────────────────────────
 namespace T {
@@ -49,11 +50,9 @@ static QGraphicsDropShadowEffect* softShadow(int blur = 18, int alpha = 25)
 // ─────────────────────────────────────────────────────────────────────────────
 DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
 {
-    // Build sidebar and content separately; do NOT add them to `this` layout
-    // because AdminWindow will pull them apart via sidebarOnly()/contentArea().
-    setupSidebar();   // creates sidebarWidget
-    setupStatCards(); // creates cardsWidget
-    setupCharts();    // creates chartsWidget
+    setupSidebar();
+    setupStatCards();
+    setupCharts();
 
     // ── Build the right-side content area ────────────────────────────────────
     m_contentArea = new QWidget;
@@ -69,21 +68,21 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     hl->setContentsMargins(0,0,0,0);
 
     QLabel *pageTitle = new QLabel("Vue d'ensemble");
+    // ── CORRECTION : .arg() ajouté pour la couleur ──────────────────────────
     pageTitle->setStyleSheet(
-        "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
-        "font-size:30px;font-weight:900;color:SB_BORDER;");
+        QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
+                "font-size:30px;font-weight:900;color:%1;").arg(T::SB_BORDER));
 
     QLabel *dateLbl = new QLabel(
         QDate::currentDate().toString("dddd d MMMM yyyy"));
-    dateLbl->setStyleSheet("font-size:13px;color:SB_BORDER;font-weight:300;");
-
-    
+    // ── CORRECTION : .arg() ajouté pour la couleur ──────────────────────────
+    dateLbl->setStyleSheet(
+        QString("font-size:13px;color:%1;font-weight:300;").arg(T::SB_BORDER));
 
     hl->addWidget(pageTitle);
     hl->addStretch();
     hl->addWidget(dateLbl);
     hl->addSpacing(10);
-  
 
     cv->addWidget(header);
     cv->addWidget(cardsWidget);
@@ -96,11 +95,10 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     refreshData();
 }
 
-// DashboardWidget itself has NO layout — AdminWindow composes the two parts.
 void DashboardWidget::setupUI() {}
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Sidebar
+//  Sidebar - CORRIGÉ avec QScrollArea + bouton Mon Entreprise
 // ─────────────────────────────────────────────────────────────────────────────
 void DashboardWidget::setupSidebar()
 {
@@ -113,7 +111,7 @@ void DashboardWidget::setupSidebar()
     sl->setContentsMargins(0, 0, 0, 0);
     sl->setSpacing(0);
 
-    // Logo
+    // ── Logo (fixe en haut) ──────────────────────────────────────────────────
     QWidget *logoArea = new QWidget;
     logoArea->setFixedHeight(64);
     logoArea->setStyleSheet(
@@ -141,6 +139,25 @@ void DashboardWidget::setupSidebar()
     ll->addStretch();
     sl->addWidget(logoArea);
 
+    // ── ZONE SCROLLABLE pour la navigation ──────────────────────────────────
+    QScrollArea *scrollArea = new QScrollArea;
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameStyle(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setStyleSheet(
+        "QScrollArea { background:transparent; border:none; }"
+        "QScrollBar:vertical { width:4px; background:transparent; }"
+        "QScrollBar::handle:vertical { background:#CBD5E1; border-radius:2px; min-height:30px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0px; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }");
+
+    QWidget *navContainer = new QWidget;
+    navContainer->setStyleSheet("background:transparent;");
+    QVBoxLayout *navLayout = new QVBoxLayout(navContainer);
+    navLayout->setContentsMargins(0, 0, 0, 0);
+    navLayout->setSpacing(0);
+
     // Section label helper
     auto addSection = [&](const QString &label) {
         QLabel *sec = new QLabel(label.toUpper());
@@ -149,7 +166,7 @@ void DashboardWidget::setupSidebar()
             QString("font-size:9px;font-weight:700;color:%1;"
                     "letter-spacing:1.8px;padding:0 20px;")
                 .arg(T::SB_SECTION));
-        sl->addWidget(sec);
+        navLayout->addWidget(sec);
     };
 
     // Nav item helper
@@ -195,13 +212,12 @@ void DashboardWidget::setupSidebar()
                     "QPushButton:hover{background:%2;}")
                 .arg(isActive ? T::SB_ACTIVE_BG : "transparent", T::SB_HOVER));
 
-        sl->addWidget(btn);
+        navLayout->addWidget(btn);
 
         connect(btn, &QPushButton::clicked, this,
                 [this, btn, bar, txt, page]()
         {
             if (activeNavBtn && activeNavBtn != btn) {
-                // Reset previous (find its bar/text children)
                 QHBoxLayout *prevL =
                     qobject_cast<QHBoxLayout*>(activeNavBtn->layout());
                 if (prevL) {
@@ -215,7 +231,7 @@ void DashboardWidget::setupSidebar()
                         prevBar->setStyleSheet("background:transparent;border-radius:0;");
                     if (prevTxt)
                         prevTxt->setStyleSheet(
-                            QString("font-size:13px;font-weight:400;color:%1;"
+                            QString("font-size:15px;font-weight:700;color:%1;"
                                     "background:transparent;").arg(T::SB_TEXT));
                     activeNavBtn->setStyleSheet(
                         QString("QPushButton{background:transparent;border:none;}"
@@ -226,7 +242,7 @@ void DashboardWidget::setupSidebar()
             bar->setStyleSheet(
                 QString("background:%1;border-radius:0;").arg(T::SB_ACCENT));
             txt->setStyleSheet(
-                QString("font-size:13px;font-weight:600;color:%1;"
+                QString("font-size:15px;font-weight:800;color:%1;"
                         "background:transparent;").arg(T::SB_TEXT_ACT));
             btn->setStyleSheet(
                 QString("QPushButton{background:%1;border:none;}"
@@ -238,19 +254,64 @@ void DashboardWidget::setupSidebar()
         return btn;
     };
 
-    sl->addSpacing(8);
-
+    // ── SECTION PRINCIPAL ────────────────────────────────────────────────────
+    navLayout->addSpacing(8);
     addSection("Principal");
     addNavItem("▦",  "Tableau de bord",  "dashboard",  true);
     addNavItem("🧾", "Gestion Factures", "factures");
     addNavItem("👥", "Gestion Clients",  "clients");
     addNavItem("📦", "Gestion Articles", "articles");
 
-    sl->addSpacing(8);
-    
+    // ── SECTION PARAMÈTRES (NOUVEAU) ───────────────────────────────────────
+    navLayout->addSpacing(8);
+    addSection("Paramètres");
 
-    sl->addStretch();
+    // Bouton Mon Entreprise
+    QPushButton *configBtn = new QPushButton;
+    configBtn->setFixedHeight(46);
+    configBtn->setCursor(Qt::PointingHandCursor);
+    configBtn->setFlat(true);
 
+    QHBoxLayout *cl = new QHBoxLayout(configBtn);
+    cl->setContentsMargins(0, 0, 0, 0);
+    cl->setSpacing(0);
+
+    QFrame *cBar = new QFrame;
+    cBar->setFixedWidth(3);
+    cBar->setStyleSheet("background:transparent;border-radius:0;");
+
+    QLabel *cIco = new QLabel("⚙️");
+    cIco->setFixedWidth(36);
+    cIco->setAlignment(Qt::AlignCenter);
+    cIco->setStyleSheet("font-size:15px;background:transparent;");
+
+    QLabel *cTxt = new QLabel("Mon Entreprise");
+    cTxt->setStyleSheet(
+        QString("font-size:15px;font-weight:700;color:%1;background:transparent;")
+            .arg(T::SB_TEXT));
+
+    cl->addWidget(cBar);
+    cl->addSpacing(10);
+    cl->addWidget(cIco);
+    cl->addWidget(cTxt);
+    cl->addStretch();
+
+    configBtn->setStyleSheet(
+        QString("QPushButton{background:transparent;border:none;}"
+                "QPushButton:hover{background:%1;}").arg(T::SB_HOVER));
+
+    navLayout->addWidget(configBtn);
+
+    connect(configBtn, &QPushButton::clicked, this, [this]() {
+        emit navigateTo("entreprise_config");
+    });
+
+    navLayout->addStretch();  // ← Stretch DANS le scroll, pas dans la sidebar principale
+
+    scrollArea->setWidget(navContainer);
+    sl->addWidget(scrollArea, 1);  // ← stretch factor 1, prend l'espace disponible
+
+    // ── BAS DE SIDEBAR (fixe, toujours visible) ──────────────────────────────
     // Divider
     QFrame *div = new QFrame;
     div->setFixedHeight(1);
@@ -272,19 +333,18 @@ void DashboardWidget::setupSidebar()
     QLabel *avatar = new QLabel("A");
     avatar->setFixedSize(30, 30);
     avatar->setAlignment(Qt::AlignCenter);
+    // ── CORRECTION : .arg() en trop supprimé ────────────────────────────────
     avatar->setStyleSheet(
-        QString("border-radius:11px;"
-                "font-size:15px;font-weight:700;color:#0F172A;")
-            .arg(T::SB_LOGO));
+        "border-radius:11px;font-size:15px;font-weight:700;color:#0F172A;");
 
     QVBoxLayout *uinfo = new QVBoxLayout;
     uinfo->setSpacing(1);
     QLabel *uname = new QLabel("Administrateur");
-   uname->setStyleSheet(
-    "font-size:11px;font-weight:600;color:#FFFFFF;background:transparent;");
+    uname->setStyleSheet(
+        "font-size:11px;font-weight:600;color:#FFFFFF;background:transparent;");
     QLabel *urole = new QLabel("Super Admin");
-  urole->setStyleSheet(
-    "font-size:10px;color:rgba(255,255,255,0.75);background:transparent;");
+    urole->setStyleSheet(
+        "font-size:10px;color:rgba(255,255,255,0.75);background:transparent;");
     uinfo->addWidget(uname);
     uinfo->addWidget(urole);
 
@@ -416,7 +476,7 @@ void DashboardWidget::setupCharts()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-//  Runtime — logique inchangée
+//  Runtime
 // ─────────────────────────────────────────────────────────────────────────────
 void DashboardWidget::refreshData()
 {

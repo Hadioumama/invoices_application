@@ -3,21 +3,23 @@
 
 #include <QWidget>
 #include <QStackedWidget>
+#include "views/dashboardwidget.h"
+#include "views/articleswidget.h"
+#include "views/entreprise_config_widget.h"
+#include "models/entreprise_config.h"
+
+#include "dialogs/invoiceeditdialog.h"
+#include "dialogs/client_edit_dialog.h"
+#include "dialogs/invoicecreatedialog.h"
+#include "dialogs/invoiceactiondialog.h"
+#include "dialogs/paymentdialog.h"
+
 #include <QTableView>
 #include <QSqlQueryModel>
 #include <QSqlTableModel>
-#include <QLabel>
-#include <QLineEdit>
-#include <QPushButton>
 
-class DashboardWidget;
-class ArticlesWidget;
-class InvoiceCreateDialog;
-
-class AdminWindow : public QWidget
-{
+class AdminWindow : public QWidget {
     Q_OBJECT
-
 public:
     explicit AdminWindow(int adminId, QWidget *parent = nullptr);
     ~AdminWindow();
@@ -26,10 +28,11 @@ signals:
     void logoutRequested();
 
 private slots:
-    // Navigation
     void onNavigateTo(const QString &page);
+    void onLogout();
+    void onConfigSaved(const EntrepriseConfig &cfg);
 
-    // Factures
+    // Invoice slots
     void onSearchInvoice();
     void onCreateInvoice();
     void onEditInvoice();
@@ -37,62 +40,50 @@ private slots:
     void onInvoiceActions();
     void onPaymentClicked();
     void onRefreshInvoices();
-
-    // Clients
+      void onExportInvoicePDF(); 
+    // Client slots
     void refreshModel();
     void onSearch();
     void onAddClient();
     void onEditClient();
     void onDeleteClient();
 
-    // Logout
-    void onLogout();
-
 private:
     void setupUI();
     QWidget* buildInvoicePage();
     QWidget* buildClientPage();
-    QWidget* buildPlaceholderPage(const QString &icon,
-                                  const QString &title,
-                                  const QString &subtitle);
 
-    int m_adminId;
+    // ── ORDRE CORRECT (doit matcher l'ordre d'initialisation dans le constructeur) ──
+    int m_adminId;                          // 1
+    DashboardWidget *m_dashboard;           // 2
+    QStackedWidget *m_pageStack;            // 3
+    ArticlesWidget *m_articles;             // 4
+    QWidget *m_invoicePage;                 // 5
+    QWidget *m_clientPage;                  // 6
+    EntrepriseConfigWidget *m_entrepriseConfig;  // 7
+    InvoiceCreateDialog *m_invoiceDialog;   // 8 ← APRÈS m_entrepriseConfig
 
-    // Core layout
-    DashboardWidget  *m_dashboard;
-    ArticlesWidget   *m_articles;
-    QStackedWidget   *m_pageStack;   // centre droit
-
-    // Pages
-    QWidget *m_invoicePage;
-    QWidget *m_clientPage;
-    QWidget *m_rapportsPage;
-    QWidget *m_parametresPage;
-
-    // ── Factures widgets ─────────────────────────────────────────────────────
-    QLineEdit    *invoiceSearchEdit;
-    QPushButton  *invoiceSearchBtn;
-    QPushButton  *createInvoiceBtn;
-    QPushButton  *editInvoiceBtn;
-    QPushButton  *deleteInvoiceBtn;
-    QPushButton  *actionsBtn;
-    QPushButton  *paymentBtn;
-    QPushButton  *refreshInvoicesBtn;
-    QTableView   *invoiceView;
+    // Invoice page widgets
+    QTableView *invoiceView;
     QSqlQueryModel *invoiceModel;
+    QLineEdit *invoiceSearchEdit;
+    QPushButton *invoiceSearchBtn;
+    QPushButton *createInvoiceBtn;
+    QPushButton *editInvoiceBtn;
+    QPushButton *deleteInvoiceBtn;
+    QPushButton *actionsBtn;
+    QPushButton *paymentBtn;
+    QPushButton *refreshInvoicesBtn;
 
-    // ── Clients widgets ──────────────────────────────────────────────────────
-    QLineEdit    *searchEdit;
-    QPushButton  *searchButton;
-    QPushButton  *addButton;
-    QPushButton  *editButton;
-    QPushButton  *deleteButton;
-    QPushButton  *refreshButton;
-    QTableView   *clientView;
+    // Client page widgets
+    QTableView *clientView;
     QSqlTableModel *clientModel;
-
-    // Dialog
-    InvoiceCreateDialog *m_invoiceDialog;
+    QLineEdit *searchEdit;
+    QPushButton *searchButton;
+    QPushButton *addButton;
+    QPushButton *editButton;
+    QPushButton *deleteButton;
+    QPushButton *refreshButton;
 };
 
-#endif // ADMINWINDOW_H
+#endif

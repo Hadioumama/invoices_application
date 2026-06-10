@@ -31,7 +31,7 @@ void ArticleEditDialog::setupUI()
     setMinimumWidth(420);
 
     setStyleSheet(
-        "QDialog { background:#F7FAFC; }" 
+          "ArticleEditDialog { background:#F7FAFC; }" 
         "QGroupBox {"
         "  font-weight:bold;border:1px solid #CBD5E0;"
         "  border-radius:6px;margin-top:8px;"

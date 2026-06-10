@@ -15,18 +15,20 @@ SOURCES += \
     dialogs/invoiceactiondialog.cpp \
     dialogs/invoicedialog.cpp \
     dialogs/invoiceitemdialog.cpp \
-    dialogs/invoiceeditdialog.cpp\
+    dialogs/invoiceeditdialog.cpp \
     utils/emailsender.cpp \
     utils/invoicesenderdialog.cpp \
     utils/invoicegenerator.cpp \
     views/clientwindow.cpp \
-    views/dashboardwidget.cpp\
+    views/dashboardwidget.cpp \
     views/adminwindow.cpp \
-    views/invoicemanagementwidget.cpp\
+    views/invoicemanagementwidget.cpp \
     views/articleswidget.cpp \
-        dialogs/articleeditdialog.cpp
+    dialogs/articleeditdialog.cpp \
+    views/entreprise_config_widget.cpp \
+    utils/entreprise_config_manager.cpp
+
 HEADERS += \
-    dialogs/paymentdialog.h \
     mainwindow.h \
     database/database.h \
     models/client.h \
@@ -35,7 +37,7 @@ HEADERS += \
     dialogs/client_edit_dialog.h \
     dialogs/invoicecreatedialog.h \
     dialogs/invoiceactiondialog.h \
-    dialogs/invoiceeditdialog.h\
+    dialogs/invoiceeditdialog.h \
     dialogs/invoicedialog.h \
     dialogs/invoiceitemdialog.h \
     models/payment.h \
@@ -45,14 +47,15 @@ HEADERS += \
     utils/invoicegenerator.h \
     views/clientwindow.h \
     views/adminwindow.h \
-     views/dashboardwidget.h\
-    views/invoicemanagementwidget.h\
+    views/dashboardwidget.h \
+    views/invoicemanagementwidget.h \
     views/articleswidget.h \
-    dialogs/articleeditdialog.h
-    dialogs/paymentdialog.h
-
+    dialogs/articleeditdialog.h \
+    dialogs/paymentdialog.h \
+    models/entreprise_config.h \
+    views/entreprise_config_widget.h \
+    utils/entreprise_config_manager.h
 FORMS += \
     mainwindow.ui
 
-RESOURCES += \
-    ressources.qrc
+QMAKE_CXXFLAGS_WARN_ON -= -Werror

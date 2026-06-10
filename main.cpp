@@ -10,17 +10,17 @@ int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
  a.setStyle(QStyleFactory::create("Fusion"));
-    QPalette light;
-    light.setColor(QPalette::Window,          QColor("#F7FAFC"));
-    light.setColor(QPalette::WindowText,      QColor("#1A202C"));
-    light.setColor(QPalette::Base,            QColor("#FFFFFF"));
-    light.setColor(QPalette::AlternateBase,   QColor("#EDF2F7"));
-    light.setColor(QPalette::Text,            QColor("#1A202C"));
-    light.setColor(QPalette::Button,          QColor("#EDF2F7"));
-    light.setColor(QPalette::ButtonText,      QColor("#1A202C"));
-    light.setColor(QPalette::PlaceholderText, QColor("#A0AEC0"));
-    light.setColor(QPalette::Highlight,       QColor("#3182CE"));
-    light.setColor(QPalette::HighlightedText, QColor("#FFFFFF"));
+   QPalette light;
+    light.setColor(QPalette::Window,          QColor(247, 250, 252));
+    light.setColor(QPalette::WindowText,      QColor( 26,  32,  44));
+    light.setColor(QPalette::Base,            QColor(255, 255, 255));
+    light.setColor(QPalette::AlternateBase,   QColor(237, 242, 247));
+    light.setColor(QPalette::Text,            QColor( 26,  32,  44));
+    light.setColor(QPalette::Button,          QColor(237, 242, 247));
+    light.setColor(QPalette::ButtonText,      QColor( 26,  32,  44));
+    light.setColor(QPalette::PlaceholderText, QColor(160, 174, 192));
+    light.setColor(QPalette::Highlight,       QColor( 49, 130, 206));
+    light.setColor(QPalette::HighlightedText, QColor(255, 255, 255));
     a.setPalette(light);
     if (!Database::instance().connect("facturation.db")) {
         QMessageBox::critical(nullptr, "Erreur", 

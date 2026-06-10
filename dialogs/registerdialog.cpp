@@ -38,8 +38,8 @@ RegisterDialog::~RegisterDialog() = default;
 void RegisterDialog::setupUI()
 {
     setWindowTitle("Créer un compte");
-    setMinimumSize(520, 600);
-    resize(580, 720);
+    setMinimumSize(520, 560);   // ← MODIFIÉ : 600→560
+    resize(580, 680);           // ← MODIFIÉ : 720→680
     setWindowFlags(Qt::Dialog | Qt::WindowCloseButtonHint);
 
     // ===== FOND GRIS CLAIR =====
@@ -271,17 +271,33 @@ void RegisterDialog::setupUI()
     formLayout->addSpacing(14);
 
     // --------------------------------------------------------
-    // 2.5 ENTREPRISE (Conditionnelle)
+    // 2.5 ENTREPRISE (Conditionnelle) — MODIFIÉ
     // --------------------------------------------------------
     m_entrepriseWidget = new QWidget;
     QVBoxLayout *entrepriseLayout = new QVBoxLayout(m_entrepriseWidget);
     entrepriseLayout->setSpacing(0);
     entrepriseLayout->setContentsMargins(0, 0, 0, 0);
 
-    addField("Nom entreprise *", "Nom de l'entreprise", m_lineEditNomEntreprise);
+    // Label + champ Nom entreprise (encapsulés dans le widget)
+    QLabel *nomEntLabel = new QLabel("Nom entreprise *");
+    nomEntLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;");
+    entrepriseLayout->addWidget(nomEntLabel);
+
+    m_lineEditNomEntreprise = new QLineEdit;
+    m_lineEditNomEntreprise->setPlaceholderText("Nom de l'entreprise");
+    m_lineEditNomEntreprise->setFixedHeight(42);
+    entrepriseLayout->addWidget(m_lineEditNomEntreprise);
     entrepriseLayout->addSpacing(14);
 
-    addField("ICE", "Identifiant Commun de l'Entreprise", m_lineEditICE);
+    // Label + champ ICE (encapsulés dans le widget)
+    QLabel *iceLabel = new QLabel("ICE");
+    iceLabel->setStyleSheet("font-size: 13px; font-weight: 600; color: #4A5568; margin-bottom: 4px;");
+    entrepriseLayout->addWidget(iceLabel);
+
+    m_lineEditICE = new QLineEdit;
+    m_lineEditICE->setPlaceholderText("Identifiant Commun de l'Entreprise");
+    m_lineEditICE->setFixedHeight(42);
+    entrepriseLayout->addWidget(m_lineEditICE);
 
     m_entrepriseWidget->setVisible(false);
     formLayout->addWidget(m_entrepriseWidget);
@@ -318,11 +334,11 @@ void RegisterDialog::setupUI()
     // ========================================================
     QWidget *footerWidget = new QWidget(card);
     footerWidget->setStyleSheet("background-color: white; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;");
-    footerWidget->setFixedHeight(130);
+    footerWidget->setFixedHeight(90);  // ← MODIFIÉ : 130→90
 
     QVBoxLayout *footerLayout = new QVBoxLayout(footerWidget);
-    footerLayout->setContentsMargins(32, 8, 32, 20);
-    footerLayout->setSpacing(8);
+    footerLayout->setContentsMargins(32, 6, 32, 12);  // ← MODIFIÉ
+    footerLayout->setSpacing(6);  // ← MODIFIÉ : 8→6
 
     m_statusLabel = new QLabel("");
     m_statusLabel->setAlignment(Qt::AlignCenter);
@@ -331,12 +347,12 @@ void RegisterDialog::setupUI()
     footerLayout->addWidget(m_statusLabel);
 
     m_pushButtonEnregistrer = new QPushButton("S'enregistrer");
-    m_pushButtonEnregistrer->setFixedHeight(44);
+    m_pushButtonEnregistrer->setFixedHeight(38);  // ← MODIFIÉ : 44→38
     m_pushButtonEnregistrer->setCursor(Qt::PointingHandCursor);
     footerLayout->addWidget(m_pushButtonEnregistrer);
 
     m_pushButtonAnnuler = new QPushButton("Annuler");
-    m_pushButtonAnnuler->setFixedHeight(40);
+    m_pushButtonAnnuler->setFixedHeight(34);  // ← MODIFIÉ : 40→34
     m_pushButtonAnnuler->setCursor(Qt::PointingHandCursor);
     m_pushButtonAnnuler->setStyleSheet(R"(
         QPushButton {

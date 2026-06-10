@@ -3,7 +3,7 @@
 
 #include <QDialog>
 #include <QVector>
-
+#include <QLabel>
 class QLineEdit;
 class QDateEdit;
 class QComboBox;
@@ -52,6 +52,8 @@ protected:
 private:
     QWidget *m_footer = nullptr;
     QScrollArea *m_scroll = nullptr;
+     QWidget *m_persoSection = nullptr;   // ← AJOUTER
+    QFrame  *m_persoCard    = nullptr;   // ← AJOUTER
 private:
     void setupUI();
     void loadClients();

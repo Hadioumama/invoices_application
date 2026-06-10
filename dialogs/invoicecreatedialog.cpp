@@ -1,4 +1,5 @@
 #include "invoicecreatedialog.h"
+#include "utils/entreprise_config_manager.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QLabel>
@@ -21,14 +22,28 @@
 #include <QFrame>
 #include <QScrollArea>
 
+// ✅ APRÈS
 InvoiceCreateDialog::InvoiceCreateDialog(int invoiceId, QWidget *parent)
     : QDialog(parent), m_invoiceId(invoiceId), m_isEditMode(invoiceId > 0)
 {
     setupUI();
+
+    // Si l'entreprise est configurée, cacher la section personnalisation
+    // et pré-remplir logo/signature depuis la config
+    EntrepriseConfigManager *mgr = EntrepriseConfigManager::instance();
+    if (mgr->isConfigured()) {
+        EntrepriseConfig cfg = mgr->loadConfig();
+        // Pré-remplir les champs (utilisés dans onSave)
+        logoPathEdit->setText(cfg.logoPath);
+        signaturePathEdit->setText(cfg.signaturePath);
+        // Cacher la section personnalisation
+        m_persoSection->setVisible(false);
+        m_persoCard->setVisible(false);
+    }
+
     if (m_isEditMode)
         loadInvoiceLines();
 }
-
 // ============================================================
 // HELPERS COMPACTS
 // ============================================================
@@ -191,10 +206,11 @@ void InvoiceCreateDialog::setupUI()
     fl->addLayout(r2);
     scrollLayout->addWidget(fc);
 
-    // 2. Personnalisation
-    scrollLayout->addWidget(createSectionTitle(
-        "Personnalisation","🎨"));
-    QFrame *prc = createCard();
+// 2. Personnalisation
+m_persoSection = createSectionTitle("Personnalisation","🎨");
+scrollLayout->addWidget(m_persoSection);
+QFrame *prc = createCard();
+m_persoCard = prc;
     QVBoxLayout *prl =
         qobject_cast<QVBoxLayout*>(prc->layout());
     QString bfs =

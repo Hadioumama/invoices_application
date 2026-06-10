@@ -20,7 +20,8 @@ InvoiceGenerator::InvoiceGenerator() {}
 QString InvoiceGenerator::getPdfOutputPath()
 {
     QString path = QStandardPaths::writableLocation(
-                       QStandardPaths::DocumentsLocation) + "/Factures";
+                       QStandardPaths::DocumentsLocation) +
+                   "/Factures";
     QDir().mkpath(path);
     return path;
 }
@@ -28,15 +29,25 @@ QString InvoiceGenerator::getPdfOutputPath()
 QString InvoiceGenerator::getInvoiceFileName(const QString &numeroFacture)
 {
     QString n = numeroFacture;
-    return QString("Facture_%1.pdf").arg(n.replace("/","_").replace(" ","_"));
+    return QString("Facture_%1.pdf").arg(n.replace("/", "_").replace(" ", "_"));
 }
-
 
 static QString imageToBase64Html(const QString &path, int maxW, int maxH)
 {
-    if (path.isEmpty() || !QFile::exists(path)) return "";
+    qDebug() << "  imageToBase64Html - path:" << path;
+    qDebug() << "  File exists?" << QFile::exists(path);
+
+    if (path.isEmpty() || !QFile::exists(path)) {
+        qDebug() << "  -> RETURNING EMPTY";
+        return "";
+    }
+
     QFile f(path);
-    if (!f.open(QIODevice::ReadOnly)) return "";
+    if (!f.open(QIODevice::ReadOnly)) {
+        qDebug() << "  -> CANNOT OPEN FILE";
+        return "";
+    }
+
     QByteArray data = f.readAll();
     QString ext = QFileInfo(path).suffix().toLower();
     QString mime = (ext == "png") ? "image/png" : "image/jpeg";
@@ -44,24 +55,38 @@ static QString imageToBase64Html(const QString &path, int maxW, int maxH)
     QImage img(path);
     int w = img.width();
     int h = img.height();
-    
+    qDebug() << "  Image size:" << w << "x" << h;
+
     if (w > maxW || h > maxH) {
         qreal ratio = qMin((qreal)maxW / w, (qreal)maxH / h);
         w = qRound(w * ratio);
         h = qRound(h * ratio);
     }
 
-    return QString("<img src='data:%1;base64,%2' width='%3' height='%4'/>")
-           .arg(mime, QString(data.toBase64()))
-           .arg(w).arg(h);
+    QString result = QString("<img src='data:%1;base64,%2' width='%3' height='%4'/>")
+        .arg(mime, QString(data.toBase64()))
+        .arg(w)
+        .arg(h);
+
+    qDebug() << "  -> SUCCESS, html length:" << result.length();
+    return result;
 }
 
 bool InvoiceGenerator::generatePDF(int invoiceId,
-                                    const QString &filePath,
-                                    const InvoiceStyle &style)
+                                   const QString &filePath,
+                                   const InvoiceStyle &style)
 {
+    qDebug() << "=== generatePDF START ===";
+    qDebug() << "invoiceId:" << invoiceId;
+    qDebug() << "filePath:" << filePath;
+    qDebug() << "style.primaryColor:" << style.primaryColor;
+    qDebug() << "style.logoPath:" << style.logoPath;
+    qDebug() << "style.signaturePath:" << style.signaturePath;
+    qDebug() << "style.companyName:" << style.companyName;
+    qDebug() << "style.companyICE:" << style.companyICE;
+
     // Données facture
-        QSqlQuery q;
+    QSqlQuery q;
     q.prepare("SELECT numero, type, client_nom, client_adresse, "
               "client_tel, client_email, date_creation, date_echeance, "
               "total_ht, total_tva, total_ttc, statut, "
@@ -73,52 +98,75 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         return false;
     }
 
-    QString numero       = q.value(0).toString();
-    QString type         = q.value(1).toString();
-    QString clientNom    = q.value(2).toString();
-    QString clientAddr   = q.value(3).toString();
-    QString clientTel    = q.value(4).toString();
-    QString clientEmail  = q.value(5).toString();
+    QString numero = q.value(0).toString();
+    QString type = q.value(1).toString();
+    QString clientNom = q.value(2).toString();
+    QString clientAddr = q.value(3).toString();
+    QString clientTel = q.value(4).toString();
+    QString clientEmail = q.value(5).toString();
     QString dateCreation = q.value(6).toDate().toString("dd/MM/yyyy");
     QString dateEcheance = q.value(7).toDate().toString("dd/MM/yyyy");
-    double  totalHT      = q.value(8).toDouble();
-    double  totalTVA     = q.value(9).toDouble();
-    double  totalTTC     = q.value(10).toDouble();
-        QString statut       = q.value(11).toString();
-    
+    double totalHT = q.value(8).toDouble();
+    double totalTVA = q.value(9).toDouble();
+    double totalTTC = q.value(10).toDouble();
+    QString statut = q.value(11).toString();
+
     // Récupérer les chemins depuis la base de données
-    QString dbLogoPath      = q.value(12).toString();
+    QString dbLogoPath = q.value(12).toString();
     QString dbSignaturePath = q.value(13).toString();
 
-    // Fusionner avec le style passé en paramètre (priorité au style personnalisé, sinon DB)
+    qDebug() << "DB logo_path:" << dbLogoPath;
+    qDebug() << "DB signature_path:" << dbSignaturePath;
+
+    // ============================================
+    // FUSION : Priorité au style passé en paramètre (AdminWindow)
+    // ============================================
     InvoiceStyle finalStyle = style;
-    
-    if (finalStyle.logoPath.isEmpty() && !dbLogoPath.isEmpty()) {
+
+    // Si le style passé en paramètre est vide, on prend la DB
+    if (finalStyle.logoPath.isEmpty() && !dbLogoPath.isEmpty())
         finalStyle.logoPath = dbLogoPath;
-    }
-    if (finalStyle.signaturePath.isEmpty() && !dbSignaturePath.isEmpty()) {
+    if (finalStyle.signaturePath.isEmpty() && !dbSignaturePath.isEmpty())
         finalStyle.signaturePath = dbSignaturePath;
+
+    // Si toujours vide, valeurs par défaut
+    if (finalStyle.primaryColor.isEmpty()) finalStyle.primaryColor = "#4db8e8";
+    if (finalStyle.companyName.isEmpty()) finalStyle.companyName = "Votre Entreprise";
+    if (finalStyle.companyICE.isEmpty()) finalStyle.companyICE = "-";
+    if (finalStyle.companyPhone.isEmpty()) finalStyle.companyPhone = "+212 5XX XXX XXX";
+    if (finalStyle.companyEmail.isEmpty()) finalStyle.companyEmail = "contact@entreprise.com";
+    if (finalStyle.companyWebsite.isEmpty()) finalStyle.companyWebsite = "www.entreprise.com";
+
+    QString primaryColor = finalStyle.primaryColor;
+    QString pc = primaryColor;
+
+    qDebug() << "=== FINAL STYLE ===";
+    qDebug() << "primaryColor:" << finalStyle.primaryColor;
+    qDebug() << "logoPath:" << finalStyle.logoPath;
+    qDebug() << "signaturePath:" << finalStyle.signaturePath;
+    qDebug() << "companyName:" << finalStyle.companyName;
+    qDebug() << "companyICE:" << finalStyle.companyICE;
+
+    // Logo en base64
+    QString logoHtml = imageToBase64Html(finalStyle.logoPath, 130, 65);
+    if (logoHtml.isEmpty()) {
+        // Logo par défaut : nom de l'entreprise en texte
+        logoHtml = QString("<span style='font-size:14px;font-weight:900;color:white;'>%1</span>")
+                   .arg(finalStyle.companyName.toHtmlEscaped());
     }
 
-    QString primaryColor = finalStyle.primaryColor.isEmpty() ? "#4db8e8" : finalStyle.primaryColor;
-    qDebug() << "Logo:" << finalStyle.logoPath << "Signature:" << finalStyle.signaturePath;
-    qDebug() << "primaryColor:" << style.primaryColor << "→ utilisée:" << primaryColor;
-
-       QString logoHtml = imageToBase64Html(finalStyle.logoPath, 130, 65);
-    if (logoHtml.isEmpty())
-        logoHtml = QString("<span style='font-size:16px;font-weight:900;color:white;letter-spacing:2px;'></span>");
-
-    // Signature en base64 si fournie
-  QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);
+    // Signature en base64
+    QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);
     if (!signatureHtml.isEmpty()) {
         signatureHtml = QString(
             "<div style='text-align:right;margin-bottom:2px;'>"
             "<p style='color:%1; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Signature:</p>"
             "%2"
-            "</div>"
-        ).arg(finalStyle.primaryColor.isEmpty() ? "#4db8e8" : finalStyle.primaryColor)
-         .arg(signatureHtml);
+            "</div>")
+            .arg(pc)
+            .arg(signatureHtml);
     }
+
     // Lignes articles
     QSqlQuery lq;
     lq.prepare("SELECT designation, quantite, prix_unitaire_ht, taux_tva "
@@ -131,33 +179,33 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
     if (lq.exec()) {
         while (lq.next()) {
             nombreLignes++;
-            QString des  = lq.value(0).toString().toHtmlEscaped();
-            int     qty  = lq.value(1).toInt();
-            double  prix = lq.value(2).toDouble();
-            Q_UNUSED(lq.value(3).toDouble());
-            double  tot  = qty * prix;
-            
+            QString des = lq.value(0).toString().toHtmlEscaped();
+            int qty = lq.value(1).toInt();
+            double prix = lq.value(2).toDouble();
+            double tauxTva = lq.value(3).toDouble();
+            double tot = qty * prix;
+
             rowsHtml += QString(
                 "<tr style='border-bottom:1px solid #d0d0d0;'>"
                 "<td style='padding:7px 10px; font-size:10px; color:#333; border-right:1px solid #e0e0e0;'>%1. %2</td>"
                 "<td style='padding:7px 10px; font-size:10px; color:#555; text-align:center; border-right:1px solid #e0e0e0;'>%3</td>"
                 "<td style='padding:7px 10px; font-size:10px; color:#555; text-align:center; border-right:1px solid #e0e0e0;'>$%4</td>"
                 "<td style='padding:7px 10px; font-size:10px; color:#555; text-align:center; font-weight:bold;'>$%5</td>"
-                "</tr>"
-            ).arg(rowNum).arg(des).arg(qty)
-             .arg(QString::number(prix,'f',2))
-             .arg(QString::number(tot,'f',2));
-            
+                "</tr>")
+                .arg(rowNum)
+                .arg(des)
+                .arg(qty)
+                .arg(QString::number(prix, 'f', 2))
+                .arg(QString::number(tot, 'f', 2));
+
             rowNum++;
         }
     }
 
-    // ============================================
-    // LIGNES VIDES AVEC BORDURES GRIS CLAIR
-    // ============================================
+    // Lignes vides
     int lignesVides = 11 - nombreLignes;
     if (lignesVides < 6) lignesVides = 6;
-    
+
     for (int i = 0; i < lignesVides; i++) {
         rowsHtml += QString(
             "<tr style='border-bottom:1px solid #d0d0d0;'>"
@@ -165,13 +213,17 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
             "<td style='padding:7px 10px; font-size:10px; color:#ccc; text-align:center; border-right:1px solid #e0e0e0;'>-</td>"
             "<td style='padding:7px 10px; font-size:10px; color:#ccc; text-align:center; border-right:1px solid #e0e0e0;'>-</td>"
             "<td style='padding:7px 10px; font-size:10px; color:#ccc; text-align:center;'>-</td>"
-            "</tr>"
-        );
+            "</tr>");
     }
 
     // ============================================
-    // HTML COMPLET - BORDURES DE TABLEAU + DÉCALAGE BAS
+    // HTML COMPLET - VERSION CORRIGÉE
     // ============================================
+    // On construit le HTML avec des .arg() successifs et cohérents
+
+    QString bankInfoHtml = finalStyle.companyName.toHtmlEscaped() + "<br>RIB: " 
+                         + (finalStyle.companyICE.isEmpty() ? "-" : finalStyle.companyICE.toHtmlEscaped());
+
     QString html = QString(
         "<!DOCTYPE html>"
         "<html>"
@@ -182,10 +234,10 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
 
         // HEADER
         "<tr>"
-        "<td style='background-color:%22; padding:12px 30px;'>"
+        "<td style='background-color:%1; padding:12px 30px;'>"
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
-        "<td style='width:50%;'>%21</td>"
+        "<td style='width:50%;'>%2</td>"
         "<td style='width:50%; text-align:right;'>"
         "<span style='font-size:25px; font-weight:bold; letter-spacing:2px; color:white;'>INVOICE</span>"
         "</td>"
@@ -202,14 +254,14 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:60%;'>"
-       "<p style='color:#333; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Invoice to:</p>"
-"<p style='color:#333; font-size:9px; line-height:1.4; margin:0;'>"
-"<b>Name:</b> %1<br><b>Address:</b> %2<br><b>Email:</b> %3<br><b>Tel:</b> %24"
-"</p>"
+        "<p style='color:#333; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Invoice to:</p>"
+        "<p style='color:#333; font-size:9px; line-height:1.4; margin:0;'>"
+        "<b>Name:</b> %3<br><b>Address:</b> %4<br><b>Email:</b> %5<br><b>Tel:</b> %6"
+        "</p>"
         "</td>"
         "<td style='width:40%; text-align:right;'>"
-      "<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Invoice No: %4</p>"
-"<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Date: %5</p>"
+        "<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Invoice No: %7</p>"
+        "<p style='margin:0; color:#333; font-size:9px; font-weight:bold;'>Date: %8</p>"
         "</td>"
         "</tr>"
         "</table>"
@@ -218,17 +270,17 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
 
         "<tr><td height='12'></td></tr>"
 
-        // TABLEAU ARTICLES AVEC BORDURES COMPLÈTES
+        // TABLEAU ARTICLES
         "<tr>"
         "<td style='padding:0 30px;'>"
         "<table width='100%' cellpadding='0' cellspacing='0' style='border:1px solid #d0d0d0; border-collapse:collapse;'>"
-        "<tr style='background-color:%22;'>"
+        "<tr style='background-color:%1;'>"
         "<td style='padding:7px 10px; color:white; font-size:10px; font-weight:bold; text-transform:uppercase; width:50%; border-right:1px solid rgba(255,255,255,0.3);'>Description</td>"
         "<td style='padding:7px 10px; color:white; font-size:10px; font-weight:bold; text-transform:uppercase; text-align:center; width:16%; border-right:1px solid rgba(255,255,255,0.3);'>Qty</td>"
         "<td style='padding:7px 10px; color:white; font-size:10px; font-weight:bold; text-transform:uppercase; text-align:center; width:17%; border-right:1px solid rgba(255,255,255,0.3);'>Price</td>"
         "<td style='padding:7px 10px; color:white; font-size:10px; font-weight:bold; text-transform:uppercase; text-align:center; width:17%;'>Total</td>"
         "</tr>"
-        "%6"
+        "%9"
         "</table>"
         "</td>"
         "</tr>"
@@ -241,29 +293,29 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:50%; vertical-align:top;'>"
-    "<p style='color:%22; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Bank Info:</p>"
+        "<p style='color:%1; font-size:9px; font-weight:bold; margin:0 0 3px 0; text-transform:uppercase;'>Bank Info:</p>"
         "<p style='font-size:8px; color:#666; line-height:1.3; margin:0;'>"
-        "Bank Name: <br>"
-        "Bank Account:"
+        "%10"
         "</p>"
         "</td>"
         "<td style='width:50%; text-align:right; vertical-align:top;'>"
         "<table width='220' cellpadding='0' cellspacing='0' style='background:#e8f4fc;' align='right'>"
         "<tr>"
-"<td style='padding:8px 10px; color:#666; font-size:10px; font-weight:bold; text-align:right;'>Sub Total:</td>"        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>$%13</td>"
+        "<td style='padding:8px 10px; color:#666; font-size:10px; font-weight:bold; text-align:right;'>Sub Total:</td>"
+        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>$%11</td>"
         "</tr>"
         "<tr>"
-        "<td style='padding:4px 10px; color:#666; font-size:9px; text-align:right;'>Tax:</td>"
-        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>%14</td>"
+        "<td style='padding:8px 10px; color:#666; font-size:10px; font-weight:bold; text-align:right;'>Tax:</td>"
+        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>$%12</td>"
         "</tr>"
         "<tr>"
-        "<td style='padding:4px 10px; color:#666; font-size:9px; text-align:right;'>Tax Rate:</td>"
-        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>%15</td>"
+        "<td style='padding:8px 10px; color:#666; font-size:10px; font-weight:bold; text-align:right;'>Tax Rate:</td>"
+        "<td style='padding:4px 10px; color:#333; font-size:9px; font-weight:bold; text-align:right;'>%13</td>"
         "</tr>"
-        "<tr><td colspan='2' style='border-top:2px solid %22; height:3px;'></td></tr>"
+        "<tr><td colspan='2' style='border-top:2px solid %1; height:3px;'></td></tr>"
         "<tr>"
-        "<td style='padding:5px 10px; color:%22; font-size:11px; font-weight:bold; text-align:right;'>TOTAL:</td>"
-        "<td style='padding:5px 10px; color:%22; font-size:11px; font-weight:bold; text-align:right;'>$%16</td>"
+        "<td style='padding:5px 10px; color:%1; font-size:11px; font-weight:bold; text-align:right;'>TOTAL:</td>"
+        "<td style='padding:5px 10px; color:%1; font-size:11px; font-weight:bold; text-align:right;'>$%14</td>"
         "</tr>"
         "</table>"
         "</td>"
@@ -279,10 +331,10 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "<td style='padding:0 30px 18px 30px;'>"
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
-       "<td style='width:60%; vertical-align:bottom;'>"
+        "<td style='width:60%; vertical-align:bottom;'>"
         "</td>"
         "<td style='width:40%; text-align:right; vertical-align:bottom;'>"
-        "%23"
+        "%15"
         "</td>"
         "</tr>"
         "</table>"
@@ -291,20 +343,17 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
 
         // FOOTER
         "<tr>"
-  "<td style='background-color:%22; padding:14px 30px;'>"
+        "<td style='background-color:%1; padding:14px 30px;'>"
         "<table width='100%' cellpadding='0' cellspacing='0'>"
         "<tr>"
         "<td style='width:33%; font-size:8px; color:white; text-align:left;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9742;</span>"
-        "%18"
+        "&#9742; %16"
         "</td>"
         "<td style='width:33%; font-size:8px; color:white; text-align:center;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#9993;</span>"
-        "%19"
+        "&#9993; %17"
         "</td>"
         "<td style='width:33%; font-size:8px; color:white; text-align:right;'>"
-        "<span style='display:inline-block; width:14px; height:14px; background:transparent; border-radius:50%; text-align:center; line-height:14px; margin-right:5px; font-size:9px;'>&#127760;</span>"
-        "%20"
+        "&#127760; %18"
         "</td>"
         "</tr>"
         "</table>"
@@ -312,38 +361,32 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
         "</tr>"
 
         "</table>"
+        "</body>"
+        "</html>"
+    )
+    .arg(pc)                                           // %1 - primaryColor (utilisé multiple fois)
+    .arg(logoHtml)                                     // %2 - logo
+    .arg(clientNom.toHtmlEscaped())                    // %3
+    .arg(clientAddr.toHtmlEscaped())                   // %4
+    .arg(clientEmail.toHtmlEscaped())                 // %5
+    .arg(clientTel.toHtmlEscaped())                    // %6
+    .arg(numero.toHtmlEscaped())                       // %7
+    .arg(dateCreation)                                 // %8
+    .arg(rowsHtml)                                     // %9
+    .arg(bankInfoHtml)                                 // %10
+    .arg(QString::number(totalHT, 'f', 2))            // %11
+    .arg(QString::number(totalTVA, 'f', 2))            // %12
+    .arg(QString::number(totalTVA > 0 && totalHT > 0 ? (totalTVA / totalHT * 100) : 0, 'f', 0) + "%") // %13
+    .arg(QString::number(totalTTC, 'f', 2))            // %14
+    .arg(signatureHtml)                                 // %15
+    .arg(finalStyle.companyPhone.toHtmlEscaped())       // %16
+    .arg(finalStyle.companyEmail.toHtmlEscaped())       // %17
+    .arg(finalStyle.companyWebsite.toHtmlEscaped());    // %18
 
-        "</body></html>"
-        ).arg(
-        clientNom,
-        clientAddr,
-        clientEmail,
-        numero,
-        dateCreation,
-        rowsHtml,
-        finalStyle.companyName.isEmpty() ? "Lorem Ipsum Bank" : finalStyle.companyName,      // ← style → finalStyle
-        finalStyle.companyPhone.isEmpty() ? "0123 4567 89" : finalStyle.companyPhone,        // ← style → finalStyle
-        finalStyle.companyICE.isEmpty() ? "LOREMIPS" : finalStyle.companyICE,                // ← style → finalStyle
-        finalStyle.companyPhone.isEmpty() ? "0123 4567 89" : finalStyle.companyPhone,        // ← style → finalStyle
-        finalStyle.companyName.isEmpty() ? "Lorem Ipsum" : finalStyle.companyName,           // ← style → finalStyle
-        "Add your details",
-        QString::number(totalHT, 'f', 2),
-        QString::number(totalTVA, 'f', 2),
-        QString::number(totalTVA > 0 && totalHT > 0 ? (totalTVA/totalHT*100) : 0, 'f', 0) + "%",
-        QString::number(totalTTC, 'f', 2),
-        "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
-        finalStyle.companyPhone.isEmpty() ? "000 1234 5678" : finalStyle.companyPhone,       // ← style → finalStyle
-        finalStyle.companyEmail.isEmpty() ? "your.email@site.com" : finalStyle.companyEmail, // ← style → finalStyle
-        finalStyle.companyWebsite.isEmpty() ? "www.website.com" : finalStyle.companyWebsite, // ← style → finalStyle
-        logoHtml,
-        primaryColor,
-        signatureHtml,
-        clientTel
-    );
-
-    // Génération PDF - UNE SEULE PAGE A4
-    QString outputPath = filePath.isEmpty() ?
-        getPdfOutputPath() + "/" + getInvoiceFileName(numero) : filePath;
+    // Génération PDF
+    QString outputPath = filePath.isEmpty() 
+        ? getPdfOutputPath() + "/" + getInvoiceFileName(numero) 
+        : filePath;
 
     QPrinter printer(QPrinter::HighResolution);
     printer.setOutputFormat(QPrinter::PdfFormat);
@@ -354,15 +397,16 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
 
     QTextDocument doc;
     doc.setHtml(html);
-    
+
     QRectF contentRect = printer.pageRect(QPrinter::Point);
     QSizeF pageSize(contentRect.width(), contentRect.height());
     doc.setPageSize(pageSize);
     doc.setDefaultStyleSheet("* { margin:0; padding:0; }");
-    
+
     doc.print(&printer);
 
     qDebug() << "PDF généré:" << outputPath;
+    qDebug() << "=== generatePDF END ===";
     return true;
 }
 
