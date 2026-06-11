@@ -329,39 +329,62 @@ void RegisterDialog::setupUI()
     scrollArea->setWidget(scrollContent);
     cardLayout->addWidget(scrollArea, 1);
 
-    // ========================================================
+       // ========================================================
     // 3. FOOTER FIXE DANS LA CARTE (boutons toujours visibles)
     // ========================================================
     QWidget *footerWidget = new QWidget(card);
     footerWidget->setStyleSheet("background-color: white; border-bottom-left-radius: 16px; border-bottom-right-radius: 16px;");
-    footerWidget->setFixedHeight(90);  // ← MODIFIÉ : 130→90
+    footerWidget->setFixedHeight(80);  // Hauteur ajustée pour layout horizontal
 
     QVBoxLayout *footerLayout = new QVBoxLayout(footerWidget);
-    footerLayout->setContentsMargins(32, 6, 32, 12);  // ← MODIFIÉ
-    footerLayout->setSpacing(6);  // ← MODIFIÉ : 8→6
+    footerLayout->setContentsMargins(32, 8, 32, 16);
+    footerLayout->setSpacing(8);
 
+    // Label de statut (erreur)
     m_statusLabel = new QLabel("");
     m_statusLabel->setAlignment(Qt::AlignCenter);
     m_statusLabel->setStyleSheet("color: #E53E3E; font-size: 12px; padding: 2px;");
     m_statusLabel->setWordWrap(true);
     footerLayout->addWidget(m_statusLabel);
 
-    m_pushButtonEnregistrer = new QPushButton("S'enregistrer");
-    m_pushButtonEnregistrer->setFixedHeight(38);  // ← MODIFIÉ : 44→38
-    m_pushButtonEnregistrer->setCursor(Qt::PointingHandCursor);
-    footerLayout->addWidget(m_pushButtonEnregistrer);
+    // LAYOUT HORIZONTAL pour les boutons côte à côte
+    QHBoxLayout *buttonsLayout = new QHBoxLayout;
+    buttonsLayout->setSpacing(12);
 
+    // Bouton Annuler (gauche)
     m_pushButtonAnnuler = new QPushButton("Annuler");
-    m_pushButtonAnnuler->setFixedHeight(34);  // ← MODIFIÉ : 40→34
+    m_pushButtonAnnuler->setFixedHeight(40);
+    m_pushButtonAnnuler->setMinimumWidth(120);
     m_pushButtonAnnuler->setCursor(Qt::PointingHandCursor);
     m_pushButtonAnnuler->setStyleSheet(R"(
         QPushButton {
-            background: transparent; color: #718096; font-weight: 600;
-            font-size: 13px; border: 2px solid #E2E8F0; border-radius: 10px;
+            background: white;
+            color: #4A5568;
+            font-weight: 600;
+            font-size: 14px;
+            border: 2px solid #E2E8F0;
+            border-radius: 10px;
         }
-        QPushButton:hover { background: #F7FAFC; color: #4A5568; border-color: #CBD5E0; }
+        QPushButton:hover {
+            background: #F7FAFC;
+            color: #2D3748;
+            border-color: #CBD5E0;
+        }
+        QPushButton:pressed {
+            background: #EDF2F7;
+        }
     )");
-    footerLayout->addWidget(m_pushButtonAnnuler);
+
+    // Bouton S'enregistrer (droite)
+    m_pushButtonEnregistrer = new QPushButton("S'enregistrer");
+    m_pushButtonEnregistrer->setFixedHeight(40);
+    m_pushButtonEnregistrer->setMinimumWidth(120);
+    m_pushButtonEnregistrer->setCursor(Qt::PointingHandCursor);
+
+    buttonsLayout->addWidget(m_pushButtonAnnuler, 1);   // stretch = 1
+    buttonsLayout->addWidget(m_pushButtonEnregistrer, 1); // stretch = 1
+
+    footerLayout->addLayout(buttonsLayout);
 
     cardLayout->addWidget(footerWidget);
 

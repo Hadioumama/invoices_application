@@ -23,19 +23,26 @@ void EntrepriseConfigWidget::setupUI()
 
     nomEdit = new QLineEdit(this);
     ribEdit = new QLineEdit(this);
-    form->addRow("Nom entreprise :", nomEdit);
+    form->addRow("Nom de la Banque :", nomEdit);
     form->addRow("RIB :", ribEdit);
 
-    // Logo
-    logoBtn = new QPushButton("Choisir logo", this);
-    logoPreview = new QLabel(this);
-    logoPreview->setFixedSize(80, 80);
-    logoPreview->setScaledContents(true);
-    auto *logoLayout = new QHBoxLayout();
-    logoLayout->addWidget(logoBtn);
-    logoLayout->addWidget(logoPreview);
-    form->addRow("Logo :", logoLayout);
-
+ 
+logoBtn = new QPushButton("Choisir logo", this);
+clearLogoBtn = new QPushButton("🗑️ Supprimer", this);
+clearLogoBtn->setStyleSheet(
+    "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
+    "border:none;border-radius:5px;padding:4px 10px;}"
+    "QPushButton:hover{background:#C53030;}");
+clearLogoBtn->setFixedHeight(30);
+logoPreview = new QLabel(this);
+logoPreview->setFixedSize(80, 80);
+logoPreview->setScaledContents(true);
+logoPreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
+auto *logoLayout = new QHBoxLayout();
+logoLayout->addWidget(logoBtn);
+logoLayout->addWidget(clearLogoBtn);
+logoLayout->addWidget(logoPreview);
+form->addRow("Logo :", logoLayout);
     // Signature
     signatureBtn = new QPushButton("Choisir signature", this);
     signaturePreview = new QLabel(this);
@@ -70,6 +77,8 @@ void EntrepriseConfigWidget::setupUI()
     connect(colorBtn,     &QPushButton::clicked, this, &EntrepriseConfigWidget::pickColor);
     connect(saveBtn,      &QPushButton::clicked, this, &EntrepriseConfigWidget::saveConfig);
     connect(cancelBtn,    &QPushButton::clicked, this, &EntrepriseConfigWidget::backToDashboard);
+    connect(clearLogoBtn, &QPushButton::clicked,
+        this, &EntrepriseConfigWidget::clearLogo);
 }
 
 void EntrepriseConfigWidget::pickLogo()
@@ -81,7 +90,14 @@ void EntrepriseConfigWidget::pickLogo()
         logoPreview->setPixmap(QPixmap(path));
     }
 }
-
+void EntrepriseConfigWidget::clearLogo()
+{
+    currentLogoPath.clear();
+    logoPreview->clear();
+    logoPreview->setStyleSheet(
+        "border:1px solid #E2E8F0;border-radius:4px;"
+        "background:#F7FAFC;");
+}
 void EntrepriseConfigWidget::pickSignature()
 {
     QString path = QFileDialog::getOpenFileName(this, "Choisir signature",
@@ -134,8 +150,14 @@ void EntrepriseConfigWidget::setConfig(const EntrepriseConfig &cfg)
     currentSignaturePath = cfg.signaturePath;
     currentThemeColor    = cfg.themeCouleur;
 
-    if (!cfg.logoPath.isEmpty())
-        logoPreview->setPixmap(QPixmap(cfg.logoPath));
+   if (!cfg.logoPath.isEmpty()) {
+    logoPreview->setPixmap(QPixmap(cfg.logoPath));
+} else {
+    logoPreview->clear();
+    logoPreview->setStyleSheet(
+        "border:1px solid #E2E8F0;border-radius:4px;"
+        "background:#F7FAFC;");
+}
     if (!cfg.signaturePath.isEmpty())
         signaturePreview->setPixmap(QPixmap(cfg.signaturePath));
 

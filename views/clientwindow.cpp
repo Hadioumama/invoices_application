@@ -1115,7 +1115,7 @@ void ClientWindow::onSendMessage()
     }
     EmailSender sender;
     bool ok = sender.sendSmtp(
-        "admin@facturation.com",
+        "hadi.oumama@gmail.com",
         "[FacturationApp] "+sujetEdit->text(),
         QString("De: %1 (%2)\n\n%3")
         .arg(m_clientNom,m_clientEmail,

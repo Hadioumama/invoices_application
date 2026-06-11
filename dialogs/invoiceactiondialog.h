@@ -8,27 +8,25 @@ class QLineEdit;
 
 class InvoiceActionDialog : public QDialog
 {
-    Q_OBJECT;
+    Q_OBJECT
 
 public:
     explicit InvoiceActionDialog(int invoiceId, QWidget *parent = nullptr);
 
 private slots:
-    void onExportPDF();
     void onPrint();
     void onSendEmail();
-     void onManagePayments();
+    void onManagePayments();
 
 private:
     void setupUI();
-    
+
     int m_invoiceId;
-    QPushButton *pdfBtn;
     QPushButton *printBtn;
     QPushButton *emailBtn;
     QPushButton *closeBtn;
-    QPushButton *paymentBtn; 
-    QLineEdit *emailEdit;
+    QPushButton *paymentBtn;
+    QLineEdit   *emailEdit;
 };
 
 #endif // INVOICEACTIONDIALOG_H

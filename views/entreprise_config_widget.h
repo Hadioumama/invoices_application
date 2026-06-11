@@ -21,6 +21,7 @@ signals:
 
 private slots:
     void pickLogo();
+    void clearLogo(); 
     void pickSignature();
     void pickColor();
     void saveConfig();
@@ -32,6 +33,7 @@ private:
     QLineEdit *nomEdit;
     QLineEdit *ribEdit;
     QLabel *logoPreview, *signaturePreview, *colorPreview;
+       QPushButton *clearLogoBtn;
     QPushButton *logoBtn, *signatureBtn, *colorBtn, *saveBtn, *cancelBtn;
 
     QString currentLogoPath;
