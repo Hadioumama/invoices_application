@@ -44,14 +44,23 @@ logoLayout->addWidget(clearLogoBtn);
 logoLayout->addWidget(logoPreview);
 form->addRow("Logo :", logoLayout);
     // Signature
-    signatureBtn = new QPushButton("Choisir signature", this);
-    signaturePreview = new QLabel(this);
-    signaturePreview->setFixedSize(80, 80);
-    signaturePreview->setScaledContents(true);
-    auto *sigLayout = new QHBoxLayout();
-    sigLayout->addWidget(signatureBtn);
-    sigLayout->addWidget(signaturePreview);
-    form->addRow("Signature :", sigLayout);
+   
+signatureBtn = new QPushButton("Choisir signature", this);
+clearSignatureBtn = new QPushButton("🗑️ Supprimer", this);
+clearSignatureBtn->setStyleSheet(
+    "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
+    "border:none;border-radius:5px;padding:4px 10px;}"
+    "QPushButton:hover{background:#C53030;}");
+clearSignatureBtn->setFixedHeight(30);
+signaturePreview = new QLabel(this);
+signaturePreview->setFixedSize(80, 80);
+signaturePreview->setScaledContents(true);
+signaturePreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
+auto *sigLayout = new QHBoxLayout();
+sigLayout->addWidget(signatureBtn);
+sigLayout->addWidget(clearSignatureBtn);
+sigLayout->addWidget(signaturePreview);
+form->addRow("Signature :", sigLayout);
 
     // Couleur
     colorBtn = new QPushButton("Choisir couleur", this);
@@ -79,6 +88,8 @@ form->addRow("Logo :", logoLayout);
     connect(cancelBtn,    &QPushButton::clicked, this, &EntrepriseConfigWidget::backToDashboard);
     connect(clearLogoBtn, &QPushButton::clicked,
         this, &EntrepriseConfigWidget::clearLogo);
+    connect(clearSignatureBtn, &QPushButton::clicked,
+        this, &EntrepriseConfigWidget::clearSignature);
 }
 
 void EntrepriseConfigWidget::pickLogo()
@@ -106,6 +117,14 @@ void EntrepriseConfigWidget::pickSignature()
         currentSignaturePath = path;
         signaturePreview->setPixmap(QPixmap(path));
     }
+}
+void EntrepriseConfigWidget::clearSignature()
+{
+    currentSignaturePath.clear();
+    signaturePreview->clear();
+    signaturePreview->setStyleSheet(
+        "border:1px solid #E2E8F0;border-radius:4px;"
+        "background:#F7FAFC;");
 }
 
 void EntrepriseConfigWidget::pickColor()
@@ -158,8 +177,15 @@ void EntrepriseConfigWidget::setConfig(const EntrepriseConfig &cfg)
         "border:1px solid #E2E8F0;border-radius:4px;"
         "background:#F7FAFC;");
 }
-    if (!cfg.signaturePath.isEmpty())
-        signaturePreview->setPixmap(QPixmap(cfg.signaturePath));
+
+if (!cfg.signaturePath.isEmpty()) {
+    signaturePreview->setPixmap(QPixmap(cfg.signaturePath));
+} else {
+    signaturePreview->clear();
+    signaturePreview->setStyleSheet(
+        "border:1px solid #E2E8F0;border-radius:4px;"
+        "background:#F7FAFC;");
+}
 
     colorPreview->setStyleSheet(
         QString("background-color: %1; border: 1px solid #ccc;")

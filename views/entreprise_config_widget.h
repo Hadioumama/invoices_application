@@ -23,6 +23,7 @@ private slots:
     void pickLogo();
     void clearLogo(); 
     void pickSignature();
+    void clearSignature(); 
     void pickColor();
     void saveConfig();
 
@@ -33,9 +34,8 @@ private:
     QLineEdit *nomEdit;
     QLineEdit *ribEdit;
     QLabel *logoPreview, *signaturePreview, *colorPreview;
-       QPushButton *clearLogoBtn;
-    QPushButton *logoBtn, *signatureBtn, *colorBtn, *saveBtn, *cancelBtn;
-
+    QPushButton *clearLogoBtn;
+    QPushButton *logoBtn, *signatureBtn, *colorBtn, *saveBtn, *cancelBtn, *clearSignatureBtn;  ;
     QString currentLogoPath;
     QString currentSignaturePath;
     QColor currentThemeColor;
