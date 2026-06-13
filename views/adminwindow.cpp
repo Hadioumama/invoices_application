@@ -117,8 +117,10 @@ void AdminWindow::setupUI()
 
     m_pageStack->setCurrentIndex(0);
 
-    root->addWidget(m_dashboard->sidebarOnly());
-    root->addWidget(m_pageStack, 1);
+    QWidget *sidebar = m_dashboard->sidebarOnly();
+sidebar->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Expanding);  // ← AJOUTER
+root->addWidget(sidebar);
+root->addWidget(m_pageStack, 1);
 
     // Signals
     connect(m_dashboard, &DashboardWidget::navigateTo,

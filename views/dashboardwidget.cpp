@@ -93,6 +93,7 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     connect(refreshTimer, &QTimer::timeout, this, &DashboardWidget::refreshData);
     refreshTimer->start(30000);
     refreshData();
+  
 }
 
 void DashboardWidget::setupUI() {}
@@ -115,7 +116,7 @@ void DashboardWidget::setupSidebar()
     QWidget *logoArea = new QWidget;
     logoArea->setFixedHeight(64);
     logoArea->setStyleSheet(
-        QString("background:%1;border-bottom:1px solid %2;")
+    QString("background:%1;border-bottom:1px solid %2;")
             .arg(T::SB_BG, T::SB_BORDER));
     QHBoxLayout *ll = new QHBoxLayout(logoArea);
     ll->setContentsMargins(20, 0, 16, 0);
@@ -124,13 +125,13 @@ void DashboardWidget::setupSidebar()
     logoIcon->setFixedSize(32, 32);
     logoIcon->setAlignment(Qt::AlignCenter);
     logoIcon->setStyleSheet(
-        QString("background:%1;border-radius:8px;"
+    QString("background:%1;border-radius:8px;"
                 "font-size:16px;font-weight:800;color:#0F172A;")
             .arg(T::SB_LOGO));
 
     QLabel *logoText = new QLabel("FacturPro");
     logoText->setStyleSheet(
-        QString("font-size:16px;font-weight:800;color:%1;letter-spacing:0.3px;")
+    QString("font-size:16px;font-weight:800;color:%1;letter-spacing:0.3px;")
             .arg(T::SB_LOGO));
 
     ll->addWidget(logoIcon);
@@ -161,7 +162,7 @@ void DashboardWidget::setupSidebar()
     // Section label helper
     auto addSection = [&](const QString &label) {
         QLabel *sec = new QLabel(label.toUpper());
-        sec->setFixedHeight(32);
+        sec->setFixedHeight(24);
         sec->setStyleSheet(
             QString("font-size:9px;font-weight:700;color:%1;"
                     "letter-spacing:1.8px;padding:0 20px;")
@@ -176,7 +177,7 @@ void DashboardWidget::setupSidebar()
                           bool isActive = false) -> QPushButton*
     {
         QPushButton *btn = new QPushButton;
-        btn->setFixedHeight(46);
+        btn->setFixedHeight(38);
         btn->setCursor(Qt::PointingHandCursor);
         btn->setFlat(true);
 
@@ -255,7 +256,7 @@ void DashboardWidget::setupSidebar()
     };
 
     // ── SECTION PRINCIPAL ────────────────────────────────────────────────────
-    navLayout->addSpacing(8);
+    navLayout->addSpacing(4);
     addSection("Principal");
     addNavItem("▦",  "Tableau de bord",  "dashboard",  true);
     addNavItem("🧾", "Gestion Factures", "factures");
@@ -265,56 +266,17 @@ void DashboardWidget::setupSidebar()
     // ── SECTION PARAMÈTRES (NOUVEAU) ───────────────────────────────────────
     navLayout->addSpacing(8);
     addSection("Paramètres");
-
-    // Bouton Mon Entreprise
-    QPushButton *configBtn = new QPushButton;
-    configBtn->setFixedHeight(46);
-    configBtn->setCursor(Qt::PointingHandCursor);
-    configBtn->setFlat(true);
-
-    QHBoxLayout *cl = new QHBoxLayout(configBtn);
-    cl->setContentsMargins(0, 0, 0, 0);
-    cl->setSpacing(0);
-
-    QFrame *cBar = new QFrame;
-    cBar->setFixedWidth(3);
-    cBar->setStyleSheet("background:transparent;border-radius:0;");
-
-    QLabel *cIco = new QLabel("⚙️");
-    cIco->setFixedWidth(36);
-    cIco->setAlignment(Qt::AlignCenter);
-    cIco->setStyleSheet("font-size:15px;background:transparent;");
-
-    QLabel *cTxt = new QLabel("Mon Entreprise");
-    cTxt->setStyleSheet(
-        QString("font-size:15px;font-weight:700;color:%1;background:transparent;")
-            .arg(T::SB_TEXT));
-
-    cl->addWidget(cBar);
-    cl->addSpacing(10);
-    cl->addWidget(cIco);
-    cl->addWidget(cTxt);
-    cl->addStretch();
-
-    configBtn->setStyleSheet(
-        QString("QPushButton{background:transparent;border:none;}"
-                "QPushButton:hover{background:%1;}").arg(T::SB_HOVER));
-
-    navLayout->addWidget(configBtn);
-
-    connect(configBtn, &QPushButton::clicked, this, [this]() {
-        emit navigateTo("entreprise_config");
-    });
-
-    navLayout->addStretch();  // ← Stretch DANS le scroll, pas dans la sidebar principale
-
+    addNavItem("⚙️", "Mon Entreprise", "entreprise_config");
+    navLayout->addStretch();  
     scrollArea->setWidget(navContainer);
-    sl->addWidget(scrollArea, 1);  // ← stretch factor 1, prend l'espace disponible
+   sl->addWidget(scrollArea);
+sl->setStretchFactor(scrollArea, 1);
 
     // ── BAS DE SIDEBAR (fixe, toujours visible) ──────────────────────────────
     // Divider
     QFrame *div = new QFrame;
     div->setFixedHeight(1);
+    div->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);  
     div->setStyleSheet(
         QString("background:%1;margin:0 16px;").arg(T::SB_BORDER));
     sl->addWidget(div);
@@ -323,6 +285,7 @@ void DashboardWidget::setupSidebar()
     // User chip
     QWidget *chip = new QWidget;
     chip->setFixedHeight(50);
+    chip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     chip->setStyleSheet(
         QString("background:%1;border-radius:10px;margin:0 12px;")
             .arg(T::SB_ACCENT));
@@ -357,6 +320,7 @@ void DashboardWidget::setupSidebar()
     // Logout button
     QPushButton *logoutBtn = new QPushButton("  🔓  Déconnexion");
     logoutBtn->setFixedHeight(42);
+    logoutBtn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed); 
     logoutBtn->setCursor(Qt::PointingHandCursor);
     logoutBtn->setFlat(true);
     logoutBtn->setStyleSheet(

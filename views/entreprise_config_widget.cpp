@@ -17,53 +17,90 @@ EntrepriseConfigWidget::EntrepriseConfigWidget(QWidget *parent)
 
 void EntrepriseConfigWidget::setupUI()
 {
+    setStyleSheet("background:#F1F5F9;");
+
     auto *mainLayout = new QVBoxLayout(this);
+    mainLayout->setContentsMargins(28, 22, 28, 20);
+    mainLayout->setSpacing(16);
 
     auto *form = new QFormLayout();
+    form->setSpacing(12);
+
+    QString inputStyle =
+        "QLineEdit{"
+        "border:1px solid #CBD5E0;"
+        "border-radius:8px;"
+        "padding:8px 12px;"
+        "font-size:13px;"
+        "background:white;"
+        "min-height:34px;"
+        "}"
+        "QLineEdit:focus{"
+        "border:2px solid #0a245c;"
+        "background:white;"
+        "}";
 
     nomEdit = new QLineEdit(this);
     ribEdit = new QLineEdit(this);
+    nomEdit->setStyleSheet(inputStyle);
+    ribEdit->setStyleSheet(inputStyle);
     form->addRow("Nom de la Banque :", nomEdit);
     form->addRow("RIB :", ribEdit);
 
- 
-logoBtn = new QPushButton("Choisir logo", this);
-clearLogoBtn = new QPushButton("🗑️ Supprimer", this);
-clearLogoBtn->setStyleSheet(
-    "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
-    "border:none;border-radius:5px;padding:4px 10px;}"
-    "QPushButton:hover{background:#C53030;}");
-clearLogoBtn->setFixedHeight(30);
-logoPreview = new QLabel(this);
-logoPreview->setFixedSize(80, 80);
-logoPreview->setScaledContents(true);
-logoPreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
-auto *logoLayout = new QHBoxLayout();
-logoLayout->addWidget(logoBtn);
-logoLayout->addWidget(clearLogoBtn);
-logoLayout->addWidget(logoPreview);
-form->addRow("Logo :", logoLayout);
+    QString btnStyle =
+        "QPushButton{"
+        "background:#F7FAFC;"
+        "color:#2D3748;"
+        "border:1px solid #CBD5E0;"
+        "border-radius:8px;"
+        "padding:8px 16px;"
+        "font-size:13px;"
+        "font-weight:600;"
+        "}"
+        "QPushButton:hover{background:#EDF2F7;}"
+        "QPushButton:focus{border:2px solid #2563EB;}";
+
+    // Logo
+    logoBtn = new QPushButton("Choisir logo", this);
+    logoBtn->setStyleSheet(btnStyle);
+    clearLogoBtn = new QPushButton("🗑️ Supprimer", this);
+    clearLogoBtn->setStyleSheet(
+        "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
+        "border:none;border-radius:5px;padding:4px 10px;}"
+        "QPushButton:hover{background:#C53030;}");
+    clearLogoBtn->setFixedHeight(30);
+    logoPreview = new QLabel(this);
+    logoPreview->setFixedSize(80, 80);
+    logoPreview->setScaledContents(true);
+    logoPreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
+    auto *logoLayout = new QHBoxLayout();
+    logoLayout->addWidget(logoBtn);
+    logoLayout->addWidget(clearLogoBtn);
+    logoLayout->addWidget(logoPreview);
+    form->addRow("Logo :", logoLayout);
+
     // Signature
-   
-signatureBtn = new QPushButton("Choisir signature", this);
-clearSignatureBtn = new QPushButton("🗑️ Supprimer", this);
-clearSignatureBtn->setStyleSheet(
-    "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
-    "border:none;border-radius:5px;padding:4px 10px;}"
-    "QPushButton:hover{background:#C53030;}");
-clearSignatureBtn->setFixedHeight(30);
-signaturePreview = new QLabel(this);
-signaturePreview->setFixedSize(80, 80);
-signaturePreview->setScaledContents(true);
-signaturePreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
-auto *sigLayout = new QHBoxLayout();
-sigLayout->addWidget(signatureBtn);
-sigLayout->addWidget(clearSignatureBtn);
-sigLayout->addWidget(signaturePreview);
-form->addRow("Signature :", sigLayout);
+    signatureBtn = new QPushButton("Choisir signature", this);
+    signatureBtn->setStyleSheet(btnStyle);
+    clearSignatureBtn = new QPushButton("🗑️ Supprimer", this);
+    clearSignatureBtn->setStyleSheet(
+        "QPushButton{background:#E53E3E;color:white;font-weight:bold;"
+        "border:none;border-radius:5px;padding:4px 10px;}"
+        "QPushButton:hover{background:#C53030;}");
+    clearSignatureBtn->setFixedHeight(30);
+    signaturePreview = new QLabel(this);
+    signaturePreview->setFixedSize(80, 80);
+    signaturePreview->setScaledContents(true);
+    signaturePreview->setStyleSheet("border:1px solid #E2E8F0;border-radius:4px;");
+    auto *sigLayout = new QHBoxLayout();
+    sigLayout->addWidget(signatureBtn);
+    sigLayout->addWidget(clearSignatureBtn);
+    sigLayout->addWidget(signaturePreview);
+    form->addRow("Signature :", sigLayout);
 
     // Couleur
     colorBtn = new QPushButton("Choisir couleur", this);
+    colorBtn->setStyleSheet(btnStyle);
     colorPreview = new QLabel(this);
     colorPreview->setFixedSize(40, 40);
     auto *colorLayout = new QHBoxLayout();
@@ -87,11 +124,10 @@ form->addRow("Signature :", sigLayout);
     connect(saveBtn,      &QPushButton::clicked, this, &EntrepriseConfigWidget::saveConfig);
     connect(cancelBtn,    &QPushButton::clicked, this, &EntrepriseConfigWidget::backToDashboard);
     connect(clearLogoBtn, &QPushButton::clicked,
-        this, &EntrepriseConfigWidget::clearLogo);
+            this, &EntrepriseConfigWidget::clearLogo);
     connect(clearSignatureBtn, &QPushButton::clicked,
-        this, &EntrepriseConfigWidget::clearSignature);
+            this, &EntrepriseConfigWidget::clearSignature);
 }
-
 void EntrepriseConfigWidget::pickLogo()
 {
     QString path = QFileDialog::getOpenFileName(this, "Choisir logo",
