@@ -147,13 +147,11 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
     qDebug() << "companyName:" << finalStyle.companyName;
     qDebug() << "companyICE:" << finalStyle.companyICE;
 
-    // Logo en base64
-    QString logoHtml = imageToBase64Html(finalStyle.logoPath, 130, 65);
-    if (logoHtml.isEmpty()) {
-        // Logo par défaut : nom de l'entreprise en texte
-        logoHtml = QString("<span style='font-size:14px;font-weight:900;color:white;'>%1</span>")
-                   .arg(finalStyle.companyName.toHtmlEscaped());
-    }
+  QString logoHtml = imageToBase64Html(finalStyle.logoPath, 130, 65);
+// Si pas de logo, ne rien afficher dans l'en-tête (espace vide)
+if (logoHtml.isEmpty()) {
+    logoHtml = "";
+}
 
     // Signature en base64
     QString signatureHtml = imageToBase64Html(finalStyle.signaturePath, 90, 45);
@@ -221,8 +219,9 @@ bool InvoiceGenerator::generatePDF(int invoiceId,
     // ============================================
     // On construit le HTML avec des .arg() successifs et cohérents
 
-    QString bankInfoHtml = finalStyle.companyName.toHtmlEscaped() + "<br>RIB: " 
-                         + (finalStyle.companyICE.isEmpty() ? "-" : finalStyle.companyICE.toHtmlEscaped());
+   QString bankInfoHtml = "<b>Nom de la Banque:</b> " + finalStyle.companyName.toHtmlEscaped() 
+                     + "<br><b>RIB:</b> " 
+                     + (finalStyle.companyICE.isEmpty() ? "-" : finalStyle.companyICE.toHtmlEscaped());
 
     QString html = QString(
         "<!DOCTYPE html>"

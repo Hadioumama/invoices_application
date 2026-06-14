@@ -18,8 +18,8 @@ ArticlesWidget::ArticlesWidget(QWidget *parent)
 void ArticlesWidget::setupUI()
 {
     setStyleSheet(
-        "QWidget{background:transparent;}"
-        "QTableView{border:1px solid #E2E8F0;"
+        "QWidget{background:white;}"
+        "QTableView{border:1px solid #b6c6db;"
         "gridline-color:#EDF2F7;"
         "selection-background-color:#BEE3F8;"
         "selection-color:#2D3748;}"
@@ -37,7 +37,7 @@ void ArticlesWidget::setupUI()
 
     // Titre
      QLabel *title = new QLabel("📦 Catalogue Articles");
-    title->setStyleSheet("font-size:16px;font-weight:bold;color:#1B2A3B;background:#eef4fa;");
+    title->setStyleSheet("font-size:16px;font-weight:bold;color:#1B2A3B;background:transparent;");
     title->setFixedHeight(24);
     mainLayout->addWidget(title);
 
@@ -64,7 +64,7 @@ void ArticlesWidget::setupUI()
     searchLayout->addWidget(resetBtn);
     mainLayout->addLayout(searchLayout);
     // Tableau — stretch=1 prend tout l'espace restant
-      model = new QSqlTableModel(this);
+    model = new QSqlTableModel(this);
     model->setTable("articles");
     model->setEditStrategy(QSqlTableModel::OnManualSubmit);
     model->setHeaderData(0, Qt::Horizontal, "ID");

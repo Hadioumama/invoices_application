@@ -9,7 +9,7 @@
 #include <QPixmap>
 
 EntrepriseConfigWidget::EntrepriseConfigWidget(QWidget *parent)
-    : QWidget(parent), currentThemeColor(QColor("#2563EB"))
+    : QWidget(parent), currentThemeColor(QColor("#ecf0f7"))
 {
     setupUI();
     setConfig(EntrepriseConfigManager::instance()->loadConfig());
@@ -49,9 +49,8 @@ void EntrepriseConfigWidget::setupUI()
 
     QString btnStyle =
         "QPushButton{"
-        "background:#F7FAFC;"
+        "background:white;"
         "color:#2D3748;"
-        "border:1px solid #CBD5E0;"
         "border-radius:8px;"
         "padding:8px 16px;"
         "font-size:13px;"

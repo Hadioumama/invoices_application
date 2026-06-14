@@ -82,7 +82,6 @@ void InvoiceManagementWidget::setupUI()
     buttonLayout->addWidget(editBtn);
     buttonLayout->addWidget(deleteBtn);
     buttonLayout->addWidget(changeStatusBtn);
-    buttonLayout->addWidget(refreshBtn);
     mainLayout->addLayout(buttonLayout);
 
     // Connect signals

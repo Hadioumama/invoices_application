@@ -1,5 +1,6 @@
 #include "invoiceactiondialog.h"
 #include "utils/invoicegenerator.h"
+#include "utils/entreprise_config_manager.h"
 #include "utils/emailsender.h"
 #include "database/database.h"
 #include "dialogs/paymentdialog.h"
@@ -74,18 +75,30 @@ void InvoiceActionDialog::setupUI()
     connect(closeBtn,   &QPushButton::clicked,
             this, &QDialog::accept);
 }
-
 void InvoiceActionDialog::onPrint()
 {
     InvoiceStyle style;
+
+    EntrepriseConfigManager *mgr = EntrepriseConfigManager::instance();
+    if (mgr->isConfigured()) {
+        EntrepriseConfig cfg = mgr->loadConfig();
+        if (!cfg.nom.isEmpty())            style.companyName    = cfg.nom;
+        if (!cfg.rib.isEmpty())            style.companyICE     = cfg.rib;
+        if (!cfg.logoPath.isEmpty())       style.logoPath       = cfg.logoPath;
+        if (!cfg.signaturePath.isEmpty())  style.signaturePath  = cfg.signaturePath;
+        if (cfg.themeCouleur.isValid())    style.primaryColor   = cfg.themeCouleur.name();
+    }
+
     InvoiceGenerator gen;
-    QString tmpPath = InvoiceGenerator::getPdfOutputPath()
-                    + "/print_temp.pdf";
-    if (gen.generatePDF(m_invoiceId, tmpPath, style))
+    QString tmpPath = InvoiceGenerator::getPdfOutputPath() +
+                      "/print_temp.pdf";
+
+    if (gen.generatePDF(m_invoiceId, tmpPath, style)) {
         QDesktopServices::openUrl(QUrl::fromLocalFile(tmpPath));
-    else
+    } else {
         QMessageBox::critical(this, "Erreur",
-            "Impossible de générer le PDF pour impression");
+                              "Impossible de générer le PDF pour impression");
+    }
 }
 
 void InvoiceActionDialog::onSendEmail()
