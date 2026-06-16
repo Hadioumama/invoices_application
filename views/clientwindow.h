@@ -43,9 +43,11 @@ private:
     QWidget* buildPaiementsPage();
     QWidget* buildProfilPage();
     QWidget* buildContactPage();
+    QPushButton *activeNavBtn = nullptr;
     void loadClientInfo();
 
     int     m_clientId;
+    
     QString m_clientNom;
     QString m_clientEmail;
 

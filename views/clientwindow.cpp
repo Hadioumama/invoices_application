@@ -26,7 +26,7 @@ namespace C {
     constexpr auto BG       = "#F1F5F9";
     constexpr auto CARD     = "#FFFFFF";
     constexpr auto BORDER   = "#E2E8F0";
-    constexpr auto TXT_HEAD = "rgb(208,215,230)";
+    constexpr auto TXT_HEAD = "#0F172A";     // ← noir (comme admin)
     constexpr auto TXT_SUB  = "#64748B";
     constexpr auto BLUE     = "#2563EB";
     constexpr auto GREEN    = "#16A34A";
@@ -36,9 +36,9 @@ namespace C {
     constexpr auto VIOLET   = "#7C3AED";
     constexpr auto TH_BG    = "#1E3A5F";
     constexpr auto TH_TXT   = "#FFFFFF";
-    constexpr auto SIDEBAR  = "#1E293B";
-    constexpr auto SB_TXT   = "#94A3B8";
-    constexpr auto SB_ACT   = "#2563EB";
+    constexpr auto SIDEBAR  = "#ffffff";    // ← blanc (comme admin)
+    constexpr auto SB_TXT   = "#030000";     // ← noir (comme admin)
+    constexpr auto SB_ACT   = "#1D3461";   // ← bleu foncé (comme admin)
 }
 
 static QGraphicsDropShadowEffect* mkShadow()
@@ -128,99 +128,230 @@ QWidget* ClientWindow::buildSidebar()
     QWidget *sidebar = new QWidget;
     sidebar->setFixedWidth(230);
     sidebar->setStyleSheet(
-        QString("background:%1;").arg(C::SIDEBAR));
+        QString("background:%1;").arg(C::SIDEBAR));  // ← #ffffff
 
-    QVBoxLayout *vl = new QVBoxLayout(sidebar);
-    vl->setContentsMargins(0, 0, 0, 0);
-    vl->setSpacing(0);
+    QVBoxLayout *sl = new QVBoxLayout(sidebar);
+    sl->setContentsMargins(0, 0, 0, 0);
+    sl->setSpacing(0);
 
-    // Logo + Nom
+    // ── Logo (fixe en haut) ──────────────────────────────────────────────
     QWidget *logoArea = new QWidget;
-    logoArea->setFixedHeight(80);
+    logoArea->setFixedHeight(64);
     logoArea->setStyleSheet(
-        "background:#172035;");
-    QVBoxLayout *ll = new QVBoxLayout(logoArea);
-    ll->setContentsMargins(20, 16, 20, 16);
-    ll->setSpacing(2);
-    QLabel *appName = new QLabel("FacturationApp");
-    appName->setStyleSheet(
-        "color:white;font-size:15px;"
-        "font-weight:bold;");
-    QLabel *userName = new QLabel("👤 " + m_clientNom);
-    userName->setStyleSheet(
-        QString("color:%1;font-size:11px;")
-        .arg(C::SB_TXT));
-    ll->addWidget(appName);
-    ll->addWidget(userName);
-    vl->addWidget(logoArea);
+        QString("background:%1;border-bottom:1px solid #000006;")
+            .arg(C::SIDEBAR));
+    QHBoxLayout *ll = new QHBoxLayout(logoArea);
+    ll->setContentsMargins(20, 0, 16, 0);
 
-    // Menu items
-    struct MenuItem {
-        QString icon, label, page;
+    QLabel *logoIcon = new QLabel("F");
+    logoIcon->setFixedSize(32, 32);
+    logoIcon->setAlignment(Qt::AlignCenter);
+    logoIcon->setStyleSheet(
+        QString("background:#60A5FA;border-radius:8px;"
+                "font-size:16px;font-weight:800;color:#0F172A;"));
+
+    QLabel *logoText = new QLabel("FacturationApp");
+    logoText->setStyleSheet(
+        QString("font-size:16px;font-weight:800;color:#60A5FA;"
+                "letter-spacing:0.3px;"));
+
+    ll->addWidget(logoIcon);
+    ll->addSpacing(8);
+    ll->addWidget(logoText);
+    ll->addStretch();
+    sl->addWidget(logoArea);
+
+    // ── ZONE SCROLLABLE pour la navigation ───────────────────────────────
+    QScrollArea *scrollArea = new QScrollArea;
+    scrollArea->setWidgetResizable(true);
+    scrollArea->setFrameStyle(QFrame::NoFrame);
+    scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    scrollArea->setStyleSheet(
+        "QScrollArea { background:transparent; border:none; }"
+        "QScrollBar:vertical { width:4px; background:transparent; }"
+        "QScrollBar::handle:vertical { background:#CBD5E1; border-radius:2px; min-height:30px; }"
+        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0px; }"
+        "QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical { background:transparent; }");
+
+    QWidget *navContainer = new QWidget;
+    navContainer->setStyleSheet("background:transparent;");
+    QVBoxLayout *navLayout = new QVBoxLayout(navContainer);
+    navLayout->setContentsMargins(0, 0, 0, 0);
+    navLayout->setSpacing(0);
+
+    // Section label helper
+    auto addSection = [&](const QString &label) {
+        QLabel *sec = new QLabel(label.toUpper());
+        sec->setFixedHeight(24);
+        sec->setStyleSheet(
+            QString("font-size:9px;font-weight:700;color:#13458b;"
+                    "letter-spacing:1.8px;padding:0 20px;"));
+        navLayout->addWidget(sec);
     };
-    QList<MenuItem> items = {
-        {"🏠", "Accueil",         "dashboard"},
-        {"📄", "Mes Factures",    "factures"},
-        {"💰", "Paiements",       "paiements"},
-        {"⚙️",  "Mon Profil",     "profil"},
-        {"📧", "Contact",         "contact"},
-    };
 
-    QButtonGroup *grp = new QButtonGroup(this);
-    grp->setExclusive(true);
-
-    for (auto &item : items) {
-        QPushButton *btn = new QPushButton(
-            item.icon + "  " + item.label);
-        btn->setCheckable(true);
-        btn->setFixedHeight(44);
+    // Nav item helper — Style Admin avec barre d'accent
+    auto addNavItem = [&](const QString &icon,
+                          const QString &label,
+                          const QString &page,
+                          bool isActive = false) -> QPushButton*
+    {
+        QPushButton *btn = new QPushButton;
+        btn->setFixedHeight(38);
         btn->setCursor(Qt::PointingHandCursor);
-        btn->setStyleSheet(
-            QString("QPushButton{"
-                    "background:transparent;"
-                    "color:%1;font-size:13px;"
-                    "font-weight:500;border:none;"
-                    "text-align:left;padding:0 20px;"
-                    "border-radius:0;}"
-                    "QPushButton:hover{"
-                    "background:rgba(255,255,255,0.06);"
-                    "color:white;}"
-                    "QPushButton:checked{"
-                    "background:%2;"
-                    "color:white;font-weight:700;}")
-            .arg(C::SB_TXT, C::SB_ACT));
-        grp->addButton(btn);
-        vl->addWidget(btn);
+        btn->setFlat(true);
 
-        QString page = item.page;
-        connect(btn, &QPushButton::clicked, [this, page](){
+        QHBoxLayout *bl = new QHBoxLayout(btn);
+        bl->setContentsMargins(0, 0, 0, 0);
+        bl->setSpacing(0);
+
+        // Barre d'accent bleue (3px) à gauche
+        QFrame *bar = new QFrame;
+        bar->setFixedWidth(3);
+        bar->setStyleSheet(
+            QString("background:%1;border-radius:0;")
+                .arg(isActive ? "#3B82F6" : "transparent"));
+
+        QLabel *ico = new QLabel(icon);
+        ico->setFixedWidth(36);
+        ico->setAlignment(Qt::AlignCenter);
+        ico->setStyleSheet("font-size:15px;background:transparent;");
+
+        QLabel *txt = new QLabel(label);
+        txt->setStyleSheet(
+            QString("font-size:15px;font-weight:%1;color:%2;background:transparent;")
+                .arg(isActive ? "800" : "700")
+                .arg(isActive ? "#ffffff" : "#030000"));
+
+        bl->addWidget(bar);
+        bl->addSpacing(10);
+        bl->addWidget(ico);
+        bl->addWidget(txt);
+        bl->addStretch();
+
+        btn->setStyleSheet(
+            QString("QPushButton{background:%1;border:none;}"
+                    "QPushButton:hover{background:#ebf0f7;}")
+                .arg(isActive ? "#1D3461" : "transparent"));
+
+        navLayout->addWidget(btn);
+
+        connect(btn, &QPushButton::clicked, this,
+                [this, btn, bar, txt, page]()
+        {
+            // Désactiver précédent
+            if (activeNavBtn && activeNavBtn != btn) {
+                QHBoxLayout *prevL = qobject_cast<QHBoxLayout*>(activeNavBtn->layout());
+                if (prevL) {
+                    QFrame *prevBar = qobject_cast<QFrame*>(prevL->itemAt(0)->widget());
+                    QLabel *prevTxt = nullptr;
+                    for (int i = 0; i < prevL->count(); i++) {
+                        QLabel *l = qobject_cast<QLabel*>(prevL->itemAt(i)->widget());
+                        if (l && l->text().length() > 2) { prevTxt = l; break; }
+                    }
+                    if (prevBar)
+                        prevBar->setStyleSheet("background:transparent;border-radius:0;");
+                    if (prevTxt)
+                        prevTxt->setStyleSheet(
+                            "font-size:15px;font-weight:700;color:#030000;"
+                            "background:transparent;");
+                    activeNavBtn->setStyleSheet(
+                        "QPushButton{background:transparent;border:none;}"
+                        "QPushButton:hover{background:#ebf0f7;}");
+                }
+            }
+            activeNavBtn = btn;
+            bar->setStyleSheet("background:#3B82F6;border-radius:0;");
+            txt->setStyleSheet(
+                "font-size:15px;font-weight:800;color:#ffffff;"
+                "background:transparent;");
+            btn->setStyleSheet(
+                "QPushButton{background:#1D3461;border:none;}"
+                "QPushButton:hover{background:#1D3461;}");
             onNavigateTo(page);
         });
 
-        if (item.page == "dashboard")
-            btn->setChecked(true);
-    }
+        if (isActive) activeNavBtn = btn;
+        return btn;
+    };
 
-    vl->addStretch();
+    // ── SECTION PRINCIPAL ────────────────────────────────────────────────
+    navLayout->addSpacing(4);
+    addSection("Principal");
+    addNavItem("🏠", "Accueil",        "dashboard",  true);
+    addNavItem("📄", "Mes Factures",   "factures");
+    addNavItem("💰", "Paiements",      "paiements");
+    addNavItem("⚙️", "Mon Profil",     "profil");
+    addNavItem("📧", "Contact",        "contact");
 
-    // Bouton déconnexion
-    QPushButton *logoutBtn =
-        new QPushButton("🔒  Déconnexion");
-    logoutBtn->setFixedHeight(44);
+    navLayout->addStretch();
+    scrollArea->setWidget(navContainer);
+    sl->addWidget(scrollArea);
+    sl->setStretchFactor(scrollArea, 1);
+
+    // ── BAS DE SIDEBAR (fixe, toujours visible) ──────────────────────────
+    QFrame *div = new QFrame;
+    div->setFixedHeight(1);
+    div->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    div->setStyleSheet("background:#000006;margin:0 16px;");
+    sl->addWidget(div);
+    sl->addSpacing(10);
+
+    // User chip bleu
+    QWidget *chip = new QWidget;
+    chip->setFixedHeight(50);
+    chip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    chip->setStyleSheet(
+        "background:#3B82F6;border-radius:10px;margin:0 12px;");
+    QHBoxLayout *ul = new QHBoxLayout(chip);
+    ul->setContentsMargins(10, 0, 10, 0);
+    ul->setSpacing(10);
+
+    QLabel *avatar = new QLabel("A");
+    avatar->setFixedSize(30, 30);
+    avatar->setAlignment(Qt::AlignCenter);
+    avatar->setStyleSheet(
+        "border-radius:11px;font-size:15px;font-weight:700;color:#0F172A;");
+
+    QVBoxLayout *uinfo = new QVBoxLayout;
+    uinfo->setSpacing(1);
+    QLabel *uname = new QLabel(m_clientNom);
+    uname->setStyleSheet(
+        "font-size:11px;font-weight:600;color:#FFFFFF;background:transparent;");
+    QLabel *urole = new QLabel("Client");
+    urole->setStyleSheet(
+        "font-size:10px;color:rgba(255,255,255,0.75);background:transparent;");
+    uinfo->addWidget(uname);
+    uinfo->addWidget(urole);
+
+    ul->addWidget(avatar);
+    ul->addLayout(uinfo);
+    ul->addStretch();
+    sl->addWidget(chip);
+    sl->addSpacing(10);
+
+    // Logout button rouge
+    QPushButton *logoutBtn = new QPushButton("  🔓  Déconnexion");
+    logoutBtn->setFixedHeight(42);
+    logoutBtn->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
     logoutBtn->setCursor(Qt::PointingHandCursor);
+    logoutBtn->setFlat(true);
     logoutBtn->setStyleSheet(
-        "QPushButton{background:transparent;"
-        "color:#F87171;font-size:13px;"
-        "font-weight:600;border:none;"
-        "text-align:left;padding:0 20px;}"
-        "QPushButton:hover{color:#FECACA;}");
+        "QPushButton{"
+        "  background:rgba(226, 8, 8, 0.89);"
+        "  border:1px solid rgba(239,68,68,0.25);"
+        "  border-radius:8px;"
+        "  margin:0 12px;"
+        "  font-size:14px;font-weight:700;color:#ffffff;"
+        "}"
+        "QPushButton:hover{background:rgba(231, 14, 14, 0.73);}");
     connect(logoutBtn, &QPushButton::clicked,
             this, &ClientWindow::onLogout);
-    vl->addWidget(logoutBtn);
+    sl->addWidget(logoutBtn);
+    sl->addSpacing(14);
 
     return sidebar;
 }
-
 void ClientWindow::onNavigateTo(const QString &page)
 {
     if      (page == "dashboard") m_pageStack->setCurrentIndex(0);

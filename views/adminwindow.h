@@ -72,7 +72,6 @@ private:
     QPushButton *editInvoiceBtn;
     QPushButton *deleteInvoiceBtn;
     QPushButton *actionsBtn;
-    QPushButton *paymentBtn;
     QPushButton *refreshInvoicesBtn;
 
     // Client page widgets

@@ -468,7 +468,6 @@ void PaymentDialog::refreshPaymentsList()
 
     updateButtonsState();
 }
-
 void PaymentDialog::onAddPayment()
 {
     double montant = montantSpinBox->value();
@@ -481,12 +480,13 @@ void PaymentDialog::onAddPayment()
     double reste = qRound((m_totalTTC - m_totalPaid) * 100.0) / 100.0;
 
     if (montant > reste + 0.01) {
-        QMessageBox::warning(this, "Erreur", 
+        QMessageBox::warning(this, "Erreur",
             QString("Le montant (%1) dépasse le reste à payer (%2)")
             .arg(montant, 0, 'f', 2).arg(reste, 0, 'f', 2));
         return;
     }
 
+    // ── Insérer le paiement ──────────────────────────────────────────────────
     QSqlQuery q;
     q.prepare("INSERT INTO paiements (facture_id, montant, date_paiement, methode, notes) "
               "VALUES (?, ?, ?, ?, ?)");
@@ -497,28 +497,51 @@ void PaymentDialog::onAddPayment()
     q.addBindValue(notesEdit->toPlainText().trimmed());
 
     if (!q.exec()) {
-        QMessageBox::critical(this, "Erreur", "Échec de l\'enregistrement:\n" + q.lastError().text());
+        QMessageBox::critical(this, "Erreur",
+            "Échec de l'enregistrement:\n" + q.lastError().text());
         return;
     }
 
-    QMessageBox::information(this, "Succès", 
-        QString("Paiement de %1 MAD enregistré.\nLe statut a été mis à jour automatiquement.")
-        .arg(montant, 0, 'f', 2));
+    // ── Recalculer le total payé depuis la DB ────────────────────────────────
+    double nouveauTotalPaye = getTotalPaid();
+    double nouveauReste = qRound((m_totalTTC - nouveauTotalPaye) * 100.0) / 100.0;
 
-    montantSpinBox->setValue(0);
+    // ── Mettre à jour le statut manuellement (sans dépendre du trigger) ──────
+    QString nouveauStatut;
+    if (nouveauReste <= 0.01) {
+        nouveauStatut = "Payée";
+    } else if (nouveauTotalPaye > 0) {
+        nouveauStatut = "Partiellement payée";
+    } else {
+        nouveauStatut = "Envoyée";
+    }
+
+    QSqlQuery updateStatut;
+    updateStatut.prepare("UPDATE factures SET statut = ?, "
+                         "montant_paye = ?, reste_a_payer = ? "
+                         "WHERE id = ?");
+    updateStatut.addBindValue(nouveauStatut);
+    updateStatut.addBindValue(nouveauTotalPaye);
+    updateStatut.addBindValue(qMax(0.0, nouveauReste));
+    updateStatut.addBindValue(m_invoiceId);
+
+    if (!updateStatut.exec()) {
+        qDebug() << "Erreur UPDATE statut:" << updateStatut.lastError().text();
+    }
+
+    QMessageBox::information(this, "Succès",
+        QString("Paiement de %1 MAD enregistré.\nStatut: %2")
+        .arg(montant, 0, 'f', 2).arg(nouveauStatut));
+
+    montantSpinBox->setValue(0.01);
     notesEdit->clear();
-    m_totalPaid = getTotalPaid();
+    m_totalPaid = nouveauTotalPaye;
     updateResteDisplay();
     refreshPaymentsList();
 
-    QSqlQuery sq;
-    sq.prepare("SELECT statut FROM factures WHERE id = ?");
-    sq.addBindValue(m_invoiceId);
-    if (sq.exec() && sq.next()) {
-        statutLabel->setText(sq.value(0).toString());
-    }
+    // ── Rafraîchir le label statut ───────────────────────────────────────────
+    statutLabel->setText(nouveauStatut);
 }
-
 void PaymentDialog::onCancelPayment()
 {
     QSqlQuery q;
@@ -556,7 +579,36 @@ void PaymentDialog::onCancelPayment()
             "Échec de la suppression:\n" + del.lastError().text());
         return;
     }
+// ── Recalculer après suppression ─────────────────────────────────────────
+    double nouveauTotalPaye = getTotalPaid();
+    double nouveauReste = qRound((m_totalTTC - nouveauTotalPaye) * 100.0) / 100.0;
 
+    QString nouveauStatut;
+    if (nouveauTotalPaye <= 0) {
+        nouveauStatut = "Envoyée";
+    } else if (nouveauReste <= 0.01) {
+        nouveauStatut = "Payée";
+    } else {
+        nouveauStatut = "Partiellement payée";
+    }
+
+    QSqlQuery updateStatut;
+    updateStatut.prepare("UPDATE factures SET statut = ?, "
+                         "montant_paye = ?, reste_a_payer = ? "
+                         "WHERE id = ?");
+    updateStatut.addBindValue(nouveauStatut);
+    updateStatut.addBindValue(nouveauTotalPaye);
+    updateStatut.addBindValue(qMax(0.0, nouveauReste));
+    updateStatut.addBindValue(m_invoiceId);
+    updateStatut.exec();
+
+    QMessageBox::information(this, "Succès",
+        "Paiement annulé.\nStatut mis à jour: " + nouveauStatut);
+
+    m_totalPaid = nouveauTotalPaye;
+    updateResteDisplay();
+    refreshPaymentsList();
+    statutLabel->setText(nouveauStatut);
     QMessageBox::information(this, "Succès", 
         "Paiement annulé.\nLe statut a été mis à jour automatiquement.");
 

@@ -112,6 +112,35 @@ void EntrepriseConfigWidget::setupUI()
     // Boutons
     saveBtn   = new QPushButton("Enregistrer", this);
     cancelBtn = new QPushButton("Annuler", this);
+        // Style Enregistrer (BLEU)
+    saveBtn->setStyleSheet(
+        "QPushButton{"
+        "background:white;"           // ← BACKGROUND BLEU
+        "color:#4A5568;"
+        "font-weight:bold;"
+        "border:none;"
+        "border-radius:8px;"
+        "padding:10px 24px;"
+        "font-size:14px;"
+        "}"
+        "QPushButton:hover{background:#1D4ED8;}"
+        "QPushButton:pressed{background:#1E40AF;}"
+    );
+
+    // Style Annuler (BLANC/GRIS)
+    cancelBtn->setStyleSheet(
+        "QPushButton{"
+        "background:white;"             // ← BACKGROUND BLANC
+        "color:#4A5568;"
+        "font-weight:600;"
+        "border:2px solid #E2E8F0;"    // ← Bordure grise
+        "border-radius:8px;"
+        "padding:10px 24px;"
+        "font-size:14px;"
+        "}"
+        "QPushButton:hover{background:#F7FAFC;}"
+        "QPushButton:pressed{background:#EDF2F7;}"
+    );
     auto *btnLayout = new QHBoxLayout();
     btnLayout->addWidget(saveBtn);
     btnLayout->addWidget(cancelBtn);

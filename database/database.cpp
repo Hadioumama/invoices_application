@@ -132,16 +132,9 @@ ok = query.exec(R"(
         return false;
     }
 
-    // ============================================
-    // 6. MIGRATION : Ajout colonne designation si absente
-    // ============================================
-    // SQLite ne supporte pas ALTER TABLE DROP COLUMN, mais ADD COLUMN est OK
-    // On ignore l'erreur si la colonne existe déjà
     query.exec("ALTER TABLE lignes_facture ADD COLUMN designation TEXT DEFAULT ''");
 
-    // ============================================
-    // 7. INSERTION ADMIN PAR DÉFAUT
-    // ============================================
+  
     QSqlQuery insertAdmin;
     insertAdmin.prepare(R"(
         INSERT OR IGNORE INTO clients 

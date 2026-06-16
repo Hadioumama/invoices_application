@@ -71,7 +71,7 @@ AdminWindow::AdminWindow(int adminId, QWidget *parent)
       editInvoiceBtn(nullptr),
       deleteInvoiceBtn(nullptr),
       actionsBtn(nullptr),
-      paymentBtn(nullptr),
+  
       refreshInvoicesBtn(nullptr),
       clientView(nullptr),
       clientModel(nullptr),
@@ -224,7 +224,6 @@ QWidget* AdminWindow::buildInvoicePage()
     editInvoiceBtn    = makeBtn("✏️ Modifier",   A::BLUE,   100);
     deleteInvoiceBtn  = makeBtn("🗑️ Supprimer", A::RED,    100);
     actionsBtn        = makeBtn("⚙️ Actions",   A::AMBER,  100);
-    paymentBtn        = makeBtn("💳 Paiements", A::VIOLET, 110);
     refreshInvoicesBtn= makeBtn("🔄",           A::GRAY,    42);
 
     // ⬇️ BOUTON EXPORT PDF AJOUTÉ
@@ -234,7 +233,7 @@ QWidget* AdminWindow::buildInvoicePage()
     actions->addWidget(editInvoiceBtn);
     actions->addWidget(deleteInvoiceBtn);
     actions->addWidget(actionsBtn);
-    actions->addWidget(paymentBtn);
+ 
     actions->addWidget(exportPdfBtn);        // ⬅️ AJOUTÉ
     actions->addStretch();
     actions->addWidget(refreshInvoicesBtn);
@@ -300,7 +299,6 @@ QWidget* AdminWindow::buildInvoicePage()
     connect(editInvoiceBtn,    &QPushButton::clicked, this, &AdminWindow::onEditInvoice);
     connect(deleteInvoiceBtn,  &QPushButton::clicked, this, &AdminWindow::onDeleteInvoice);
     connect(actionsBtn,        &QPushButton::clicked, this, &AdminWindow::onInvoiceActions);
-    connect(paymentBtn,        &QPushButton::clicked, this, &AdminWindow::onPaymentClicked);
     connect(refreshInvoicesBtn,&QPushButton::clicked, this, &AdminWindow::onRefreshInvoices);
 
     // ⬇️ CONNEXION DU BOUTON EXPORT PDF
@@ -370,12 +368,11 @@ QWidget* AdminWindow::buildClientPage()
     addButton     = makeBtn("➕ Ajouter",   A::GREEN,  100);
     editButton    = makeBtn("✏️ Modifier",   A::BLUE,   100);
     deleteButton  = makeBtn("🗑️ Supprimer", A::RED,    100);
-    refreshButton = makeBtn("🔄",           A::GRAY,    42);
+   
     actRow->addWidget(addButton);
     actRow->addWidget(editButton);
     actRow->addWidget(deleteButton);
     actRow->addStretch();
-    actRow->addWidget(refreshButton);
 
     cl->addLayout(searchRow);
     cl->addLayout(actRow);

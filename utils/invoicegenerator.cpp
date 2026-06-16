@@ -180,8 +180,9 @@ if (logoHtml.isEmpty()) {
             QString des = lq.value(0).toString().toHtmlEscaped();
             int qty = lq.value(1).toInt();
             double prix = lq.value(2).toDouble();
-            double tauxTva = lq.value(3).toDouble();
-            double tot = qty * prix;
+      
+Q_UNUSED(lq.value(3).toDouble());   // tauxTva non utilisé
+double tot = qty * prix;
 
             rowsHtml += QString(
                 "<tr style='border-bottom:1px solid #d0d0d0;'>"
