@@ -12,174 +12,240 @@
 #include <QSqlError>
 #include <QGraphicsDropShadowEffect>
 #include <QFrame>
+#include <QSvgRenderer>
+#include <QPainter>
+#include <QIcon>
+#include <QPixmap>
 
 LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent),
     m_countdownTimer(nullptr), m_remainingSeconds(0), m_attemptCount(0)
 {
     setupUI();
     applyStyles();
+      m_imagePanel->setPixmap(QPixmap(":/images/login_side.jpg"));
+}
+
+void LoginDialog::paintEvent(QPaintEvent *event)
+{
+    QDialog::paintEvent(event);
+}
+
+static QIcon makeEyeIcon(bool slashed)
+{
+    QString color = "#9CA3AF";
+
+    QString svgOpen = QString(R"(
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+        </svg>
+    )").arg(color);
+
+    QString svgSlashed = QString(R"(
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+            <circle cx="12" cy="12" r="3"/>
+            <line x1="3" y1="3" x2="21" y2="21"/>
+        </svg>
+    )").arg(color);
+
+    QString svg = slashed ? svgSlashed : svgOpen;
+    QSvgRenderer renderer(svg.toUtf8());
+    QPixmap pixmap(22, 22);
+    pixmap.fill(Qt::transparent);
+    QPainter painter(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    renderer.render(&painter);
+    return QIcon(pixmap);
 }
 
 void LoginDialog::setupUI()
 {
     setWindowTitle("Connexion");
-    setFixedSize(420, 580);
-    setWindowFlags(Qt::Widget);
-
-    // Layout principal
-    QVBoxLayout *mainLayout = new QVBoxLayout(this);
-    mainLayout->setAlignment(Qt::AlignCenter);
-    mainLayout->setSpacing(0);
-    mainLayout->setContentsMargins(0, 0, 0, 0);
-
-    // ===== CARTE CENTRALE =====
-    QFrame *card = new QFrame(this);
-    card->setFixedSize(380, 520);
-    card->setStyleSheet("background: white; border-radius: 16px;");
     
-    // Ombre portée
+  
+    
+    setWindowFlags(Qt::Widget);
+     setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+
+    // ===== LAYOUT PRINCIPAL AVEC CENTRAGE =====
+    QVBoxLayout *mainLayout = new QVBoxLayout(this);
+    mainLayout->setAlignment(Qt::AlignCenter);  // ← CENTRE tout
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    // ===== SPACER HAUT (centre verticalement) =====
+    mainLayout->addStretch(1);
+
+    // ===== CONTENEUR HORIZONTAL POUR CENTRAGE =====
+    QHBoxLayout *centerLayout = new QHBoxLayout;
+    centerLayout->setContentsMargins(0, 0, 0, 0);
+    centerLayout->setSpacing(0);
+    centerLayout->setAlignment(Qt::AlignCenter);
+    centerLayout->addStretch(1);  // ← Élastique gauche
+
+       // ===== CARTE SPLIT =====
+    QFrame *card = new QFrame;
+    card->setFixedSize(720, 460);
+    // ← CORRIGÉ : border-radius uniforme de 24px comme l'image
+    card->setStyleSheet(
+        "QFrame {"
+        "   background: white;"
+        "   border-radius: 24px;"  // ← Augmenté de 20px à 24px
+        "   border: none;"
+        "}");
+
     QGraphicsDropShadowEffect *shadow = new QGraphicsDropShadowEffect(card);
-    shadow->setBlurRadius(25);
-    shadow->setColor(QColor(0, 0, 0, 30));
-    shadow->setOffset(0, 4);
+    shadow->setBlurRadius(40);        // ← Légèrement augmenté pour un effet plus doux
+    shadow->setColor(QColor(0, 0, 0, 50));  // ← Un peu plus transparent
+    shadow->setOffset(0, 12);         // ← Ombre plus basse pour profondeur
     card->setGraphicsEffect(shadow);
 
-    QVBoxLayout *cardLayout = new QVBoxLayout(card);
+    QHBoxLayout *cardLayout = new QHBoxLayout(card);
     cardLayout->setSpacing(0);
-    cardLayout->setContentsMargins(35, 35, 35, 30);
-   cardLayout->setAlignment(Qt::AlignVCenter | Qt::AlignHCenter);
+    // ← CORRIGÉ : margins à 0 pour que l'image touche les bords arrondis
+    cardLayout->setContentsMargins(0, 0, 0, 0);
 
-    // ===== LOGO (sans emoji, utilisation d'un QLabel stylisé) =====
-    QLabel *logoLabel = new QLabel("FA");
-    logoLabel->setFixedSize(56, 56);
-    logoLabel->setAlignment(Qt::AlignCenter);
-    logoLabel->setStyleSheet(
-        "background: #2B6CB0; color: white; font-size: 22px; "
-        "font-weight: bold; border-radius: 12px;");
-    
-    // Container pour centrer le logo
-    QHBoxLayout *logoContainer = new QHBoxLayout;
-    logoContainer->addStretch();
-    logoContainer->addWidget(logoLabel);
-    logoContainer->addStretch();
-    cardLayout->addLayout(logoContainer);
-    cardLayout->addSpacing(16);
+    // ===== PANNEAU GAUCHE — IMAGE =====
+    m_imagePanel = new QLabel;
+    m_imagePanel->setFixedWidth(320);
+    // ← CORRIGÉ : border-radius sur les coins gauches seulement, même rayon que la carte
+    m_imagePanel->setStyleSheet(
+        "background: #021024;"
+        "border-top-left-radius: 24px;"      // ← 24px au lieu de 20px
+        "border-bottom-left-radius: 24px;"   // ← 24px au lieu de 20px
+        "border-top-right-radius: 24px;"
+        "border-bottom-right-radius: 24px;");
+    m_imagePanel->setAlignment(Qt::AlignCenter);
+    m_imagePanel->setScaledContents(true);
+    cardLayout->addWidget(m_imagePanel);
+
+    // ===== PANNEAU DROIT — FORMULAIRE =====
+    QWidget *formPanel = new QWidget;
+    formPanel->setStyleSheet("background: transparent;");
+
+    QHBoxLayout *formPanelLayout = new QHBoxLayout(formPanel);
+    formPanelLayout->setContentsMargins(0, 0, 0, 0);
+    formPanelLayout->setSpacing(0);
+    formPanelLayout->addStretch(1);  // ← Élastique gauche
+
+    QWidget *formContainer = new QWidget;
+    formContainer->setFixedWidth(340);
+
+    QVBoxLayout *formLayout = new QVBoxLayout(formContainer);
+    formLayout->setContentsMargins(0, 50, 0, 40);
+    formLayout->setSpacing(0);
+    formLayout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
 
     // ===== TITRE =====
     QLabel *titleLabel = new QLabel("Connexion");
-    titleLabel->setStyleSheet(
-        "font-size: 26px; font-weight: bold; color: #1A202C; background: transparent;");
     titleLabel->setAlignment(Qt::AlignCenter);
-    cardLayout->addWidget(titleLabel);
+    titleLabel->setStyleSheet(
+        "font-size: 28px; font-weight: bold; color: #1A202C; background: transparent;");
+    formLayout->addWidget(titleLabel);
 
-    // ===== SOUS-TITRE =====
     QLabel *subtitleLabel = new QLabel("Accédez à votre espace");
+    subtitleLabel->setAlignment(Qt::AlignCenter);
     subtitleLabel->setStyleSheet(
         "font-size: 14px; color: #718096; background: transparent;");
-    subtitleLabel->setAlignment(Qt::AlignCenter);
-    cardLayout->addWidget(subtitleLabel);
-    cardLayout->addSpacing(28);
+    formLayout->addWidget(subtitleLabel);
+    formLayout->addSpacing(36);
 
     // ===== EMAIL =====
-    QLabel *emailLabel = new QLabel("Adresse email");
-    emailLabel->setStyleSheet(
-        "font-size: 13px; font-weight: 600; color: #4A5568; background: transparent; "
-        "margin-bottom: 6px;");
-    cardLayout->addWidget(emailLabel);
-
     emailEdit = new QLineEdit;
-    emailEdit->setPlaceholderText("votre.email@gmail.com");
-    emailEdit->setFixedHeight(44);
-    cardLayout->addWidget(emailEdit);
-    cardLayout->addSpacing(16);
+    emailEdit->setPlaceholderText("Email address");
+    emailEdit->setFixedHeight(42);
+    emailEdit->setFixedWidth(320);
+    formLayout->addWidget(emailEdit, 0, Qt::AlignHCenter);
+    formLayout->addSpacing(14);
 
     // ===== MOT DE PASSE =====
-    QLabel *passLabel = new QLabel("Mot de passe");
-    passLabel->setStyleSheet(
-        "font-size: 13px; font-weight: 600; color: #4A5568; background: transparent; "
-        "margin-bottom: 6px;");
-    cardLayout->addWidget(passLabel);
+    QFrame *pwdContainer = new QFrame;
+    pwdContainer->setFixedHeight(42);
+    pwdContainer->setFixedWidth(320);
+    pwdContainer->setObjectName("pwdContainer");
 
-    // Container mot de passe + bouton œil
-    QWidget *pwdContainer = new QWidget;
-    pwdContainer->setFixedHeight(44);
     QHBoxLayout *pwdLayout = new QHBoxLayout(pwdContainer);
     pwdLayout->setSpacing(0);
-    pwdLayout->setContentsMargins(0, 0, 0, 0);
+    pwdLayout->setContentsMargins(14, 0, 6, 0);
 
     passwordEdit = new QLineEdit;
     passwordEdit->setEchoMode(QLineEdit::Password);
-    passwordEdit->setPlaceholderText("••••••••");
-    passwordEdit->setFixedHeight(44);
-    
-    togglePwdButton = new QPushButton("👁");
-    togglePwdButton->setFixedSize(40, 44);
+    passwordEdit->setPlaceholderText("Password");
+    passwordEdit->setFixedHeight(40);
+    passwordEdit->setFrame(false);
+
+    togglePwdButton = new QPushButton;
+    togglePwdButton->setIcon(makeEyeIcon(true));
+    togglePwdButton->setIconSize(QSize(18, 18));
+    togglePwdButton->setFixedSize(28, 28);
     togglePwdButton->setCursor(Qt::PointingHandCursor);
     togglePwdButton->setCheckable(true);
-    
+
     pwdLayout->addWidget(passwordEdit);
     pwdLayout->addWidget(togglePwdButton);
-    cardLayout->addWidget(pwdContainer);
+    formLayout->addWidget(pwdContainer, 0, Qt::AlignHCenter);
+    formLayout->addSpacing(8);
 
     // ===== MOT DE PASSE OUBLIÉ =====
     QHBoxLayout *forgotLayout = new QHBoxLayout;
+    forgotLayout->setContentsMargins(0, 0, 0, 0);
     forgotLayout->addStretch();
-    
     forgotButton = new QPushButton("Mot de passe oublié ?");
     forgotButton->setCursor(Qt::PointingHandCursor);
     forgotButton->setFlat(true);
     forgotLayout->addWidget(forgotButton);
-    cardLayout->addSpacing(8); 
-    cardLayout->addLayout(forgotLayout);
-    cardLayout->addSpacing(20);
+    forgotLayout->addStretch();
+    formLayout->addLayout(forgotLayout);
+    formLayout->addSpacing(20);
 
     // ===== BOUTON CONNEXION =====
-    loginButton = new QPushButton("Se connecter");
+    loginButton = new QPushButton("Se connecter  →");
     loginButton->setFixedHeight(46);
     loginButton->setCursor(Qt::PointingHandCursor);
-    cardLayout->addWidget(loginButton);
-    cardLayout->addSpacing(18);
+    loginButton->setFixedWidth(320);
+    formLayout->addWidget(loginButton, 0, Qt::AlignHCenter);
+    formLayout->addSpacing(16);
 
     // ===== SÉPARATEUR =====
     QHBoxLayout *sepLayout = new QHBoxLayout;
-    sepLayout->setSpacing(12);
-    
+    sepLayout->setContentsMargins(0, 0, 0, 0);
+    sepLayout->setSpacing(10);
     QWidget *lineLeft = new QWidget;
     lineLeft->setFixedHeight(1);
     lineLeft->setStyleSheet("background: #E2E8F0;");
-    
     QLabel *ouLabel = new QLabel("ou");
-    ouLabel->setStyleSheet("color: #A0AEC0; font-size: 13px; background: transparent;");
-    
+    ouLabel->setStyleSheet("color: #A0AEC0; font-size: 12px; background: transparent;");
     QWidget *lineRight = new QWidget;
     lineRight->setFixedHeight(1);
     lineRight->setStyleSheet("background: #E2E8F0;");
-    
     sepLayout->addWidget(lineLeft, 1);
     sepLayout->addWidget(ouLabel);
     sepLayout->addWidget(lineRight, 1);
-    cardLayout->addLayout(sepLayout);
-    cardLayout->addSpacing(14);
+    formLayout->addLayout(sepLayout);
+    formLayout->addSpacing(14);
 
     // ===== BOUTON CRÉER COMPTE =====
     createButton = new QPushButton("Créer un compte");
-    createButton->setFixedHeight(44);
+    createButton->setFixedHeight(42);
     createButton->setCursor(Qt::PointingHandCursor);
-    cardLayout->addWidget(createButton);
-    cardLayout->addStretch();
+    createButton->setFixedWidth(320);
+    formLayout->addWidget(createButton, 0, Qt::AlignHCenter);
+    formLayout->addStretch();
 
-    // ===== FOOTER =====
-    QLabel *footerLabel = new QLabel("© 2026 FacturationApp");
-footerLabel->setStyleSheet(
-    "color: #A0AEC0; font-size: 11px; background: transparent; "
-    "margin-top: 8px; padding-bottom: 4px;");
-    footerLabel->setAlignment(Qt::AlignCenter);
-    cardLayout->addWidget(footerLabel);
+    formPanelLayout->addWidget(formContainer);
+    formPanelLayout->addStretch(1);  // ← Élastique droite
 
-    // Centrer la carte dans la fenêtre
-    mainLayout->addStretch();
-    mainLayout->addWidget(card, 0, Qt::AlignCenter);
-    mainLayout->addStretch();
+    cardLayout->addWidget(formPanel, 1);
+
+    // ===== AJOUTER LA CARTE AU CENTRE =====
+    centerLayout->addWidget(card, 0, Qt::AlignCenter);
+    centerLayout->addStretch(1);  // ← Élastique droite
+
+    mainLayout->addLayout(centerLayout);
+    
+    // ===== SPACER BAS (centre verticalement) =====
+    mainLayout->addStretch(1);
 
     // ===== CONNEXIONS =====
     connect(loginButton, &QPushButton::clicked, this, &LoginDialog::onLogin);
@@ -190,19 +256,14 @@ footerLabel->setStyleSheet(
 
 void LoginDialog::applyStyles()
 {
-    // Fond de la fenêtre
     setStyleSheet("background: #EDF2F7;");
 
-    // Style des labels
-    QString labelStyle = "font-size: 13px; font-weight: 600; color: #4A5568; background: transparent;";
-
-    // Style QLineEdit standard
     QString inputStyle = R"(
         QLineEdit {
             border: 1.5px solid #E2E8F0;
-            border-radius: 10px;
-            padding: 0 14px;
-            font-size: 14px;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 13px;
             background: #F7FAFC;
             color: #2D3748;
             selection-background-color: #2B6CB0;
@@ -215,31 +276,50 @@ void LoginDialog::applyStyles()
             border: 1.5px solid #CBD5E0;
         }
     )";
-    
     emailEdit->setStyleSheet(inputStyle);
-    passwordEdit->setStyleSheet(inputStyle);
 
-    // Style bouton œil
-    togglePwdButton->setStyleSheet(R"(
-        QPushButton {
+    passwordEdit->setStyleSheet(R"(
+        QLineEdit {
+            border: none;
             background: transparent;
-            border: 1.5px solid #E2E8F0;
-            border-left: none;
-            border-radius: 0 10px 10px 0;
-            font-size: 14px;
-            color: #718096;
-        }
-        QPushButton:hover {
-            background: #F7FAFC;
-            color: #4A5568;
-        }
-        QPushButton:checked {
-            background: #EDF2F7;
-            color: #2B6CB0;
+            font-size: 13px;
+            color: #2D3748;
+            selection-background-color: #2B6CB0;
         }
     )");
 
-    // Bouton mot de passe oublié
+    passwordEdit->parentWidget()->setStyleSheet(R"(
+        QFrame#pwdContainer {
+            border: 1.5px solid #E2E8F0;
+            border-radius: 8px;
+            background: #F7FAFC;
+        }
+        QFrame#pwdContainer:hover {
+            border: 1.5px solid #CBD5E0;
+        }
+    )");
+
+    togglePwdButton->setStyleSheet(R"(
+        QPushButton {
+            background: transparent;
+            border: none;
+            outline: none;
+            font-size: 13px;
+            color: #7DA0CA;
+        }
+        QPushButton:checked {
+            color: #2B6CB0;
+        }
+        QPushButton:focus {
+            border: none;
+            outline: none;
+        }
+        QPushButton:pressed {
+            background: transparent;
+            border: none;
+        }
+    )");
+
     forgotButton->setStyleSheet(R"(
         QPushButton {
             background: transparent;
@@ -255,33 +335,31 @@ void LoginDialog::applyStyles()
         }
     )");
 
-    // Bouton connexion principal
     loginButton->setStyleSheet(R"(
         QPushButton {
-            background: #2B6CB0;
+            background: #1A202C;
             color: white;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 14px;
             border: none;
-            border-radius: 10px;
+            border-radius: 8px;
         }
         QPushButton:hover {
-            background: #1A365D;
+            background: #2D3748;
         }
         QPushButton:pressed {
-            background: #2C5282;
+            background: #0D1117;
         }
     )");
 
-    // Bouton créer compte
     createButton->setStyleSheet(R"(
         QPushButton {
             background: white;
             color: #4A5568;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 13px;
             border: 1.5px solid #E2E8F0;
-            border-radius: 10px;
+            border-radius: 8px;
         }
         QPushButton:hover {
             background: #F7FAFC;
@@ -296,7 +374,7 @@ void LoginDialog::applyStyles()
 void LoginDialog::togglePasswordVisibility(bool checked)
 {
     passwordEdit->setEchoMode(checked ? QLineEdit::Normal : QLineEdit::Password);
-    togglePwdButton->setText(checked ? "🙈" : "👁");
+    togglePwdButton->setIcon(makeEyeIcon(!checked));
 }
 
 void LoginDialog::clearFields()
@@ -306,8 +384,6 @@ void LoginDialog::clearFields()
     togglePwdButton->setChecked(false);
     togglePasswordVisibility(false);
 }
-
-// ===== MÉTHODES EXISTANTES =====
 
 bool LoginDialog::isValidEmail(const QString &email)
 {
@@ -482,10 +558,6 @@ void LoginDialog::onLogin()
     QString email = emailEdit->text().trimmed().toLower();
     QString pwd = passwordEdit->text();
 
-    qDebug() << "=== TENTATIVE LOGIN ===";
-    qDebug() << "Email saisi:" << email;
-    qDebug() << "Password saisi:" << pwd;
-
     if (email.isEmpty() || pwd.isEmpty()) {
         QMessageBox::warning(this, "Erreur", "Veuillez remplir tous les champs.");
         return;
@@ -496,13 +568,11 @@ void LoginDialog::onLogin()
     q.addBindValue(email);
 
     if (!q.exec()) {
-        qDebug() << "ERREUR SQL:" << q.lastError().text();
         QMessageBox::warning(this, "Erreur", "Problème de base de données.");
         return;
     }
 
     if (!q.next()) {
-        qDebug() << "Email NON TROUVÉ:" << email;
         QMessageBox::warning(this, "Erreur", "Email ou mot de passe incorrect.");
         passwordEdit->clear();
         return;
@@ -512,14 +582,8 @@ void LoginDialog::onLogin()
     QString role = q.value(1).toString();
     QString dbHash = q.value(2).toString();
 
-    qDebug() << "User trouvé - ID:" << userId << "Role:" << role;
-    qDebug() << "Hash BDD:" << dbHash;
-    qDebug() << "Hash saisi:" << hashPassword(pwd);
-
     QString hashedInput = hashPassword(pwd);
     bool match = (dbHash == hashedInput) || (dbHash == pwd);
-
-    qDebug() << "Match:" << match;
 
     if (!match) {
         QMessageBox::warning(this, "Erreur", "Email ou mot de passe incorrect.");
@@ -537,7 +601,6 @@ void LoginDialog::onLogin()
         update.exec();
     }
 
-    qDebug() << "EMISSION loginSuccess - ID:" << userId << "Role:" << role;
     emit loginSuccess(userId, role);
 }
 

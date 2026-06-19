@@ -36,15 +36,15 @@ void MainWindow::setupUI()
     setMinimumSize(1100, 700);
     resize(1200, 750);
     setStyleSheet("background: #F7FAFC;");
-
+ 
     m_stack = new QStackedWidget(this);
     setCentralWidget(m_stack);
-
+ m_stack->setStyleSheet("QStackedWidget { background: #F7FAFC; }");
     // Page login
     m_loginPage = new LoginDialog(this);
     m_loginPage->setWindowFlags(Qt::Widget);
     m_stack->addWidget(m_loginPage);
-
+ m_loginPage->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
     // Page register
     m_registerPage = new RegisterDialog(this);
     m_registerPage->setWindowFlags(Qt::Widget);

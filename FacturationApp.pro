@@ -1,4 +1,4 @@
-QT += core gui sql widgets network printsupport charts
+QT += core gui sql widgets network printsupport charts svg
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++17
 
@@ -59,3 +59,6 @@ FORMS += \
     mainwindow.ui
 
 QMAKE_CXXFLAGS_WARN_ON -= -Werror
+
+RESOURCES += \
+    ressources.qrc

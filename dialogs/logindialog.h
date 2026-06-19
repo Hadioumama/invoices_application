@@ -5,6 +5,7 @@
 #include <QLineEdit>
 #include <QPushButton>
 #include <QString>
+#include <QLabel>  
 #include <QTimer>
 
 class LoginDialog : public QDialog
@@ -21,7 +22,9 @@ public:
 signals:
     void loginSuccess(int userId, const QString &role);
     void createAccountRequested();
-   
+   protected:
+    void paintEvent(QPaintEvent *event) override;
+
 private slots:
     void onLogin();
     void onCreateAccountClicked();
@@ -47,12 +50,13 @@ private:
     QPushButton *createButton;
     QPushButton *forgotButton;
     QPushButton *togglePwdButton;
-
+      QLabel *m_imagePanel = nullptr;
     QTimer *m_countdownTimer;
     int m_remainingSeconds;
     int m_attemptCount;
     QString m_pendingEmail;
     QString m_verificationCode;
+    
 };
 
 #endif // LOGINDIALOG_H
