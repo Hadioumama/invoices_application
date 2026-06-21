@@ -13,16 +13,48 @@
 #include <QGraphicsDropShadowEffect>
 #include <QFrame>
 #include <QSvgRenderer>
+#include <QPainterPath>
 #include <QPainter>
 #include <QIcon>
 #include <QPixmap>
+#include <QEvent>
 
+class RoundedImageLabel : public QLabel
+{
+public:
+    explicit RoundedImageLabel(QWidget *parent = nullptr) : QLabel(parent) {}
+    void setSourcePixmap(const QPixmap &pix) { m_pix = pix; update(); }
+
+protected:
+    void paintEvent(QPaintEvent *) override
+    {
+        QPainter painter(this);
+        painter.setRenderHint(QPainter::Antialiasing);
+
+        QPainterPath path;
+        path.addRoundedRect(rect(), 24, 24);
+        painter.setClipPath(path);
+
+        if (!m_pix.isNull()) {
+            QPixmap scaled = m_pix.scaled(size(), Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+            int x = (width() - scaled.width()) / 2;
+            int y = (height() - scaled.height()) / 2;
+            painter.drawPixmap(x, y, scaled);
+        } else {
+            painter.fillRect(rect(), QColor("#021024"));
+        }
+    }
+
+private:
+    QPixmap m_pix;
+};
 LoginDialog::LoginDialog(QWidget *parent) : QDialog(parent),
     m_countdownTimer(nullptr), m_remainingSeconds(0), m_attemptCount(0)
 {
     setupUI();
     applyStyles();
-      m_imagePanel->setPixmap(QPixmap(":/images/login_side.jpg"));
+    m_sideImage = QPixmap(":/images/login_side.jpg");
+     m_imagePanel->setSourcePixmap(m_sideImage);
 }
 
 void LoginDialog::paintEvent(QPaintEvent *event)
@@ -107,18 +139,11 @@ void LoginDialog::setupUI()
     cardLayout->setContentsMargins(0, 0, 0, 0);
 
     // ===== PANNEAU GAUCHE — IMAGE =====
-    m_imagePanel = new QLabel;
-    m_imagePanel->setFixedWidth(320);
-    // ← CORRIGÉ : border-radius sur les coins gauches seulement, même rayon que la carte
-    m_imagePanel->setStyleSheet(
-        "background: #021024;"
-        "border-top-left-radius: 24px;"      // ← 24px au lieu de 20px
-        "border-bottom-left-radius: 24px;"   // ← 24px au lieu de 20px
-        "border-top-right-radius: 24px;"
-        "border-bottom-right-radius: 24px;");
-    m_imagePanel->setAlignment(Qt::AlignCenter);
-    m_imagePanel->setScaledContents(true);
-    cardLayout->addWidget(m_imagePanel);
+   // ✅ APRÈS
+m_imagePanel = new RoundedImageLabel;
+m_imagePanel->setFixedWidth(320);
+m_imagePanel->setFixedHeight(460);   // même hauteur que la carte
+cardLayout->addWidget(m_imagePanel);
 
     // ===== PANNEAU DROIT — FORMULAIRE =====
     QWidget *formPanel = new QWidget;
@@ -131,26 +156,45 @@ void LoginDialog::setupUI()
 
     QWidget *formContainer = new QWidget;
     formContainer->setFixedWidth(340);
+// ✅ APRÈS
+QVBoxLayout *formLayout = new QVBoxLayout(formContainer);
+formLayout->setContentsMargins(0, 20, 0, 40);   // ← 50 → 20 (décale tout le contenu vers le haut)
+formLayout->setSpacing(0);
+formLayout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+// ✅ APRÈS — taille réduite avec rendu net (DPI x2)
+const int logoSize = 64;          // ← taille affichée, réduite
+const int renderSize = 128;       // ← rendu interne 2x pour la netteté (HiDPI)
 
-    QVBoxLayout *formLayout = new QVBoxLayout(formContainer);
-    formLayout->setContentsMargins(0, 50, 0, 40);
-    formLayout->setSpacing(0);
-    formLayout->setAlignment(Qt::AlignHCenter | Qt::AlignTop);
+QLabel *logoImageLabel = new QLabel;
+logoImageLabel->setAlignment(Qt::AlignCenter);
+logoImageLabel->setFixedSize(logoSize, logoSize);
 
-    // ===== TITRE =====
-    QLabel *titleLabel = new QLabel("Connexion");
-    titleLabel->setAlignment(Qt::AlignCenter);
-    titleLabel->setStyleSheet(
-        "font-size: 28px; font-weight: bold; color: #1A202C; background: transparent;");
-    formLayout->addWidget(titleLabel);
+QPixmap logoPix(":/images/logo.png");
+if (!logoPix.isNull()) {
+    QPixmap scaled = logoPix.scaled(renderSize, renderSize,
+        Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
 
-    QLabel *subtitleLabel = new QLabel("Accédez à votre espace");
-    subtitleLabel->setAlignment(Qt::AlignCenter);
-    subtitleLabel->setStyleSheet(
-        "font-size: 14px; color: #718096; background: transparent;");
-    formLayout->addWidget(subtitleLabel);
-    formLayout->addSpacing(36);
+    QPixmap rounded(renderSize, renderSize);
+    rounded.fill(Qt::transparent);
+    QPainter painter(&rounded);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QPainterPath path;
+    path.addRoundedRect(0, 0, renderSize, renderSize, 14, 14);
+    painter.setClipPath(path);
+    int x = (scaled.width() - renderSize) / 2;
+    int y = (scaled.height() - renderSize) / 2;
+    painter.drawPixmap(-x, -y, scaled);
 
+    rounded.setDevicePixelRatio(2.0);   // ← clé pour la netteté : Qt sait que c'est 2x
+    logoImageLabel->setPixmap(rounded);
+    logoImageLabel->setStyleSheet("background: transparent;");
+} else {
+    logoImageLabel->setStyleSheet(
+        "font-size: 18px; font-weight: bold; color: #021024; background: transparent;");
+}
+// ✅ APRÈS — gardez seulement :
+formLayout->addWidget(logoImageLabel, 0, Qt::AlignHCenter);
+formLayout->addSpacing(20);   // espace direct vers le champ email
     // ===== EMAIL =====
     emailEdit = new QLineEdit;
     emailEdit->setPlaceholderText("Email address");
@@ -253,25 +297,52 @@ void LoginDialog::setupUI()
     connect(forgotButton, &QPushButton::clicked, this, &LoginDialog::onForgotPassword);
     connect(togglePwdButton, &QPushButton::toggled, this, &LoginDialog::togglePasswordVisibility);
 }
-
+bool LoginDialog::eventFilter(QObject *watched, QEvent *event)
+{
+    if (watched == passwordEdit) {
+        QFrame *container = qobject_cast<QFrame*>(passwordEdit->parentWidget());
+        if (container) {
+            if (event->type() == QEvent::FocusIn) {
+                container->setStyleSheet(R"(
+                    QFrame#pwdContainer {
+                        border: 1.5px solid #2B6CB0;
+                        border-radius: 8px;
+                        background: white;
+                    }
+                )");
+            } else if (event->type() == QEvent::FocusOut) {
+                container->setStyleSheet(R"(
+                    QFrame#pwdContainer {
+                        border: 1.5px solid #E2E8F0;
+                        border-radius: 8px;
+                        background: #F7FAFC;
+                        
+                    }
+                    QFrame#pwdContainer:hover {
+                        border: 1.5px solid #CBD5E0;
+                    }
+                )");
+            }
+        }
+    }
+    return QDialog::eventFilter(watched, event);
+}
 void LoginDialog::applyStyles()
 {
-    setStyleSheet("background: #EDF2F7;");
+    setStyleSheet("background: #094684;");
 
     QString inputStyle = R"(
         QLineEdit {
             border: 1.5px solid #E2E8F0;
-            border-radius: 8px;
+        border-radius: 8px;
+        background: #F7FAFC;
             padding: 0 12px;
             font-size: 13px;
-            background: #F7FAFC;
+           
             color: #2D3748;
-            selection-background-color: #2B6CB0;
+            selection-background-color: #E2E8F0;
         }
-        QLineEdit:focus {
-            border: 1.5px solid #2B6CB0;
-            background: white;
-        }
+        
         QLineEdit:hover {
             border: 1.5px solid #CBD5E0;
         }
@@ -288,16 +359,21 @@ void LoginDialog::applyStyles()
         }
     )");
 
-    passwordEdit->parentWidget()->setStyleSheet(R"(
-        QFrame#pwdContainer {
-            border: 1.5px solid #E2E8F0;
-            border-radius: 8px;
-            background: #F7FAFC;
-        }
-        QFrame#pwdContainer:hover {
-            border: 1.5px solid #CBD5E0;
-        }
-    )");
+   // ✅ APRÈS
+passwordEdit->parentWidget()->setStyleSheet(R"(
+    QFrame#pwdContainer {
+        border: 1.5px solid #E2E8F0;
+        border-radius: 8px;
+        background: #F7FAFC;
+    }
+    QFrame#pwdContainer:hover {
+        border: 1.5px solid #CBD5E0;
+    }
+    QFrame#pwdContainer[focused="true"] {
+        border: 1.5px solid #2B6CB0;
+        background: white;
+    }
+)");
 
     togglePwdButton->setStyleSheet(R"(
         QPushButton {
@@ -337,7 +413,7 @@ void LoginDialog::applyStyles()
 
     loginButton->setStyleSheet(R"(
         QPushButton {
-            background: #1A202C;
+            background: #3a5387;
             color: white;
             font-weight: bold;
             font-size: 14px;
@@ -355,10 +431,10 @@ void LoginDialog::applyStyles()
     createButton->setStyleSheet(R"(
         QPushButton {
             background: white;
-            color: #4A5568;
+            color: #566b90;
             font-weight: 600;
             font-size: 13px;
-            border: 1.5px solid #E2E8F0;
+            border: 1.5px solid #c5cfdb;
             border-radius: 8px;
         }
         QPushButton:hover {

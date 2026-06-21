@@ -2,6 +2,7 @@
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QSqlQuery>
+#include <QDateTime>
 #include <QDate>
 #include <QPainter>
 #include <QGraphicsDropShadowEffect>
@@ -9,22 +10,25 @@
 #include <QtCharts/QSplineSeries>
 #include <QtCharts/QAreaSeries>
 #include <QtCharts/QPieSlice>
+#include <QPainterPath>
+#include <QPixmap>
 #include <QtCharts/QBarCategoryAxis>
 #include <QtCharts/QValueAxis>
 #include <QLinearGradient>
 #include <QScrollArea>  // ← AJOUTÉ pour le scroll
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ✅ APRÈS
 namespace T {
-    constexpr auto SB_BG        = "#ffffff";
-    constexpr auto SB_HOVER     = "#ebf0f7";
-    constexpr auto SB_ACTIVE_BG = "#1D3461";
-    constexpr auto SB_BORDER    = "#000006";
+    constexpr auto SB_BG        = "#1E293B";   // ← sidebar bleu marine foncé
+    constexpr auto SB_HOVER     = "#334155";   // ← hover plus clair sur fond foncé
+    constexpr auto SB_ACTIVE_BG = "#2563EB";   // ← bleu vif pour item actif
+    constexpr auto SB_BORDER    = "#334155";   // ← bordures discrètes sur fond foncé
     constexpr auto SB_LOGO      = "#60A5FA";
-    constexpr auto SB_SECTION   = "#13458b";
-    constexpr auto SB_TEXT      = "#030000";
+    constexpr auto SB_SECTION   = "#64748B";   // ← labels de section gris clair
+    constexpr auto SB_TEXT      = "#CBD5E1";   // ← texte clair sur fond foncé
     constexpr auto SB_TEXT_ACT  = "#ffffff";
-    constexpr auto SB_ACCENT    = "#3B82F6";
+    constexpr auto SB_ACCENT    = "#2563EB";
     constexpr auto SB_LOGOUT    = "#ffffff";
     constexpr auto BG           = "#F1F5F9";
     constexpr auto CARD_BG      = "#FFFFFF";
@@ -35,9 +39,8 @@ namespace T {
     constexpr auto C_VIOLET     = "#7C3AED";
     constexpr auto C_AMBER      = "#D97706";
     constexpr auto C_ORANGE     = "#C2410C";
-    constexpr auto CHART_LINE   = "#3B82F6";
+    constexpr auto CHART_LINE   = "#D97706";   // ← courbe orange comme l'image 2
 }
-
 static QGraphicsDropShadowEffect* softShadow(int blur = 18, int alpha = 25)
 {
     auto *e = new QGraphicsDropShadowEffect;
@@ -67,17 +70,17 @@ DashboardWidget::DashboardWidget(QWidget *parent) : QWidget(parent)
     QHBoxLayout *hl = new QHBoxLayout(header);
     hl->setContentsMargins(0,0,0,0);
 
-    QLabel *pageTitle = new QLabel("Vue d'ensemble");
-    // ── CORRECTION : .arg() ajouté pour la couleur ──────────────────────────
-    pageTitle->setStyleSheet(
-        QString("font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
-                "font-size:30px;font-weight:900;color:%1;").arg(T::SB_BORDER));
+// ✅ APRÈS
+QLabel *pageTitle = new QLabel("Vue d'ensemble");
+pageTitle->setStyleSheet(
+    "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
+    "font-size:22px;font-weight:800;color:#0F172A;");
 
-    QLabel *dateLbl = new QLabel(
-        QDate::currentDate().toString("dddd d MMMM yyyy"));
-    // ── CORRECTION : .arg() ajouté pour la couleur ──────────────────────────
-    dateLbl->setStyleSheet(
-        QString("font-size:13px;color:%1;font-weight:300;").arg(T::SB_BORDER));
+    // ✅ APRÈS
+QLabel *dateLbl = new QLabel(
+    QDateTime::currentDateTime().toString("dddd d MMMM yyyy, HH:mm:ss"));
+dateLbl->setStyleSheet(
+    "font-size:12px;color:#64748B;font-weight:400;");
 
     hl->addWidget(pageTitle);
     hl->addStretch();
@@ -120,19 +123,40 @@ void DashboardWidget::setupSidebar()
             .arg(T::SB_BG, T::SB_BORDER));
     QHBoxLayout *ll = new QHBoxLayout(logoArea);
     ll->setContentsMargins(20, 0, 16, 0);
+// ✅ APRÈS
+QLabel *logoIcon = new QLabel;
+logoIcon->setFixedSize(34, 34);
+logoIcon->setAlignment(Qt::AlignCenter);
 
-    QLabel *logoIcon = new QLabel("F");
-    logoIcon->setFixedSize(32, 32);
-    logoIcon->setAlignment(Qt::AlignCenter);
+QPixmap logoPix(":/images/logo.png");
+if (!logoPix.isNull()) {
+    QPixmap scaled = logoPix.scaled(68, 68,
+        Qt::KeepAspectRatioByExpanding, Qt::SmoothTransformation);
+
+    QPixmap rounded(68, 68);
+    rounded.fill(Qt::transparent);
+    QPainter painter(&rounded);
+    painter.setRenderHint(QPainter::Antialiasing);
+    QPainterPath path;
+    path.addRoundedRect(0, 0, 68, 68, 14, 14);
+    painter.setClipPath(path);
+    int x = (scaled.width() - 68) / 2;
+    int y = (scaled.height() - 68) / 2;
+    painter.drawPixmap(-x, -y, scaled);
+
+    rounded.setDevicePixelRatio(2.0);
+    logoIcon->setPixmap(rounded);
+    logoIcon->setStyleSheet("background:transparent;");
+} else {
+    logoIcon->setText("F");
     logoIcon->setStyleSheet(
-    QString("background:%1;border-radius:8px;"
-                "font-size:16px;font-weight:800;color:#0F172A;")
-            .arg(T::SB_LOGO));
+        "background:#2563EB;border-radius:7px;"
+        "font-size:14px;font-weight:800;color:#ffffff;");
+}
 
-    QLabel *logoText = new QLabel("FacturPro");
-    logoText->setStyleSheet(
-    QString("font-size:16px;font-weight:800;color:%1;letter-spacing:0.3px;")
-            .arg(T::SB_LOGO));
+QLabel *logoText = new QLabel("DigitalFacture");
+logoText->setStyleSheet(
+    "font-size:15px;font-weight:800;color:#ffffff;letter-spacing:0.3px;");
 
     ll->addWidget(logoIcon);
     ll->addSpacing(8);
@@ -360,39 +384,38 @@ void DashboardWidget::setupStatCards()
         {"Montant en Attente", "⏳", T::C_ORANGE, &montantEnAttenteLabel},
     };
 
-    for (auto &d : defs) {
-        QFrame *card = new QFrame;
-        card->setStyleSheet(
-            QString("QFrame{"
-                    "  background:%1;"
-                    "  border-radius:12px;"
-                    "  border:1px solid %2;"
-                    "  border-top:3px solid %3;"
-                    "}").arg(T::CARD_BG, T::CARD_BORDER, d.accent));
-        card->setMinimumHeight(96);
-        card->setGraphicsEffect(softShadow());
+   // ✅ APRÈS — cartes plus compactes, moins de padding, coins moins arrondis
+for (auto &d : defs) {
+    QFrame *card = new QFrame;
+    card->setStyleSheet(
+        QString("QFrame{"
+                "  background:%1;"
+                "  border-radius:8px;"
+                "  border:1px solid %2;"
+                "}").arg(T::CARD_BG, T::CARD_BORDER));
+    card->setFixedHeight(72);
+    card->setGraphicsEffect(softShadow(10, 12));
 
-        QVBoxLayout *cl = new QVBoxLayout(card);
-        cl->setContentsMargins(14, 12, 14, 12);
-        cl->setSpacing(5);
+    QVBoxLayout *cl = new QVBoxLayout(card);
+    cl->setContentsMargins(12, 10, 12, 10);
+    cl->setSpacing(3);
 
-        QLabel *lbl = new QLabel(d.icon + "  " + d.title);
-        lbl->setStyleSheet(
-            "font-size:12px;font-weight:800;color:#64748B;"
-            "letter-spacing:0.7px;background:transparent;border:none;");
+    QLabel *val = new QLabel("—");
+    val->setStyleSheet(
+        "font-size:19px;font-weight:800;color:#0F172A;"
+        "background:transparent;border:none;"
+        "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;");
 
-        QLabel *val = new QLabel("—");
-        val->setStyleSheet(
-            QString("font-size:20px;font-weight:800;color:%1;"
-                    "background:transparent;border:none;"
-                    "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;")
-                .arg(d.accent));
+    QLabel *lbl = new QLabel(d.title);
+    lbl->setStyleSheet(
+        "font-size:11px;font-weight:600;color:#64748B;"
+        "background:transparent;border:none;");
 
-        *d.ptr = val;
-        cl->addWidget(lbl);
-        cl->addWidget(val);
-        row->addWidget(card, 1);
-    }
+    *d.ptr = val;
+    cl->addWidget(val);
+    cl->addWidget(lbl);
+    row->addWidget(card, 1);
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

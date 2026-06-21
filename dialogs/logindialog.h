@@ -24,6 +24,7 @@ signals:
     void createAccountRequested();
    protected:
     void paintEvent(QPaintEvent *event) override;
+    bool eventFilter(QObject *watched, QEvent *event) override;
 
 private slots:
     void onLogin();
@@ -50,12 +51,14 @@ private:
     QPushButton *createButton;
     QPushButton *forgotButton;
     QPushButton *togglePwdButton;
-      QLabel *m_imagePanel = nullptr;
+   
     QTimer *m_countdownTimer;
     int m_remainingSeconds;
     int m_attemptCount;
     QString m_pendingEmail;
     QString m_verificationCode;
+    class RoundedImageLabel *m_imagePanel = nullptr;   
+    QPixmap m_sideImage;
     
 };
 
