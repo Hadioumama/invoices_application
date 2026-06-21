@@ -17,16 +17,15 @@
 #include <QLinearGradient>
 #include <QScrollArea>  // ← AJOUTÉ pour le scroll
 
-// ─────────────────────────────────────────────────────────────────────────────
 // ✅ APRÈS
 namespace T {
-    constexpr auto SB_BG        = "#1E293B";   // ← sidebar bleu marine foncé
-    constexpr auto SB_HOVER     = "#334155";   // ← hover plus clair sur fond foncé
-    constexpr auto SB_ACTIVE_BG = "#2563EB";   // ← bleu vif pour item actif
-    constexpr auto SB_BORDER    = "#334155";   // ← bordures discrètes sur fond foncé
+    constexpr auto SB_BG        = "#1E293B";
+    constexpr auto SB_HOVER     = "#334155";
+    constexpr auto SB_ACTIVE_BG = "#2563EB";
+    constexpr auto SB_BORDER    = "#334155";
     constexpr auto SB_LOGO      = "#60A5FA";
-    constexpr auto SB_SECTION   = "#64748B";   // ← labels de section gris clair
-    constexpr auto SB_TEXT      = "#CBD5E1";   // ← texte clair sur fond foncé
+    constexpr auto SB_SECTION   = "#64748B";
+    constexpr auto SB_TEXT      = "#CBD5E1";
     constexpr auto SB_TEXT_ACT  = "#ffffff";
     constexpr auto SB_ACCENT    = "#2563EB";
     constexpr auto SB_LOGOUT    = "#ffffff";
@@ -39,7 +38,7 @@ namespace T {
     constexpr auto C_VIOLET     = "#7C3AED";
     constexpr auto C_AMBER      = "#D97706";
     constexpr auto C_ORANGE     = "#C2410C";
-    constexpr auto CHART_LINE   = "#D97706";   // ← courbe orange comme l'image 2
+    constexpr auto CHART_LINE   = "#D97706";
 }
 static QGraphicsDropShadowEffect* softShadow(int blur = 18, int alpha = 25)
 {
@@ -76,7 +75,6 @@ pageTitle->setStyleSheet(
     "font-family:'Segoe UI Semibold','SF Pro Display',sans-serif;"
     "font-size:22px;font-weight:800;color:#0F172A;");
 
-    // ✅ APRÈS
 QLabel *dateLbl = new QLabel(
     QDateTime::currentDateTime().toString("dddd d MMMM yyyy, HH:mm:ss"));
 dateLbl->setStyleSheet(
@@ -384,7 +382,7 @@ void DashboardWidget::setupStatCards()
         {"Montant en Attente", "⏳", T::C_ORANGE, &montantEnAttenteLabel},
     };
 
-   // ✅ APRÈS — cartes plus compactes, moins de padding, coins moins arrondis
+// ✅ APRÈS
 for (auto &d : defs) {
     QFrame *card = new QFrame;
     card->setStyleSheet(
@@ -518,8 +516,8 @@ void DashboardWidget::updateBarChart()
     area->setPen(pen);
     QLinearGradient g(0,0,0,1);
     g.setCoordinateMode(QGradient::ObjectBoundingMode);
-    g.setColorAt(0.0, QColor(59,130,246,80));
-    g.setColorAt(1.0, QColor(59,130,246,4));
+    g.setColorAt(0.0, QColor(22,163,74,0));
+  g.setColorAt(1.0, QColor(22,163,74,0)); 
     area->setBrush(g);
 
     QChart *chart = new QChart;
